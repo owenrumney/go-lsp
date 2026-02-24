@@ -15,18 +15,25 @@
   #main { display: flex; flex: 1; overflow: hidden; }
   #list { width: 40%; border-right: 1px solid #313244; overflow-y: auto; }
   #detail { width: 60%; overflow-y: auto; padding: 12px; }
-  .entry { padding: 6px 12px; cursor: pointer; border-bottom: 1px solid #1e1e2e; font-size: 13px; display: flex; gap: 8px; align-items: center; }
+  .entry { padding: 6px 0; cursor: pointer; border-bottom: 1px solid #1e1e2e; font-size: 13px; display: flex; align-items: center; }
   .entry:hover { background: #313244; }
   .entry.selected { background: #45475a; }
-  .entry .time { color: #6c7086; font-size: 11px; width: 80px; flex-shrink: 0; }
-  .entry .arrow { width: 16px; text-align: center; flex-shrink: 0; }
-  .entry .arrow.in { color: #a6e3a1; }
-  .entry .arrow.out { color: #f38ba8; }
-  .entry .method { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
+  .col-time { color: #6c7086; font-size: 11px; width: 90px; padding-left: 12px; flex-shrink: 0; }
+  .col-type { width: 72px; flex-shrink: 0; }
+  .col-dir { width: 20px; flex-shrink: 0; text-align: center; }
+  .col-dir.in { color: #a6e3a1; }
+  .col-dir.out { color: #f38ba8; }
+  .col-latency { width: 56px; flex-shrink: 0; text-align: right; font-size: 11px; padding-right: 8px; }
+  .col-method { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 12px; }
+  .badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; }
   .badge.request { background: #89b4fa22; color: #89b4fa; }
-  .badge.response { background: #a6e3a122; color: #a6e3a1; }
   .badge.notification { background: #f9e2af22; color: #f9e2af; }
+  .latency { color: #6c7086; }
+  .latency.slow { color: #f9e2af; }
+  .latency.very-slow { color: #f38ba8; }
+  .pending-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #89b4fa; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .error-indicator { color: #f38ba8; font-size: 11px; margin-right: 2px; }
   #detail h3 { font-size: 13px; color: #89b4fa; margin: 12px 0 6px; }
   #detail h3:first-child { margin-top: 0; }
   #detail pre { background: #181825; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; line-height: 1.5; }
@@ -41,13 +48,12 @@
   <input id="search" type="text" placeholder="Search methods & bodies...">
   <select id="direction-filter">
     <option value="">All directions</option>
-    <option value="client→server">client→server</option>
-    <option value="server→client">server→client</option>
+    <option value="client→server">client → server</option>
+    <option value="server→client">server → client</option>
   </select>
   <select id="type-filter">
     <option value="">All types</option>
     <option value="request">request</option>
-    <option value="response">response</option>
     <option value="notification">notification</option>
   </select>
   <span id="counter">0 messages</span>
@@ -68,6 +74,7 @@ const counterEl = document.getElementById('counter');
 const indicatorEl = document.getElementById('new-indicator');
 
 let allEntries = [];
+let entryById = {};
 let selectedId = null;
 let autoScroll = true;
 
@@ -76,30 +83,70 @@ function formatTime(ts) {
   return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
 }
 
+function formatLatency(ms) {
+  if (ms < 1) return '<1ms';
+  if (ms < 1000) return Math.round(ms) + 'ms';
+  return (ms / 1000).toFixed(1) + 's';
+}
+
+function latencyClass(ms) {
+  if (ms > 5000) return 'very-slow';
+  if (ms > 1000) return 'slow';
+  return '';
+}
+
+// Returns rows for the list: requests and notifications only (responses are merged into their request).
+function getListRows() {
+  return allEntries.filter(e => e.msgType === 'request' || e.msgType === 'notification');
+}
+
 function matchesFilter(e) {
   const dir = dirFilter.value;
   const type_ = typeFilter.value;
   const q = searchEl.value.toLowerCase();
   if (dir && e.direction !== dir) return false;
   if (type_ && e.msgType !== type_) return false;
-  if (q && !e.method.toLowerCase().includes(q) && !JSON.stringify(e.body).toLowerCase().includes(q)) return false;
+  if (q) {
+    let matchText = e.method.toLowerCase() + JSON.stringify(e.body).toLowerCase();
+    // Also search in paired response body.
+    if (e.pairedWith >= 0) {
+      const resp = entryById[e.pairedWith];
+      if (resp) matchText += JSON.stringify(resp.body).toLowerCase();
+    }
+    if (!matchText.includes(q)) return false;
+  }
   return true;
 }
 
 function renderList() {
-  const filtered = allEntries.filter(matchesFilter);
-  counterEl.textContent = filtered.length + ' / ' + allEntries.length + ' messages';
-  if (filtered.length === 0) {
+  const rows = getListRows().filter(matchesFilter);
+  counterEl.textContent = rows.length + ' messages';
+  if (rows.length === 0) {
     listEl.innerHTML = '<div class="empty">No matching messages</div>';
     return;
   }
-  listEl.innerHTML = filtered.map(e => {
-    const isIn = e.direction === 'client→server';
+  listEl.innerHTML = rows.map(e => {
+    const isIn = e.direction === 'client\u2192server';
+    let latencyHtml = '';
+    if (e.msgType === 'request') {
+      if (e.pairedWith >= 0) {
+        const resp = entryById[e.pairedWith];
+        if (resp) {
+          const ms = new Date(resp.timestamp) - new Date(e.timestamp);
+          const hasError = resp.body && JSON.stringify(resp.body).includes('"error"');
+          const errHtml = hasError ? '<span class="error-indicator">err </span>' : '';
+          latencyHtml = `${errHtml}<span class="latency ${latencyClass(ms)}">${formatLatency(ms)}</span>`;
+        }
+      } else {
+        latencyHtml = '<span class="pending-dot"></span>';
+      }
+    }
     return `<div class="entry ${e.id === selectedId ? 'selected' : ''}" data-id="${e.id}">
-      <span class="time">${formatTime(e.timestamp)}</span>
-      <span class="arrow ${isIn ? 'in' : 'out'}">${isIn ? '→' : '←'}</span>
-      <span class="method">${e.method || '(response)'}</span>
-      <span class="badge ${e.msgType}">${e.msgType}</span>
+      <span class="col-time">${formatTime(e.timestamp)}</span>
+      <span class="col-type"><span class="badge ${e.msgType}">${e.msgType}</span></span>
+      <span class="col-dir ${isIn ? 'in' : 'out'}">${isIn ? '\u2192' : '\u2190'}</span>
+      <span class="col-latency">${latencyHtml}</span>
+      <span class="col-method">${e.method}</span>
     </div>`;
   }).join('');
 }
@@ -109,20 +156,32 @@ function renderDetail() {
     detailEl.innerHTML = '<div class="empty">Select a message to view details</div>';
     return;
   }
-  const e = allEntries.find(x => x.id === selectedId);
+  const e = entryById[selectedId];
   if (!e) return;
 
-  let html = `<div class="meta">#${e.id} · ${formatTime(e.timestamp)} · ${e.direction} · ${e.msgType}${e.rpcId ? ' · id: ' + e.rpcId : ''}</div>`;
-  html += '<h3>Message</h3>';
-  html += '<pre>' + escapeHtml(prettyJson(e.body)) + '</pre>';
+  let html = `<div class="meta">#${e.id} \u00b7 ${formatTime(e.timestamp)} \u00b7 ${e.direction} \u00b7 ${e.msgType}${e.rpcId ? ' \u00b7 id: ' + e.rpcId : ''}</div>`;
 
-  if (e.pairedWith >= 0) {
-    const paired = allEntries.find(x => x.id === e.pairedWith);
-    if (paired) {
-      html += `<h3>Paired ${paired.msgType} (#${paired.id})</h3>`;
-      html += '<pre>' + escapeHtml(prettyJson(paired.body)) + '</pre>';
+  if (e.msgType === 'request') {
+    html += '<h3>Request</h3>';
+    html += '<pre>' + escapeHtml(prettyJson(e.body)) + '</pre>';
+    if (e.pairedWith >= 0) {
+      const resp = entryById[e.pairedWith];
+      if (resp) {
+        const ms = new Date(resp.timestamp) - new Date(e.timestamp);
+        html += `<h3>Response <span class="latency ${latencyClass(ms)}">(${formatLatency(ms)})</span></h3>`;
+        html += '<pre>' + escapeHtml(prettyJson(resp.body)) + '</pre>';
+      }
+    } else {
+      html += '<h3>Response</h3><div class="meta">Pending...</div>';
     }
+  } else if (e.msgType === 'notification') {
+    html += '<h3>Notification</h3>';
+    html += '<pre>' + escapeHtml(prettyJson(e.body)) + '</pre>';
+  } else {
+    html += '<h3>Message</h3>';
+    html += '<pre>' + escapeHtml(prettyJson(e.body)) + '</pre>';
   }
+
   detailEl.innerHTML = html;
 }
 
@@ -138,9 +197,10 @@ function escapeHtml(s) {
 }
 
 function addEntry(e) {
+  entryById[e.id] = e;
   // Update paired entry if this is a response.
   if (e.pairedWith >= 0) {
-    const req = allEntries.find(x => x.id === e.pairedWith);
+    const req = entryById[e.pairedWith];
     if (req && req.pairedWith < 0) req.pairedWith = e.id;
   }
   allEntries.push(e);
