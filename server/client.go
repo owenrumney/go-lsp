@@ -71,6 +71,18 @@ func (c *Client) DiagnosticRefresh(ctx context.Context) error {
 	return err
 }
 
+// CodeLensRefresh sends a workspace/codeLens/refresh request to the client.
+func (c *Client) CodeLensRefresh(ctx context.Context) error {
+	_, err := c.conn.Call(ctx, "workspace/codeLens/refresh", nil)
+	return err
+}
+
+// SemanticTokensRefresh sends a workspace/semanticTokens/refresh request to the client.
+func (c *Client) SemanticTokensRefresh(ctx context.Context) error {
+	_, err := c.conn.Call(ctx, "workspace/semanticTokens/refresh", nil)
+	return err
+}
+
 // ShowDocument sends a window/showDocument request to the client and waits for a response.
 func (c *Client) ShowDocument(ctx context.Context, params *lsp.ShowDocumentParams) (*lsp.ShowDocumentResult, error) {
 	resp, err := c.conn.Call(ctx, "window/showDocument", params)
