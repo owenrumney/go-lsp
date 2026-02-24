@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/owenrumney/go-lsp/debugui"
 	"github.com/owenrumney/go-lsp/jsonrpc"
 	"github.com/owenrumney/go-lsp/lsp"
 )
@@ -19,16 +20,22 @@ type Server struct {
 	shutdown      bool
 	customMethods map[string]jsonrpc.MethodHandler
 	customNotifs  map[string]jsonrpc.NotificationHandler
+	debugAddr     string
+	debugUI       *debugui.DebugUI
 }
 
 // NewServer creates a new LSP server with the given handler.
 // The handler must implement LifecycleHandler at minimum.
-func NewServer(handler LifecycleHandler) *Server {
-	return &Server{
+func NewServer(handler LifecycleHandler, opts ...Option) *Server {
+	s := &Server{
 		handler:       handler,
 		customMethods: make(map[string]jsonrpc.MethodHandler),
 		customNotifs:  make(map[string]jsonrpc.NotificationHandler),
 	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 // HandleMethod registers a custom JSON-RPC method handler.
@@ -45,6 +52,15 @@ func (s *Server) HandleNotification(method string, handler jsonrpc.NotificationH
 
 // Run starts the server, reading from and writing to rw.
 func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
+	if s.debugAddr != "" {
+		store := debugui.NewStore()
+		s.debugUI = debugui.New(s.debugAddr, store)
+		if err := s.debugUI.ListenAndServe(ctx); err != nil {
+			return fmt.Errorf("debugui: %w", err)
+		}
+		rw = debugui.NewTap(rw, store)
+	}
+
 	dispatcher := jsonrpc.NewDispatcher()
 	s.conn = jsonrpc.NewConn(rw, dispatcher)
 	s.Client = newClient(s.conn)
