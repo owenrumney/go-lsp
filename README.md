@@ -6,18 +6,20 @@ This library targets **LSP 3.17**. The table below shows which parts of the spec
 
 ## Contents
 
-- [LSP support](#lsp-support)
-- [Installation](#installation)
-- [Quick start](#quick-start)
-- [Transports](#transports)
-- [Handler interfaces](#handler-interfaces)
-  - [Lifecycle (required)](#lifecycle-required)
-  - [Text document sync](#text-document-sync)
-  - [Language features](#language-features)
-  - [Workspace](#workspace)
-- [Server-to-client communication](#server-to-client-communication)
-- [Custom methods](#custom-methods)
-- [Project structure](#project-structure)
+- [go-lsp](#go-lsp)
+	- [Contents](#contents)
+		- [LSP support](#lsp-support)
+	- [Installation](#installation)
+	- [Quick start](#quick-start)
+	- [Transports](#transports)
+	- [Handler interfaces](#handler-interfaces)
+		- [Lifecycle (required)](#lifecycle-required)
+		- [Text document sync](#text-document-sync)
+		- [Language features](#language-features)
+		- [Workspace](#workspace)
+	- [Server-to-client communication](#server-to-client-communication)
+	- [Custom methods](#custom-methods)
+	- [Project structure](#project-structure)
 
 ### LSP support
 
@@ -79,6 +81,8 @@ This library targets **LSP 3.17**. The table below shows which parts of the spec
 | | inlineValue | Yes |
 | | textDocument/diagnostic (pull) | Yes |
 | **Workspace** | workspace/diagnostic | Yes |
+| | workspace/codeLens/refresh | Yes |
+| | workspace/semanticTokens/refresh | Yes |
 | | workspace/inlayHint/refresh | Yes |
 | | workspace/inlineValue/refresh | Yes |
 | | workspace/diagnostic/refresh | Yes |
@@ -127,17 +131,11 @@ func (h *Handler) Hover(ctx context.Context, params *lsp.HoverParams) (*lsp.Hove
 	}, nil
 }
 
-// stdRWC wraps stdin/stdout into a single io.ReadWriteCloser.
-type stdRWC struct{}
-
-func (stdRWC) Read(p []byte) (int, error)  { return os.Stdin.Read(p) }
-func (stdRWC) Write(p []byte) (int, error) { return os.Stdout.Write(p) }
-func (stdRWC) Close() error                { return nil }
 
 func main() {
 	srv := server.NewServer(&Handler{})
 
-	if err := srv.Run(context.Background(), stdRWC{}); err != nil {
+	if err := srv.Run(context.Background(), server.RunStdio()); err != nil {
 		os.Exit(1)
 	}
 }
