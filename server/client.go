@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/owenrumney/go-lsp/jsonrpc"
+	"github.com/owenrumney/go-lsp/internal/jsonrpc"
 	"github.com/owenrumney/go-lsp/lsp"
 )
 

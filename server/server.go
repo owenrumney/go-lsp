@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/owenrumney/go-lsp/debugui"
-	"github.com/owenrumney/go-lsp/jsonrpc"
+	"github.com/owenrumney/go-lsp/internal/debugui"
+	"github.com/owenrumney/go-lsp/internal/jsonrpc"
 	"github.com/owenrumney/go-lsp/lsp"
 )
 
