@@ -19,6 +19,7 @@ This library targets **LSP 3.17**. The table below shows which parts of the spec
 		- [Workspace](#workspace)
 	- [Server-to-client communication](#server-to-client-communication)
 	- [Custom methods](#custom-methods)
+	- [Debug UI](#debug-ui)
 	- [Project structure](#project-structure)
 
 ### LSP support
@@ -305,6 +306,28 @@ srv.Run(ctx, rwc)
 ```
 
 Custom handlers must be registered before calling `Run`.
+
+## Debug UI
+
+The library includes an optional debug UI that captures all LSP traffic and displays it in a web interface. This is useful for inspecting the messages flowing between client and server during development.
+
+Enable it with the `WithDebugUI` option:
+
+```go
+srv := server.NewServer(&Handler{}, server.WithDebugUI(":7100"))
+srv.Run(ctx, server.RunStdio())
+```
+
+Then open `http://localhost:7100` in a browser. The UI shows messages in real time via WebSocket, with:
+
+- Request/response pairing with latency tracking
+- Direction and type filters
+- Full-text search across methods and JSON bodies
+- Pretty-printed message details
+
+The tap is transparent -- it intercepts LSP frames for display without modifying them.
+
+![Debug UI](./.github/images/debugui.png)
 
 ## Project structure
 
