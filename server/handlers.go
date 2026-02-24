@@ -13,6 +13,14 @@ type LifecycleHandler interface {
 	Shutdown(ctx context.Context) error
 }
 
+// ClientHandler is an optional interface that handlers can implement to receive
+// the server's Client for sending server→client requests and notifications.
+// SetClient is called after the connection is established but before any LSP
+// methods are dispatched.
+type ClientHandler interface {
+	SetClient(client *Client)
+}
+
 // SetTraceHandler handles $/setTrace notifications.
 type SetTraceHandler interface {
 	SetTrace(ctx context.Context, params *lsp.SetTraceParams) error

@@ -49,6 +49,10 @@ func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
 	s.conn = jsonrpc.NewConn(rw, dispatcher)
 	s.Client = newClient(s.conn)
 
+	if h, ok := s.handler.(ClientHandler); ok {
+		h.SetClient(s.Client)
+	}
+
 	s.registerMethods(dispatcher)
 	s.registerNotifications(dispatcher)
 
