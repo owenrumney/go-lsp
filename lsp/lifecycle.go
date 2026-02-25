@@ -92,7 +92,7 @@ type DocumentHighlightParams struct {
 
 // DocumentHighlight represents a highlight in a document.
 type DocumentHighlight struct {
-	Range Range              `json:"range"`
+	Range Range                  `json:"range"`
 	Kind  *DocumentHighlightKind `json:"kind,omitempty"`
 }
 

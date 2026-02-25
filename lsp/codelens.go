@@ -11,7 +11,7 @@ type CodeLensParams struct {
 
 // CodeLens represents a command that should be shown along with source text.
 type CodeLens struct {
-	Range   Range            `json:"range"`
-	Command *Command         `json:"command,omitempty"`
-	Data    json.RawMessage  `json:"data,omitempty"`
+	Range   Range           `json:"range"`
+	Command *Command        `json:"command,omitempty"`
+	Data    json.RawMessage `json:"data,omitempty"`
 }

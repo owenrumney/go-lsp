@@ -15,7 +15,7 @@ import (
 )
 
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
+	CheckOrigin: func(_ *http.Request) bool { return true },
 }
 
 // Hub manages websocket clients and broadcasts entries to them.
@@ -84,8 +84,9 @@ func New(addr string, store *Store) *DebugUI {
 	mux.HandleFunc("GET /api/messages/search", d.handleSearch)
 
 	d.srv = &http.Server{
-		Addr:    addr,
-		Handler: mux,
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	return d
@@ -125,14 +126,14 @@ func (d *DebugUI) handleWS(w http.ResponseWriter, r *http.Request) {
 	ch := d.hub.add(conn)
 	defer func() {
 		d.hub.remove(conn)
-		conn.Close()
+		_ = conn.Close()
 	}()
 
 	// Discard incoming messages (just read to detect close).
 	go func() {
 		for {
 			if _, _, err := conn.ReadMessage(); err != nil {
-				conn.Close()
+				_ = conn.Close()
 				return
 			}
 		}
@@ -161,14 +162,14 @@ func (d *DebugUI) handleMessages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(entries)
+	_ = json.NewEncoder(w).Encode(entries)
 }
 
 func (d *DebugUI) handleSearch(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	if q == "" {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("[]"))
+		_, _ = w.Write([]byte("[]"))
 		return
 	}
 
@@ -178,7 +179,7 @@ func (d *DebugUI) handleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(entries)
+	_ = json.NewEncoder(w).Encode(entries)
 }
 
 // staticFiles returns the filesystem for the embedded static files.

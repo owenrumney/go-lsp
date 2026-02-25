@@ -18,7 +18,7 @@ func (h *handler) Initialize(_ context.Context, _ *lsp.InitializeParams) (*lsp.I
 
 func (h *handler) Shutdown(_ context.Context) error { return nil }
 
-func (h *handler) Hover(_ context.Context, params *lsp.HoverParams) (*lsp.Hover, error) {
+func (h *handler) Hover(_ context.Context, _ *lsp.HoverParams) (*lsp.Hover, error) {
 	return &lsp.Hover{
 		Contents: lsp.MarkupContent{
 			Kind:  lsp.Markdown,

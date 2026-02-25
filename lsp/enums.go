@@ -31,18 +31,18 @@ const (
 type CompletionTriggerKind int
 
 const (
-	CompletionTriggerInvoked                         CompletionTriggerKind = 1
-	CompletionTriggerCharacter                       CompletionTriggerKind = 2
-	CompletionTriggerForIncompleteCompletions        CompletionTriggerKind = 3
+	CompletionTriggerInvoked                  CompletionTriggerKind = 1
+	CompletionTriggerCharacter                CompletionTriggerKind = 2
+	CompletionTriggerForIncompleteCompletions CompletionTriggerKind = 3
 )
 
 // SignatureHelpTriggerKind indicates how signature help was triggered.
 type SignatureHelpTriggerKind int
 
 const (
-	SignatureHelpTriggerInvoked         SignatureHelpTriggerKind = 1
-	SignatureHelpTriggerCharacter       SignatureHelpTriggerKind = 2
-	SignatureHelpTriggerContentChange   SignatureHelpTriggerKind = 3
+	SignatureHelpTriggerInvoked       SignatureHelpTriggerKind = 1
+	SignatureHelpTriggerCharacter     SignatureHelpTriggerKind = 2
+	SignatureHelpTriggerContentChange SignatureHelpTriggerKind = 3
 )
 
 // InsertTextFormat defines how an insert text is interpreted.

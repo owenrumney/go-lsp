@@ -16,7 +16,7 @@ type mockHandler struct {
 	opened      []lsp.DocumentURI
 }
 
-func (m *mockHandler) Initialize(_ context.Context, params *lsp.InitializeParams) (*lsp.InitializeResult, error) {
+func (m *mockHandler) Initialize(_ context.Context, _ *lsp.InitializeParams) (*lsp.InitializeResult, error) {
 	m.initialized = true
 	return &lsp.InitializeResult{
 		ServerInfo: &lsp.ServerInfo{Name: "test-server", Version: "0.1.0"},
@@ -40,7 +40,7 @@ func (m *mockHandler) DidClose(_ context.Context, _ *lsp.DidCloseTextDocumentPar
 	return nil
 }
 
-func (m *mockHandler) Hover(_ context.Context, params *lsp.HoverParams) (*lsp.Hover, error) {
+func (m *mockHandler) Hover(_ context.Context, _ *lsp.HoverParams) (*lsp.Hover, error) {
 	return &lsp.Hover{
 		Contents: lsp.MarkupContent{
 			Kind:  lsp.Markdown,

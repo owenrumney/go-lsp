@@ -18,9 +18,9 @@ type ShowMessageParams struct {
 
 // ShowMessageRequestParams contains the params for window/showMessageRequest.
 type ShowMessageRequestParams struct {
-	Type    MessageType          `json:"type"`
-	Message string               `json:"message"`
-	Actions []MessageActionItem  `json:"actions,omitempty"`
+	Type    MessageType         `json:"type"`
+	Message string              `json:"message"`
+	Actions []MessageActionItem `json:"actions,omitempty"`
 }
 
 // MessageActionItem represents a message action item.

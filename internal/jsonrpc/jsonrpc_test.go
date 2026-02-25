@@ -42,8 +42,8 @@ func TestID_MarshalUnmarshal(t *testing.T) {
 
 func TestDecodeMessage(t *testing.T) {
 	tests := []struct {
-		name    string
-		input   string
+		name     string
+		input    string
 		wantType string
 	}{
 		{

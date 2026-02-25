@@ -162,29 +162,24 @@ func buildCapabilities(handler any) lsp.ServerCapabilities {
 	}
 
 	// Workspace file operations
-	var fileOps *lsp.FileOperationOptions
 	allFiles := lsp.FileOperationRegistrationOptions{
 		Filters: []lsp.FileOperationFilter{{Pattern: lsp.FileOperationPattern{Glob: "**/*"}}},
 	}
+	fileOps := &lsp.FileOperationOptions{}
+	hasFileOps := false
 	if _, ok := handler.(WillCreateFilesHandler); ok {
-		if fileOps == nil {
-			fileOps = &lsp.FileOperationOptions{}
-		}
 		fileOps.WillCreate = &allFiles
+		hasFileOps = true
 	}
 	if _, ok := handler.(WillRenameFilesHandler); ok {
-		if fileOps == nil {
-			fileOps = &lsp.FileOperationOptions{}
-		}
 		fileOps.WillRename = &allFiles
+		hasFileOps = true
 	}
 	if _, ok := handler.(WillDeleteFilesHandler); ok {
-		if fileOps == nil {
-			fileOps = &lsp.FileOperationOptions{}
-		}
 		fileOps.WillDelete = &allFiles
+		hasFileOps = true
 	}
-	if fileOps != nil {
+	if hasFileOps {
 		caps.Workspace = &lsp.ServerWorkspaceCapabilities{
 			FileOperations: fileOps,
 		}

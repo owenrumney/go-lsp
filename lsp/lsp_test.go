@@ -120,7 +120,7 @@ func TestInitializeParamsMarshal(t *testing.T) {
 func TestServerCapabilitiesMarshal(t *testing.T) {
 	tr := true
 	caps := ServerCapabilities{
-		HoverProvider:     &tr,
+		HoverProvider:      &tr,
 		DefinitionProvider: &tr,
 		TextDocumentSync: &TextDocumentSyncOptions{
 			OpenClose: &tr,

@@ -30,8 +30,8 @@ type SemanticTokensParams struct {
 type SemanticTokensDeltaParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
-	TextDocument   TextDocumentIdentifier `json:"textDocument"`
-	PreviousResultID string               `json:"previousResultId"`
+	TextDocument     TextDocumentIdentifier `json:"textDocument"`
+	PreviousResultID string                 `json:"previousResultId"`
 }
 
 // SemanticTokensRangeParams contains the params for textDocument/semanticTokens/range.

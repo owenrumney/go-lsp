@@ -101,7 +101,7 @@ func TestTapPartialRead(t *testing.T) {
 	tap := NewTap(inner, store)
 
 	// Write first half — no complete message yet.
-	inner.Buffer.Write(part1)
+	inner.Write(part1)
 	buf := make([]byte, 4096)
 	n, _ := tap.Read(buf)
 	if n != len(part1) {
@@ -114,7 +114,7 @@ func TestTapPartialRead(t *testing.T) {
 	}
 
 	// Write second half — now the message is complete.
-	inner.Buffer.Write(part2)
+	inner.Write(part2)
 	n, _ = tap.Read(buf)
 	if n != len(part2) {
 		t.Fatalf("read %d bytes, want %d", n, len(part2))

@@ -315,10 +315,10 @@ func mergeCapabilities(dst, src *lsp.ServerCapabilities) {
 }
 
 // registerIf registers a method handler only if the server handler implements the interface.
-func registerIf[H any](d *jsonrpc.Dispatcher, handler any, method string, fn func(H, context.Context, json.RawMessage) (any, error)) {
+func registerIf[H any](d *jsonrpc.Dispatcher, handler any, method string, fn func(context.Context, H, json.RawMessage) (any, error)) {
 	if h, ok := handler.(H); ok {
 		d.RegisterMethod(method, func(ctx context.Context, params json.RawMessage) (any, error) {
-			return fn(h, ctx, params)
+			return fn(ctx, h, params)
 		})
 	}
 }
@@ -346,7 +346,7 @@ func notifHandler[H any, P any](h H, fn func(H, context.Context, *P) error) json
 }
 
 // Typed handler wrappers for registerIf.
-func handleCompletion(h CompletionHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleCompletion(ctx context.Context, h CompletionHandler, params json.RawMessage) (any, error) {
 	var p lsp.CompletionParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -354,7 +354,7 @@ func handleCompletion(h CompletionHandler, ctx context.Context, params json.RawM
 	return h.Completion(ctx, &p)
 }
 
-func handleCompletionResolve(h CompletionResolveHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleCompletionResolve(ctx context.Context, h CompletionResolveHandler, params json.RawMessage) (any, error) {
 	var p lsp.CompletionItem
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -362,7 +362,7 @@ func handleCompletionResolve(h CompletionResolveHandler, ctx context.Context, pa
 	return h.ResolveCompletionItem(ctx, &p)
 }
 
-func handleHover(h HoverHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleHover(ctx context.Context, h HoverHandler, params json.RawMessage) (any, error) {
 	var p lsp.HoverParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -370,7 +370,7 @@ func handleHover(h HoverHandler, ctx context.Context, params json.RawMessage) (a
 	return h.Hover(ctx, &p)
 }
 
-func handleSignatureHelp(h SignatureHelpHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleSignatureHelp(ctx context.Context, h SignatureHelpHandler, params json.RawMessage) (any, error) {
 	var p lsp.SignatureHelpParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -378,7 +378,7 @@ func handleSignatureHelp(h SignatureHelpHandler, ctx context.Context, params jso
 	return h.SignatureHelp(ctx, &p)
 }
 
-func handleDeclaration(h DeclarationHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleDeclaration(ctx context.Context, h DeclarationHandler, params json.RawMessage) (any, error) {
 	var p lsp.DeclarationParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -386,7 +386,7 @@ func handleDeclaration(h DeclarationHandler, ctx context.Context, params json.Ra
 	return h.Declaration(ctx, &p)
 }
 
-func handleDefinition(h DefinitionHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleDefinition(ctx context.Context, h DefinitionHandler, params json.RawMessage) (any, error) {
 	var p lsp.DefinitionParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -394,7 +394,7 @@ func handleDefinition(h DefinitionHandler, ctx context.Context, params json.RawM
 	return h.Definition(ctx, &p)
 }
 
-func handleTypeDefinition(h TypeDefinitionHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleTypeDefinition(ctx context.Context, h TypeDefinitionHandler, params json.RawMessage) (any, error) {
 	var p lsp.TypeDefinitionParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -402,7 +402,7 @@ func handleTypeDefinition(h TypeDefinitionHandler, ctx context.Context, params j
 	return h.TypeDefinition(ctx, &p)
 }
 
-func handleImplementation(h ImplementationHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleImplementation(ctx context.Context, h ImplementationHandler, params json.RawMessage) (any, error) {
 	var p lsp.ImplementationParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -410,7 +410,7 @@ func handleImplementation(h ImplementationHandler, ctx context.Context, params j
 	return h.Implementation(ctx, &p)
 }
 
-func handleReferences(h ReferencesHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleReferences(ctx context.Context, h ReferencesHandler, params json.RawMessage) (any, error) {
 	var p lsp.ReferenceParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -418,7 +418,7 @@ func handleReferences(h ReferencesHandler, ctx context.Context, params json.RawM
 	return h.References(ctx, &p)
 }
 
-func handleDocumentHighlight(h DocumentHighlightHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleDocumentHighlight(ctx context.Context, h DocumentHighlightHandler, params json.RawMessage) (any, error) {
 	var p lsp.DocumentHighlightParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -426,7 +426,7 @@ func handleDocumentHighlight(h DocumentHighlightHandler, ctx context.Context, pa
 	return h.DocumentHighlight(ctx, &p)
 }
 
-func handleDocumentSymbol(h DocumentSymbolHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleDocumentSymbol(ctx context.Context, h DocumentSymbolHandler, params json.RawMessage) (any, error) {
 	var p lsp.DocumentSymbolParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -434,7 +434,7 @@ func handleDocumentSymbol(h DocumentSymbolHandler, ctx context.Context, params j
 	return h.DocumentSymbol(ctx, &p)
 }
 
-func handleCodeAction(h CodeActionHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleCodeAction(ctx context.Context, h CodeActionHandler, params json.RawMessage) (any, error) {
 	var p lsp.CodeActionParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -442,7 +442,7 @@ func handleCodeAction(h CodeActionHandler, ctx context.Context, params json.RawM
 	return h.CodeAction(ctx, &p)
 }
 
-func handleCodeLens(h CodeLensHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleCodeLens(ctx context.Context, h CodeLensHandler, params json.RawMessage) (any, error) {
 	var p lsp.CodeLensParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -450,7 +450,7 @@ func handleCodeLens(h CodeLensHandler, ctx context.Context, params json.RawMessa
 	return h.CodeLens(ctx, &p)
 }
 
-func handleCodeLensResolve(h CodeLensResolveHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleCodeLensResolve(ctx context.Context, h CodeLensResolveHandler, params json.RawMessage) (any, error) {
 	var p lsp.CodeLens
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -458,7 +458,7 @@ func handleCodeLensResolve(h CodeLensResolveHandler, ctx context.Context, params
 	return h.ResolveCodeLens(ctx, &p)
 }
 
-func handleDocumentLink(h DocumentLinkHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleDocumentLink(ctx context.Context, h DocumentLinkHandler, params json.RawMessage) (any, error) {
 	var p lsp.DocumentLinkParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -466,7 +466,7 @@ func handleDocumentLink(h DocumentLinkHandler, ctx context.Context, params json.
 	return h.DocumentLink(ctx, &p)
 }
 
-func handleDocumentColor(h DocumentColorHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleDocumentColor(ctx context.Context, h DocumentColorHandler, params json.RawMessage) (any, error) {
 	var p lsp.DocumentColorParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -474,7 +474,7 @@ func handleDocumentColor(h DocumentColorHandler, ctx context.Context, params jso
 	return h.DocumentColor(ctx, &p)
 }
 
-func handleColorPresentation(h ColorPresentationHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleColorPresentation(ctx context.Context, h ColorPresentationHandler, params json.RawMessage) (any, error) {
 	var p lsp.ColorPresentationParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -482,7 +482,7 @@ func handleColorPresentation(h ColorPresentationHandler, ctx context.Context, pa
 	return h.ColorPresentation(ctx, &p)
 }
 
-func handleFormatting(h DocumentFormattingHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleFormatting(ctx context.Context, h DocumentFormattingHandler, params json.RawMessage) (any, error) {
 	var p lsp.DocumentFormattingParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -490,7 +490,7 @@ func handleFormatting(h DocumentFormattingHandler, ctx context.Context, params j
 	return h.Formatting(ctx, &p)
 }
 
-func handleRangeFormatting(h DocumentRangeFormattingHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleRangeFormatting(ctx context.Context, h DocumentRangeFormattingHandler, params json.RawMessage) (any, error) {
 	var p lsp.DocumentRangeFormattingParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -498,7 +498,7 @@ func handleRangeFormatting(h DocumentRangeFormattingHandler, ctx context.Context
 	return h.RangeFormatting(ctx, &p)
 }
 
-func handleOnTypeFormatting(h DocumentOnTypeFormattingHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleOnTypeFormatting(ctx context.Context, h DocumentOnTypeFormattingHandler, params json.RawMessage) (any, error) {
 	var p lsp.DocumentOnTypeFormattingParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -506,7 +506,7 @@ func handleOnTypeFormatting(h DocumentOnTypeFormattingHandler, ctx context.Conte
 	return h.OnTypeFormatting(ctx, &p)
 }
 
-func handleRename(h RenameHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleRename(ctx context.Context, h RenameHandler, params json.RawMessage) (any, error) {
 	var p lsp.RenameParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -514,7 +514,7 @@ func handleRename(h RenameHandler, ctx context.Context, params json.RawMessage) 
 	return h.Rename(ctx, &p)
 }
 
-func handlePrepareRename(h PrepareRenameHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handlePrepareRename(ctx context.Context, h PrepareRenameHandler, params json.RawMessage) (any, error) {
 	var p lsp.PrepareRenameParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -522,7 +522,7 @@ func handlePrepareRename(h PrepareRenameHandler, ctx context.Context, params jso
 	return h.PrepareRename(ctx, &p)
 }
 
-func handleFoldingRange(h FoldingRangeHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleFoldingRange(ctx context.Context, h FoldingRangeHandler, params json.RawMessage) (any, error) {
 	var p lsp.FoldingRangeParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -530,7 +530,7 @@ func handleFoldingRange(h FoldingRangeHandler, ctx context.Context, params json.
 	return h.FoldingRange(ctx, &p)
 }
 
-func handleSelectionRange(h SelectionRangeHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleSelectionRange(ctx context.Context, h SelectionRangeHandler, params json.RawMessage) (any, error) {
 	var p lsp.SelectionRangeParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -538,7 +538,7 @@ func handleSelectionRange(h SelectionRangeHandler, ctx context.Context, params j
 	return h.SelectionRange(ctx, &p)
 }
 
-func handleLinkedEditingRange(h LinkedEditingRangeHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleLinkedEditingRange(ctx context.Context, h LinkedEditingRangeHandler, params json.RawMessage) (any, error) {
 	var p lsp.LinkedEditingRangeParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -546,7 +546,7 @@ func handleLinkedEditingRange(h LinkedEditingRangeHandler, ctx context.Context, 
 	return h.LinkedEditingRange(ctx, &p)
 }
 
-func handleMoniker(h MonikerHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleMoniker(ctx context.Context, h MonikerHandler, params json.RawMessage) (any, error) {
 	var p lsp.MonikerParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -554,7 +554,7 @@ func handleMoniker(h MonikerHandler, ctx context.Context, params json.RawMessage
 	return h.Moniker(ctx, &p)
 }
 
-func handleWorkspaceSymbol(h WorkspaceSymbolHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleWorkspaceSymbol(ctx context.Context, h WorkspaceSymbolHandler, params json.RawMessage) (any, error) {
 	var p lsp.WorkspaceSymbolParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -562,7 +562,7 @@ func handleWorkspaceSymbol(h WorkspaceSymbolHandler, ctx context.Context, params
 	return h.WorkspaceSymbol(ctx, &p)
 }
 
-func handleExecuteCommand(h ExecuteCommandHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleExecuteCommand(ctx context.Context, h ExecuteCommandHandler, params json.RawMessage) (any, error) {
 	var p lsp.ExecuteCommandParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -570,7 +570,7 @@ func handleExecuteCommand(h ExecuteCommandHandler, ctx context.Context, params j
 	return h.ExecuteCommand(ctx, &p)
 }
 
-func handleWillSaveWaitUntil(h TextDocumentWillSaveWaitUntilHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleWillSaveWaitUntil(ctx context.Context, h TextDocumentWillSaveWaitUntilHandler, params json.RawMessage) (any, error) {
 	var p lsp.WillSaveTextDocumentParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -578,7 +578,7 @@ func handleWillSaveWaitUntil(h TextDocumentWillSaveWaitUntilHandler, ctx context
 	return h.WillSaveWaitUntil(ctx, &p)
 }
 
-func handleCodeActionResolve(h CodeActionResolveHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleCodeActionResolve(ctx context.Context, h CodeActionResolveHandler, params json.RawMessage) (any, error) {
 	var p lsp.CodeAction
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -586,7 +586,7 @@ func handleCodeActionResolve(h CodeActionResolveHandler, ctx context.Context, pa
 	return h.ResolveCodeAction(ctx, &p)
 }
 
-func handleDocumentLinkResolve(h DocumentLinkResolveHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleDocumentLinkResolve(ctx context.Context, h DocumentLinkResolveHandler, params json.RawMessage) (any, error) {
 	var p lsp.DocumentLink
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -594,7 +594,7 @@ func handleDocumentLinkResolve(h DocumentLinkResolveHandler, ctx context.Context
 	return h.ResolveDocumentLink(ctx, &p)
 }
 
-func handleWillCreateFiles(h WillCreateFilesHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleWillCreateFiles(ctx context.Context, h WillCreateFilesHandler, params json.RawMessage) (any, error) {
 	var p lsp.CreateFilesParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -602,7 +602,7 @@ func handleWillCreateFiles(h WillCreateFilesHandler, ctx context.Context, params
 	return h.WillCreateFiles(ctx, &p)
 }
 
-func handleWillRenameFiles(h WillRenameFilesHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleWillRenameFiles(ctx context.Context, h WillRenameFilesHandler, params json.RawMessage) (any, error) {
 	var p lsp.RenameFilesParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -610,7 +610,7 @@ func handleWillRenameFiles(h WillRenameFilesHandler, ctx context.Context, params
 	return h.WillRenameFiles(ctx, &p)
 }
 
-func handleWillDeleteFiles(h WillDeleteFilesHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleWillDeleteFiles(ctx context.Context, h WillDeleteFilesHandler, params json.RawMessage) (any, error) {
 	var p lsp.DeleteFilesParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -618,7 +618,7 @@ func handleWillDeleteFiles(h WillDeleteFilesHandler, ctx context.Context, params
 	return h.WillDeleteFiles(ctx, &p)
 }
 
-func handleInlayHint(h InlayHintHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleInlayHint(ctx context.Context, h InlayHintHandler, params json.RawMessage) (any, error) {
 	var p lsp.InlayHintParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -626,7 +626,7 @@ func handleInlayHint(h InlayHintHandler, ctx context.Context, params json.RawMes
 	return h.InlayHint(ctx, &p)
 }
 
-func handleInlayHintResolve(h InlayHintResolveHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleInlayHintResolve(ctx context.Context, h InlayHintResolveHandler, params json.RawMessage) (any, error) {
 	var p lsp.InlayHint
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -634,7 +634,7 @@ func handleInlayHintResolve(h InlayHintResolveHandler, ctx context.Context, para
 	return h.ResolveInlayHint(ctx, &p)
 }
 
-func handleInlineValue(h InlineValueHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleInlineValue(ctx context.Context, h InlineValueHandler, params json.RawMessage) (any, error) {
 	var p lsp.InlineValueParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -642,7 +642,7 @@ func handleInlineValue(h InlineValueHandler, ctx context.Context, params json.Ra
 	return h.InlineValue(ctx, &p)
 }
 
-func handleDocumentDiagnostic(h DocumentDiagnosticHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleDocumentDiagnostic(ctx context.Context, h DocumentDiagnosticHandler, params json.RawMessage) (any, error) {
 	var p lsp.DocumentDiagnosticParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
@@ -650,7 +650,7 @@ func handleDocumentDiagnostic(h DocumentDiagnosticHandler, ctx context.Context, 
 	return h.DocumentDiagnostic(ctx, &p)
 }
 
-func handleWorkspaceDiagnostic(h WorkspaceDiagnosticHandler, ctx context.Context, params json.RawMessage) (any, error) {
+func handleWorkspaceDiagnostic(ctx context.Context, h WorkspaceDiagnosticHandler, params json.RawMessage) (any, error) {
 	var p lsp.WorkspaceDiagnosticParams
 	if err := json.Unmarshal(params, &p); err != nil {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())

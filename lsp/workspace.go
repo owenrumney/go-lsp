@@ -10,8 +10,8 @@ type WorkspaceFolder struct {
 
 // WorkspaceEdit represents changes to many resources managed in the workspace.
 type WorkspaceEdit struct {
-	Changes           map[DocumentURI][]TextEdit            `json:"changes,omitempty"`
-	DocumentChanges   []TextDocumentEdit                    `json:"documentChanges,omitempty"`
+	Changes           map[DocumentURI][]TextEdit                      `json:"changes,omitempty"`
+	DocumentChanges   []TextDocumentEdit                              `json:"documentChanges,omitempty"`
 	ChangeAnnotations map[ChangeAnnotationIdentifier]ChangeAnnotation `json:"changeAnnotations,omitempty"`
 }
 
@@ -29,8 +29,8 @@ type CreateFileOptions struct {
 
 // CreateFile represents a create file operation.
 type CreateFile struct {
-	Kind    string            `json:"kind"` // "create"
-	URI     DocumentURI       `json:"uri"`
+	Kind    string             `json:"kind"` // "create"
+	URI     DocumentURI        `json:"uri"`
 	Options *CreateFileOptions `json:"options,omitempty"`
 }
 

@@ -28,7 +28,7 @@ func (h *handler) Initialize(_ context.Context, _ *lsp.InitializeParams) (*lsp.I
 
 func (h *handler) Shutdown(_ context.Context) error { return nil }
 
-func (h *handler) DidOpen(_ context.Context, _ *lsp.DidOpenTextDocumentParams) error  { return nil }
+func (h *handler) DidOpen(_ context.Context, _ *lsp.DidOpenTextDocumentParams) error     { return nil }
 func (h *handler) DidChange(_ context.Context, _ *lsp.DidChangeTextDocumentParams) error { return nil }
 func (h *handler) DidClose(_ context.Context, _ *lsp.DidCloseTextDocumentParams) error   { return nil }
 

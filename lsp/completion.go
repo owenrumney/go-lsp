@@ -64,13 +64,13 @@ type CompletionItem struct {
 	SortText            string              `json:"sortText,omitempty"`
 	FilterText          string              `json:"filterText,omitempty"`
 	InsertText          string              `json:"insertText,omitempty"`
-	InsertTextFormat    *InsertTextFormat    `json:"insertTextFormat,omitempty"`
-	InsertTextMode      *InsertTextMode      `json:"insertTextMode,omitempty"`
-	TextEdit            *TextEdit            `json:"textEdit,omitempty"`
-	AdditionalTextEdits []TextEdit           `json:"additionalTextEdits,omitempty"`
-	CommitCharacters    []string             `json:"commitCharacters,omitempty"`
-	Command             *Command             `json:"command,omitempty"`
-	Data                any                  `json:"data,omitempty"`
+	InsertTextFormat    *InsertTextFormat   `json:"insertTextFormat,omitempty"`
+	InsertTextMode      *InsertTextMode     `json:"insertTextMode,omitempty"`
+	TextEdit            *TextEdit           `json:"textEdit,omitempty"`
+	AdditionalTextEdits []TextEdit          `json:"additionalTextEdits,omitempty"`
+	CommitCharacters    []string            `json:"commitCharacters,omitempty"`
+	Command             *Command            `json:"command,omitempty"`
+	Data                any                 `json:"data,omitempty"`
 }
 
 // CompletionList represents a collection of completion items.

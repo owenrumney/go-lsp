@@ -205,7 +205,7 @@ func (c *Conn) routeResponse(resp *Response) {
 }
 
 // Notify sends a notification to the peer.
-func (c *Conn) Notify(ctx context.Context, method string, params any) error {
+func (c *Conn) Notify(_ context.Context, method string, params any) error {
 	notif, err := NewNotification(method, params)
 	if err != nil {
 		return err

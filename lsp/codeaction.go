@@ -25,7 +25,7 @@ type CodeActionParams struct {
 	PartialResultParams
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 	Range        Range                  `json:"range"`
-	Context      CodeActionContext       `json:"context"`
+	Context      CodeActionContext      `json:"context"`
 }
 
 // CodeAction represents a change that can be performed in code.

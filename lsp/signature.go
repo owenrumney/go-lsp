@@ -12,7 +12,7 @@ type SignatureHelpContext struct {
 	TriggerKind         SignatureHelpTriggerKind `json:"triggerKind"`
 	TriggerCharacter    string                   `json:"triggerCharacter,omitempty"`
 	IsRetrigger         bool                     `json:"isRetrigger"`
-	ActiveSignatureHelp *SignatureHelp            `json:"activeSignatureHelp,omitempty"`
+	ActiveSignatureHelp *SignatureHelp           `json:"activeSignatureHelp,omitempty"`
 }
 
 // SignatureHelp represents the signature of something callable.
@@ -24,10 +24,10 @@ type SignatureHelp struct {
 
 // SignatureInformation represents the signature of something callable.
 type SignatureInformation struct {
-	Label         string                `json:"label"`
-	Documentation *MarkupContent        `json:"documentation,omitempty"`
-	Parameters    []ParameterInformation `json:"parameters,omitempty"`
-	ActiveParameter *int                 `json:"activeParameter,omitempty"`
+	Label           string                 `json:"label"`
+	Documentation   *MarkupContent         `json:"documentation,omitempty"`
+	Parameters      []ParameterInformation `json:"parameters,omitempty"`
+	ActiveParameter *int                   `json:"activeParameter,omitempty"`
 }
 
 // ParameterInformation represents a parameter of a callable-signature.

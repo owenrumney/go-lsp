@@ -2,8 +2,8 @@ package lsp
 
 // FormattingOptions describes options to be used during formatting.
 type FormattingOptions struct {
-	TabSize                int  `json:"tabSize"`
-	InsertSpaces           bool `json:"insertSpaces"`
+	TabSize                int   `json:"tabSize"`
+	InsertSpaces           bool  `json:"insertSpaces"`
 	TrimTrailingWhitespace *bool `json:"trimTrailingWhitespace,omitempty"`
 	InsertFinalNewline     *bool `json:"insertFinalNewline,omitempty"`
 	TrimFinalNewlines      *bool `json:"trimFinalNewlines,omitempty"`

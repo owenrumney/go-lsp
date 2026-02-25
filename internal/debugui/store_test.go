@@ -19,10 +19,10 @@ func TestStoreAddAndEntries(t *testing.T) {
 	}
 
 	tests := []struct {
-		idx       int
-		msgType   string
-		method    string
-		rpcID     string
+		idx        int
+		msgType    string
+		method     string
+		rpcID      string
 		pairedWith int
 	}{
 		{0, "request", "initialize", "1", 1},

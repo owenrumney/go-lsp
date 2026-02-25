@@ -12,7 +12,7 @@ type ID struct {
 	value any // string or int64
 }
 
-func IntID(v int64) ID    { return ID{value: v} }
+func IntID(v int64) ID     { return ID{value: v} }
 func StringID(v string) ID { return ID{value: v} }
 
 func (id ID) IsZero() bool { return id.value == nil }
