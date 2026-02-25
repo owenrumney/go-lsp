@@ -65,6 +65,7 @@ func (h *Hub) Broadcast(e Entry) {
 type DebugUI struct {
 	store *Store
 	hub   *Hub
+	stats *Stats
 	srv   *http.Server
 }
 
@@ -73,6 +74,7 @@ func New(addr string, store *Store) *DebugUI {
 	d := &DebugUI{
 		store: store,
 		hub:   newHub(),
+		stats: NewStats(store),
 	}
 
 	store.Subscribe(d.hub.Broadcast)
@@ -82,6 +84,7 @@ func New(addr string, store *Store) *DebugUI {
 	mux.HandleFunc("GET /ws", d.handleWS)
 	mux.HandleFunc("GET /api/messages", d.handleMessages)
 	mux.HandleFunc("GET /api/messages/search", d.handleSearch)
+	mux.HandleFunc("GET /api/stats", d.handleStats)
 
 	d.srv = &http.Server{
 		Addr:              addr,
@@ -100,8 +103,12 @@ func (d *DebugUI) ListenAndServe(ctx context.Context) error {
 		return err
 	}
 
+	stop := make(chan struct{})
+	d.stats.StartPolling(stop)
+
 	go func() {
 		<-ctx.Done()
+		close(stop)
 		shutCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 		_ = d.srv.Shutdown(shutCtx)
@@ -180,6 +187,11 @@ func (d *DebugUI) handleSearch(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(entries)
+}
+
+func (d *DebugUI) handleStats(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(d.stats.Snapshot())
 }
 
 // staticFiles returns the filesystem for the embedded static files.

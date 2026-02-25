@@ -40,6 +40,13 @@
   #detail .meta { font-size: 12px; color: #6c7086; margin-bottom: 8px; }
   .empty { padding: 40px; text-align: center; color: #6c7086; }
   #new-indicator { display: none; position: fixed; bottom: 16px; left: calc(20% - 60px); background: #89b4fa; color: #1e1e2e; padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; z-index: 10; }
+  #statsbar { display: flex; gap: 16px; padding: 6px 12px; background: #11111b; border-bottom: 1px solid #313244; align-items: center; flex-shrink: 0; overflow: hidden; transition: max-height 0.2s, padding 0.2s, opacity 0.2s; max-height: 40px; opacity: 1; }
+  #statsbar.collapsed { max-height: 0; padding: 0 12px; opacity: 0; border-bottom: none; }
+  #statsbar .stat { font-size: 12px; white-space: nowrap; }
+  #statsbar .stat-label { color: #6c7086; margin-right: 4px; }
+  #statsbar .stat-value { color: #cdd6f4; font-variant-numeric: tabular-nums; }
+  #stats-toggle { background: none; border: none; color: #6c7086; cursor: pointer; font-size: 11px; padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
+  #stats-toggle:hover { color: #cdd6f4; background: #313244; }
 </style>
 </head>
 <body>
@@ -57,6 +64,18 @@
     <option value="notification">notification</option>
   </select>
   <span id="counter">0 messages</span>
+  <button id="stats-toggle" onclick="toggleStats()">runtime</button>
+</div>
+<div id="statsbar">
+  <span class="stat"><span class="stat-label">Uptime</span><span class="stat-value" id="s-uptime">-</span></span>
+  <span class="stat"><span class="stat-label">Heap</span><span class="stat-value" id="s-heap">-</span></span>
+  <span class="stat"><span class="stat-label">Heap Sys</span><span class="stat-value" id="s-heapsys">-</span></span>
+  <span class="stat"><span class="stat-label">Goroutines</span><span class="stat-value" id="s-goroutines">-</span></span>
+  <span class="stat"><span class="stat-label">GC Runs</span><span class="stat-value" id="s-gc">-</span></span>
+  <span class="stat"><span class="stat-label">Requests</span><span class="stat-value" id="s-requests">-</span></span>
+  <span class="stat"><span class="stat-label">Responses</span><span class="stat-value" id="s-responses">-</span></span>
+  <span class="stat"><span class="stat-label">Notifications</span><span class="stat-value" id="s-notifications">-</span></span>
+  <span class="stat"><span class="stat-label">Avg Latency</span><span class="stat-value" id="s-latency">-</span></span>
 </div>
 <div id="main">
   <div id="list"><div class="empty">Waiting for messages...</div></div>
@@ -233,6 +252,37 @@ function scrollToBottom() {
   autoScroll = true;
   indicatorEl.style.display = 'none';
 }
+
+// Stats bar
+const statsBar = document.getElementById('statsbar');
+function toggleStats() {
+  statsBar.classList.toggle('collapsed');
+}
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+  return (b / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function fetchStats() {
+  fetch('/api/stats')
+    .then(r => r.json())
+    .then(s => {
+      document.getElementById('s-uptime').textContent = s.uptime;
+      document.getElementById('s-heap').textContent = formatBytes(s.heapAlloc);
+      document.getElementById('s-heapsys').textContent = formatBytes(s.heapSys);
+      document.getElementById('s-goroutines').textContent = s.numGoroutine;
+      document.getElementById('s-gc').textContent = s.numGC;
+      document.getElementById('s-requests').textContent = s.requests;
+      document.getElementById('s-responses').textContent = s.responses;
+      document.getElementById('s-notifications').textContent = s.notifications;
+      document.getElementById('s-latency').textContent = s.avgLatencyMs > 0 ? s.avgLatencyMs.toFixed(1) + 'ms' : '-';
+    })
+    .catch(() => {});
+}
+fetchStats();
+setInterval(fetchStats, 2000);
 
 // Initial load
 fetch('/api/messages?offset=0&limit=10000')
