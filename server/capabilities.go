@@ -2,7 +2,7 @@ package server
 
 import "github.com/owenrumney/go-lsp/lsp"
 
-func boolPtr(v bool) *bool { return &v }
+var enabled = true
 
 func buildCapabilities(handler any) lsp.ServerCapabilities {
 	var caps lsp.ServerCapabilities
@@ -15,26 +15,26 @@ func buildCapabilities(handler any) lsp.ServerCapabilities {
 			Change:    lsp.SyncIncremental,
 		}
 		if _, ok := handler.(TextDocumentSaveHandler); ok {
-			caps.TextDocumentSync.Save = &lsp.SaveOptions{IncludeText: boolPtr(true)}
+			caps.TextDocumentSync.Save = &lsp.SaveOptions{IncludeText: &enabled}
 		}
 		if _, ok := handler.(TextDocumentWillSaveHandler); ok {
-			caps.TextDocumentSync.WillSave = boolPtr(true)
+			caps.TextDocumentSync.WillSave = &enabled
 		}
 		if _, ok := handler.(TextDocumentWillSaveWaitUntilHandler); ok {
-			caps.TextDocumentSync.WillSaveWaitUntil = boolPtr(true)
+			caps.TextDocumentSync.WillSaveWaitUntil = &enabled
 		}
 	}
 
 	if _, ok := handler.(CompletionHandler); ok {
 		opts := &lsp.CompletionOptions{}
 		if _, ok := handler.(CompletionResolveHandler); ok {
-			opts.ResolveProvider = boolPtr(true)
+			opts.ResolveProvider = &enabled
 		}
 		caps.CompletionProvider = opts
 	}
 
 	if _, ok := handler.(HoverHandler); ok {
-		caps.HoverProvider = boolPtr(true)
+		caps.HoverProvider = &enabled
 	}
 
 	if _, ok := handler.(SignatureHelpHandler); ok {
@@ -42,37 +42,37 @@ func buildCapabilities(handler any) lsp.ServerCapabilities {
 	}
 
 	if _, ok := handler.(DeclarationHandler); ok {
-		caps.DeclarationProvider = boolPtr(true)
+		caps.DeclarationProvider = &enabled
 	}
 
 	if _, ok := handler.(DefinitionHandler); ok {
-		caps.DefinitionProvider = boolPtr(true)
+		caps.DefinitionProvider = &enabled
 	}
 
 	if _, ok := handler.(TypeDefinitionHandler); ok {
-		caps.TypeDefinitionProvider = boolPtr(true)
+		caps.TypeDefinitionProvider = &enabled
 	}
 
 	if _, ok := handler.(ImplementationHandler); ok {
-		caps.ImplementationProvider = boolPtr(true)
+		caps.ImplementationProvider = &enabled
 	}
 
 	if _, ok := handler.(ReferencesHandler); ok {
-		caps.ReferencesProvider = boolPtr(true)
+		caps.ReferencesProvider = &enabled
 	}
 
 	if _, ok := handler.(DocumentHighlightHandler); ok {
-		caps.DocumentHighlightProvider = boolPtr(true)
+		caps.DocumentHighlightProvider = &enabled
 	}
 
 	if _, ok := handler.(DocumentSymbolHandler); ok {
-		caps.DocumentSymbolProvider = boolPtr(true)
+		caps.DocumentSymbolProvider = &enabled
 	}
 
 	if _, ok := handler.(CodeActionHandler); ok {
 		opts := &lsp.CodeActionOptions{}
 		if _, ok := handler.(CodeActionResolveHandler); ok {
-			opts.ResolveProvider = boolPtr(true)
+			opts.ResolveProvider = &enabled
 		}
 		caps.CodeActionProvider = opts
 	}
@@ -80,7 +80,7 @@ func buildCapabilities(handler any) lsp.ServerCapabilities {
 	if _, ok := handler.(CodeLensHandler); ok {
 		opts := &lsp.CodeLensOptions{}
 		if _, ok := handler.(CodeLensResolveHandler); ok {
-			opts.ResolveProvider = boolPtr(true)
+			opts.ResolveProvider = &enabled
 		}
 		caps.CodeLensProvider = opts
 	}
@@ -88,65 +88,65 @@ func buildCapabilities(handler any) lsp.ServerCapabilities {
 	if _, ok := handler.(DocumentLinkHandler); ok {
 		opts := &lsp.DocumentLinkOptions{}
 		if _, ok := handler.(DocumentLinkResolveHandler); ok {
-			opts.ResolveProvider = boolPtr(true)
+			opts.ResolveProvider = &enabled
 		}
 		caps.DocumentLinkProvider = opts
 	}
 
 	if _, ok := handler.(DocumentColorHandler); ok {
-		caps.ColorProvider = boolPtr(true)
+		caps.ColorProvider = &enabled
 	}
 
 	if _, ok := handler.(DocumentFormattingHandler); ok {
-		caps.DocumentFormattingProvider = boolPtr(true)
+		caps.DocumentFormattingProvider = &enabled
 	}
 
 	if _, ok := handler.(DocumentRangeFormattingHandler); ok {
-		caps.DocumentRangeFormattingProvider = boolPtr(true)
+		caps.DocumentRangeFormattingProvider = &enabled
 	}
 
 	if _, ok := handler.(RenameHandler); ok {
 		opts := &lsp.RenameOptions{}
 		if _, ok := handler.(PrepareRenameHandler); ok {
-			opts.PrepareProvider = boolPtr(true)
+			opts.PrepareProvider = &enabled
 		}
 		caps.RenameProvider = opts
 	}
 
 	if _, ok := handler.(FoldingRangeHandler); ok {
-		caps.FoldingRangeProvider = boolPtr(true)
+		caps.FoldingRangeProvider = &enabled
 	}
 
 	if _, ok := handler.(SelectionRangeHandler); ok {
-		caps.SelectionRangeProvider = boolPtr(true)
+		caps.SelectionRangeProvider = &enabled
 	}
 
 	if _, ok := handler.(LinkedEditingRangeHandler); ok {
-		caps.LinkedEditingRangeProvider = boolPtr(true)
+		caps.LinkedEditingRangeProvider = &enabled
 	}
 
 	if _, ok := handler.(CallHierarchyHandler); ok {
-		caps.CallHierarchyProvider = boolPtr(true)
+		caps.CallHierarchyProvider = &enabled
 	}
 
 	if _, ok := handler.(MonikerHandler); ok {
-		caps.MonikerProvider = boolPtr(true)
+		caps.MonikerProvider = &enabled
 	}
 
 	if _, ok := handler.(TypeHierarchyHandler); ok {
-		caps.TypeHierarchyProvider = boolPtr(true)
+		caps.TypeHierarchyProvider = &enabled
 	}
 
 	if _, ok := handler.(InlayHintHandler); ok {
 		opts := &lsp.InlayHintOptions{}
 		if _, ok := handler.(InlayHintResolveHandler); ok {
-			opts.ResolveProvider = boolPtr(true)
+			opts.ResolveProvider = &enabled
 		}
 		caps.InlayHintProvider = opts
 	}
 
 	if _, ok := handler.(InlineValueHandler); ok {
-		caps.InlineValueProvider = boolPtr(true)
+		caps.InlineValueProvider = &enabled
 	}
 
 	if _, ok := handler.(DocumentDiagnosticHandler); ok {
@@ -158,7 +158,7 @@ func buildCapabilities(handler any) lsp.ServerCapabilities {
 	}
 
 	if _, ok := handler.(WorkspaceSymbolHandler); ok {
-		caps.WorkspaceSymbolProvider = boolPtr(true)
+		caps.WorkspaceSymbolProvider = &enabled
 	}
 
 	// Workspace file operations

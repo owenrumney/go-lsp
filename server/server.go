@@ -13,24 +13,24 @@ import (
 
 // Server is an LSP server that dispatches JSON-RPC messages to handler interfaces.
 type Server struct {
-	handler       any
-	conn          *jsonrpc.Conn
-	Client        *Client
-	initialized   bool
-	shutdown      bool
-	customMethods map[string]jsonrpc.MethodHandler
-	customNotifs  map[string]jsonrpc.NotificationHandler
-	debugAddr     string
-	debugUI       *debugui.DebugUI
+	handler             any
+	conn                *jsonrpc.Conn
+	Client              *Client
+	initialized         bool
+	shutdown            bool
+	customMethods       map[string]jsonrpc.MethodHandler
+	customNotifications map[string]jsonrpc.NotificationHandler
+	debugAddr           string
+	debugUI             *debugui.DebugUI
 }
 
 // NewServer creates a new LSP server with the given handler.
 // The handler must implement LifecycleHandler at minimum.
 func NewServer(handler LifecycleHandler, opts ...Option) *Server {
 	s := &Server{
-		handler:       handler,
-		customMethods: make(map[string]jsonrpc.MethodHandler),
-		customNotifs:  make(map[string]jsonrpc.NotificationHandler),
+		handler:             handler,
+		customMethods:       make(map[string]jsonrpc.MethodHandler),
+		customNotifications: make(map[string]jsonrpc.NotificationHandler),
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -47,7 +47,7 @@ func (s *Server) HandleMethod(method string, handler jsonrpc.MethodHandler) {
 // HandleNotification registers a custom JSON-RPC notification handler.
 // This must be called before Run.
 func (s *Server) HandleNotification(method string, handler jsonrpc.NotificationHandler) {
-	s.customNotifs[method] = handler
+	s.customNotifications[method] = handler
 }
 
 // Run starts the server, reading from and writing to rw.
@@ -75,7 +75,7 @@ func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
 	for method, handler := range s.customMethods {
 		dispatcher.RegisterMethod(method, handler)
 	}
-	for method, handler := range s.customNotifs {
+	for method, handler := range s.customNotifications {
 		dispatcher.RegisterNotification(method, handler)
 	}
 
