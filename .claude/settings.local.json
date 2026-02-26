@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(golangci-lint run ./...)",
-      "Bash(go vet ./internal/debugui/...)"
+      "Bash(go vet ./internal/debugui/...)",
+      "Bash(go build ./...)",
+      "Bash(go vet ./...)"
     ]
   }
 }

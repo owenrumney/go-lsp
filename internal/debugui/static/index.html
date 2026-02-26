@@ -9,10 +9,17 @@
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; background: #1e1e2e; color: #cdd6f4; height: 100vh; display: flex; flex-direction: column; }
   #topbar { display: flex; gap: 8px; padding: 8px 12px; background: #181825; border-bottom: 1px solid #313244; align-items: center; flex-shrink: 0; }
   #topbar h1 { font-size: 14px; color: #89b4fa; margin-right: 8px; white-space: nowrap; }
-  #topbar input, #topbar select { background: #313244; border: 1px solid #45475a; color: #cdd6f4; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
-  #search { flex: 1; max-width: 300px; }
-  #counter { font-size: 12px; color: #6c7086; margin-left: auto; white-space: nowrap; }
-  #main { display: flex; flex: 1; overflow: hidden; }
+  .toolbar { display: flex; gap: 8px; padding: 8px 12px; background: #181825; border-bottom: 1px solid #313244; align-items: center; flex-shrink: 0; }
+  .toolbar input, .toolbar select { background: #313244; border: 1px solid #45475a; color: #cdd6f4; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
+  .toolbar .search { flex: 1; max-width: 300px; }
+  .toolbar .counter { font-size: 12px; color: #6c7086; margin-left: auto; white-space: nowrap; }
+  #tabbar { display: flex; gap: 0; background: #181825; border-bottom: 1px solid #313244; flex-shrink: 0; }
+  .tab { padding: 6px 16px; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; color: #6c7086; }
+  .tab:hover { color: #cdd6f4; }
+  .tab.active { color: #89b4fa; border-bottom-color: #89b4fa; }
+  .view { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+  .view.active { display: flex; }
+  #msg-main { display: flex; flex: 1; overflow: hidden; }
   #list { width: 40%; border-right: 1px solid #313244; overflow-y: auto; }
   #detail { width: 60%; overflow-y: auto; padding: 12px; }
   .entry { padding: 6px 0; cursor: pointer; border-bottom: 1px solid #1e1e2e; font-size: 13px; display: flex; align-items: center; }
@@ -28,6 +35,10 @@
   .badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; }
   .badge.request { background: #89b4fa22; color: #89b4fa; }
   .badge.notification { background: #f9e2af22; color: #f9e2af; }
+  .badge.error { background: #f38ba822; color: #f38ba8; }
+  .badge.warning { background: #fab38722; color: #fab387; }
+  .badge.info { background: #89b4fa22; color: #89b4fa; }
+  .badge.log { background: #6c708622; color: #6c7086; }
   .latency { color: #6c7086; }
   .latency.slow { color: #f9e2af; }
   .latency.very-slow { color: #f38ba8; }
@@ -47,23 +58,17 @@
   #statsbar .stat-value { color: #cdd6f4; font-variant-numeric: tabular-nums; }
   #stats-toggle { background: none; border: none; color: #6c7086; cursor: pointer; font-size: 11px; padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
   #stats-toggle:hover { color: #cdd6f4; background: #313244; }
+  #log-list { flex: 1; overflow-y: auto; }
+  .log-entry { padding: 4px 12px; font-size: 13px; border-bottom: 1px solid #1e1e2e; display: flex; align-items: baseline; gap: 8px; }
+  .log-entry:hover { background: #313244; }
+  .log-time { color: #6c7086; font-size: 11px; flex-shrink: 0; width: 90px; }
+  .log-level { flex-shrink: 0; width: 56px; }
+  .log-msg { flex: 1; white-space: pre-wrap; word-break: break-all; }
 </style>
 </head>
 <body>
 <div id="topbar">
   <h1>go-lsp debug</h1>
-  <input id="search" type="text" placeholder="Search methods & bodies...">
-  <select id="direction-filter">
-    <option value="">All directions</option>
-    <option value="client→server">client → server</option>
-    <option value="server→client">server → client</option>
-  </select>
-  <select id="type-filter">
-    <option value="">All types</option>
-    <option value="request">request</option>
-    <option value="notification">notification</option>
-  </select>
-  <span id="counter">0 messages</span>
   <button id="stats-toggle" onclick="toggleStats()">runtime</button>
 </div>
 <div id="statsbar">
@@ -77,9 +82,43 @@
   <span class="stat"><span class="stat-label">Notifications</span><span class="stat-value" id="s-notifications">-</span></span>
   <span class="stat"><span class="stat-label">Avg Latency</span><span class="stat-value" id="s-latency">-</span></span>
 </div>
-<div id="main">
-  <div id="list"><div class="empty">Waiting for messages...</div></div>
-  <div id="detail"><div class="empty">Select a message to view details</div></div>
+<div id="tabbar">
+  <div class="tab active" data-tab="messages">Messages</div>
+  <div class="tab" data-tab="logs">Logs</div>
+</div>
+<div id="msg-view" class="view active">
+  <div class="toolbar">
+    <input id="search" class="search" type="text" placeholder="Search methods & bodies...">
+    <select id="direction-filter">
+      <option value="">All directions</option>
+      <option value="client→server">client → server</option>
+      <option value="server→client">server → client</option>
+    </select>
+    <select id="type-filter">
+      <option value="">All types</option>
+      <option value="request">request</option>
+      <option value="notification">notification</option>
+    </select>
+    <span id="counter" class="counter">0 messages</span>
+  </div>
+  <div id="msg-main">
+    <div id="list"><div class="empty">Waiting for messages...</div></div>
+    <div id="detail"><div class="empty">Select a message to view details</div></div>
+  </div>
+</div>
+<div id="log-view" class="view">
+  <div class="toolbar">
+    <input id="log-search" class="search" type="text" placeholder="Search logs...">
+    <select id="log-level-filter">
+      <option value="">All levels</option>
+      <option value="error">error</option>
+      <option value="warning">warning</option>
+      <option value="info">info</option>
+      <option value="log">log</option>
+    </select>
+    <span id="log-counter" class="counter">0 logs</span>
+  </div>
+  <div id="log-list"><div class="empty">Waiting for logs...</div></div>
 </div>
 <div id="new-indicator" onclick="scrollToBottom()">↓ New messages</div>
 
@@ -96,6 +135,38 @@ let allEntries = [];
 let entryById = {};
 let selectedId = null;
 let autoScroll = true;
+
+// Logs state
+const logListEl = document.getElementById('log-list');
+const logSearchEl = document.getElementById('log-search');
+const logLevelFilter = document.getElementById('log-level-filter');
+const logCounterEl = document.getElementById('log-counter');
+let allLogs = [];
+let logAutoScroll = true;
+let logsDirty = false;
+let messagesDirty = false;
+
+let activeTab = 'messages';
+
+// Tab switching
+document.getElementById('tabbar').addEventListener('click', (ev) => {
+  const tab = ev.target.closest('.tab');
+  if (!tab) return;
+  const name = tab.dataset.tab;
+  if (name === activeTab) return;
+  activeTab = name;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.getElementById('msg-view').classList.toggle('active', name === 'messages');
+  document.getElementById('log-view').classList.toggle('active', name === 'logs');
+  if (name === 'logs' && logsDirty) {
+    renderLogs();
+    logsDirty = false;
+  }
+  if (name === 'messages' && messagesDirty) {
+    renderList();
+    messagesDirty = false;
+  }
+});
 
 function formatTime(ts) {
   const d = new Date(ts);
@@ -253,6 +324,52 @@ function scrollToBottom() {
   indicatorEl.style.display = 'none';
 }
 
+// --- Logs ---
+function matchesLogFilter(entry) {
+  const level = logLevelFilter.value;
+  const q = logSearchEl.value.toLowerCase();
+  if (level && entry.level !== level) return false;
+  if (q && !entry.message.toLowerCase().includes(q)) return false;
+  return true;
+}
+
+function renderLogs() {
+  const rows = allLogs.filter(matchesLogFilter);
+  logCounterEl.textContent = rows.length + ' logs';
+  if (rows.length === 0) {
+    logListEl.innerHTML = '<div class="empty">No matching logs</div>';
+    return;
+  }
+  logListEl.innerHTML = rows.map(e =>
+    `<div class="log-entry">
+      <span class="log-time">${formatTime(e.timestamp)}</span>
+      <span class="log-level"><span class="badge ${e.level}">${e.level}</span></span>
+      <span class="log-msg">${escapeHtml(e.message)}</span>
+    </div>`
+  ).join('');
+}
+
+function addLog(e) {
+  allLogs.push(e);
+}
+
+let logSearchTimeout;
+logSearchEl.addEventListener('input', () => {
+  clearTimeout(logSearchTimeout);
+  logSearchTimeout = setTimeout(() => { renderLogs(); }, 200);
+});
+logLevelFilter.addEventListener('change', renderLogs);
+
+logListEl.addEventListener('scroll', () => {
+  const atBottom = logListEl.scrollHeight - logListEl.scrollTop - logListEl.clientHeight < 50;
+  logAutoScroll = atBottom;
+});
+
+function scrollLogsToBottom() {
+  logListEl.scrollTop = logListEl.scrollHeight;
+  logAutoScroll = true;
+}
+
 // Stats bar
 const statsBar = document.getElementById('statsbar');
 function toggleStats() {
@@ -293,19 +410,42 @@ fetch('/api/messages?offset=0&limit=10000')
     scrollToBottom();
   });
 
+fetch('/api/logs?offset=0&limit=5000')
+  .then(r => r.json())
+  .then(entries => {
+    entries.forEach(addLog);
+    renderLogs();
+    scrollLogsToBottom();
+  });
+
 // WebSocket for live updates
 function connectWS() {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const ws = new WebSocket(proto + '//' + location.host + '/ws');
   ws.onmessage = (ev) => {
-    const e = JSON.parse(ev.data);
-    addEntry(e);
-    renderList();
-    if (selectedId !== null) renderDetail();
-    if (autoScroll) {
-      scrollToBottom();
+    const msg = JSON.parse(ev.data);
+    if (msg.kind === 'log') {
+      addLog(msg.data);
+      if (activeTab === 'logs') {
+        renderLogs();
+        if (logAutoScroll) scrollLogsToBottom();
+      } else {
+        logsDirty = true;
+      }
     } else {
-      indicatorEl.style.display = 'block';
+      const e = msg.data;
+      addEntry(e);
+      if (activeTab === 'messages') {
+        renderList();
+        if (selectedId !== null) renderDetail();
+        if (autoScroll) {
+          scrollToBottom();
+        } else {
+          indicatorEl.style.display = 'block';
+        }
+      } else {
+        messagesDirty = true;
+      }
     }
   };
   ws.onclose = () => setTimeout(connectWS, 2000);

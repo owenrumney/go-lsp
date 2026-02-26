@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 
 	"github.com/owenrumney/go-lsp/internal/debugui"
 	"github.com/owenrumney/go-lsp/internal/jsonrpc"
@@ -38,6 +39,17 @@ func NewServer(handler LifecycleHandler, opts ...Option) *Server {
 	return s
 }
 
+// DebugHandler returns a slog.Handler that sends log records to the debug UI's log tab.
+// Returns nil if the debug UI is not enabled. Must be called after Run has started.
+//
+// Usage: logger := slog.New(srv.DebugHandler())
+func (s *Server) DebugHandler() slog.Handler {
+	if s.debugUI == nil {
+		return nil
+	}
+	return s.debugUI.SlogHandler()
+}
+
 // HandleMethod registers a custom JSON-RPC method handler.
 // This must be called before Run.
 func (s *Server) HandleMethod(method string, handler jsonrpc.MethodHandler) {
@@ -53,8 +65,9 @@ func (s *Server) HandleNotification(method string, handler jsonrpc.NotificationH
 // Run starts the server, reading from and writing to rw.
 func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
 	if s.debugAddr != "" {
-		store := debugui.NewStore()
-		s.debugUI = debugui.New(s.debugAddr, store)
+		logStore := debugui.NewLogStore()
+		store := debugui.NewStore(logStore)
+		s.debugUI = debugui.New(s.debugAddr, store, logStore)
 		if err := s.debugUI.ListenAndServe(ctx); err != nil {
 			return fmt.Errorf("debugui: %w", err)
 		}

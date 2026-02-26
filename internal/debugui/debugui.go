@@ -45,9 +45,9 @@ func (h *Hub) remove(conn *websocket.Conn) {
 	h.mu.Unlock()
 }
 
-// Broadcast sends an entry to all connected clients. Non-blocking: slow clients drop messages.
-func (h *Hub) Broadcast(e Entry) {
-	data, err := json.Marshal(e)
+// Broadcast sends a value to all connected clients. Non-blocking: slow clients drop messages.
+func (h *Hub) Broadcast(v any) {
+	data, err := json.Marshal(v)
 	if err != nil {
 		return
 	}
@@ -61,29 +61,44 @@ func (h *Hub) Broadcast(e Entry) {
 	}
 }
 
+// wsMessage wraps an entry or log for WebSocket broadcast with a kind discriminator.
+type wsMessage struct {
+	Kind string `json:"kind"`
+	Data any    `json:"data"`
+}
+
 // DebugUI is an HTTP server that serves the debug web interface and websocket.
 type DebugUI struct {
-	store *Store
-	hub   *Hub
-	stats *Stats
-	srv   *http.Server
+	store    *Store
+	logStore *LogStore
+	hub      *Hub
+	stats    *Stats
+	srv      *http.Server
 }
 
 // New creates a DebugUI bound to the given address.
-func New(addr string, store *Store) *DebugUI {
+func New(addr string, store *Store, logStore *LogStore) *DebugUI {
 	d := &DebugUI{
-		store: store,
-		hub:   newHub(),
-		stats: NewStats(store),
+		store:    store,
+		logStore: logStore,
+		hub:      newHub(),
+		stats:    NewStats(store),
 	}
 
-	store.Subscribe(d.hub.Broadcast)
+	store.Subscribe(func(e Entry) {
+		d.hub.Broadcast(wsMessage{Kind: "message", Data: e})
+	})
+	logStore.Subscribe(func(e LogEntry) {
+		d.hub.Broadcast(wsMessage{Kind: "log", Data: e})
+	})
 
 	mux := http.NewServeMux()
 	mux.Handle("GET /", http.FileServerFS(staticFiles()))
 	mux.HandleFunc("GET /ws", d.handleWS)
 	mux.HandleFunc("GET /api/messages", d.handleMessages)
 	mux.HandleFunc("GET /api/messages/search", d.handleSearch)
+	mux.HandleFunc("GET /api/logs", d.handleLogs)
+	mux.HandleFunc("GET /api/logs/search", d.handleLogSearch)
 	mux.HandleFunc("GET /api/stats", d.handleStats)
 
 	d.srv = &http.Server{
@@ -93,6 +108,11 @@ func New(addr string, store *Store) *DebugUI {
 	}
 
 	return d
+}
+
+// SlogHandler returns a slog.Handler that sends log records to the debug UI's log tab.
+func (d *DebugUI) SlogHandler() *SlogHandler {
+	return NewSlogHandler(d.logStore)
 }
 
 // ListenAndServe binds the port synchronously, then serves in the background.
@@ -183,6 +203,42 @@ func (d *DebugUI) handleSearch(w http.ResponseWriter, r *http.Request) {
 	entries := d.store.Search(q)
 	if entries == nil {
 		entries = []Entry{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(entries)
+}
+
+func (d *DebugUI) handleLogs(w http.ResponseWriter, r *http.Request) {
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if limit <= 0 {
+		limit = 100
+	}
+	if limit > 1000 {
+		limit = 1000
+	}
+
+	entries := d.logStore.Entries(offset, limit)
+	if entries == nil {
+		entries = []LogEntry{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(entries)
+}
+
+func (d *DebugUI) handleLogSearch(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query().Get("q")
+	if q == "" {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte("[]"))
+		return
+	}
+
+	entries := d.logStore.Search(q)
+	if entries == nil {
+		entries = []LogEntry{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

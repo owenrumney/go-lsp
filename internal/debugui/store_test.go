@@ -7,7 +7,7 @@ import (
 )
 
 func TestStoreAddAndEntries(t *testing.T) {
-	s := NewStore()
+	s := NewStore(nil)
 
 	s.Add("client→server", []byte(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`))
 	s.Add("server→client", []byte(`{"jsonrpc":"2.0","id":1,"result":{}}`))
@@ -48,7 +48,7 @@ func TestStoreAddAndEntries(t *testing.T) {
 }
 
 func TestStoreSubscriber(t *testing.T) {
-	s := NewStore()
+	s := NewStore(nil)
 
 	var got []Entry
 	s.Subscribe(func(e Entry) {
@@ -66,7 +66,7 @@ func TestStoreSubscriber(t *testing.T) {
 }
 
 func TestStoreSearch(t *testing.T) {
-	s := NewStore()
+	s := NewStore(nil)
 
 	s.Add("client→server", []byte(`{"jsonrpc":"2.0","id":1,"method":"textDocument/hover","params":{}}`))
 	s.Add("client→server", []byte(`{"jsonrpc":"2.0","id":2,"method":"textDocument/completion","params":{}}`))
@@ -82,7 +82,7 @@ func TestStoreSearch(t *testing.T) {
 }
 
 func TestStoreRingBuffer(t *testing.T) {
-	s := NewStore()
+	s := NewStore(nil)
 
 	for i := 0; i < maxEntries+100; i++ {
 		msg := fmt.Sprintf(`{"jsonrpc":"2.0","method":"test/%d","params":{}}`, i)
@@ -96,7 +96,7 @@ func TestStoreRingBuffer(t *testing.T) {
 }
 
 func TestStorePagination(t *testing.T) {
-	s := NewStore()
+	s := NewStore(nil)
 
 	for i := 0; i < 10; i++ {
 		msg := fmt.Sprintf(`{"jsonrpc":"2.0","method":"test/%d","params":{}}`, i)
@@ -122,8 +122,42 @@ func TestStorePagination(t *testing.T) {
 	}
 }
 
+func TestStoreCrossPostLogMessage(t *testing.T) {
+	logStore := NewLogStore()
+	s := NewStore(logStore)
+
+	// Simulate a window/logMessage notification.
+	s.Add("server→client", []byte(`{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":3,"message":"hello from server"}}`))
+	s.Add("server→client", []byte(`{"jsonrpc":"2.0","method":"window/logMessage","params":{"type":1,"message":"something broke"}}`))
+	// Non-logMessage notification should not cross-post.
+	s.Add("server→client", []byte(`{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{}}`))
+
+	logs := logStore.Entries(0, 10)
+	if len(logs) != 2 {
+		t.Fatalf("got %d log entries, want 2", len(logs))
+	}
+
+	tests := []struct {
+		idx     int
+		level   string
+		message string
+	}{
+		{0, "info", "hello from server"},
+		{1, "error", "something broke"},
+	}
+	for _, tt := range tests {
+		l := logs[tt.idx]
+		if l.Level != tt.level {
+			t.Errorf("log %d: level = %q, want %q", tt.idx, l.Level, tt.level)
+		}
+		if l.Message != tt.message {
+			t.Errorf("log %d: message = %q, want %q", tt.idx, l.Message, tt.message)
+		}
+	}
+}
+
 func TestStoreBodyCopy(t *testing.T) {
-	s := NewStore()
+	s := NewStore(nil)
 
 	raw := []byte(`{"jsonrpc":"2.0","method":"test","params":{}}`)
 	s.Add("client→server", raw)

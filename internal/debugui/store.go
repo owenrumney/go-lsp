@@ -31,13 +31,16 @@ type Store struct {
 	nextID      int
 	pending     map[string]int // rpcID -> entry ID for unmatched requests
 	subscribers []Subscriber
+	logStore    *LogStore // optional: cross-post window/logMessage notifications
 }
 
-// NewStore creates a new Store.
-func NewStore() *Store {
+// NewStore creates a new Store. If logStore is non-nil, window/logMessage
+// notifications are automatically cross-posted to it.
+func NewStore(logStore *LogStore) *Store {
 	return &Store{
-		entries: make([]Entry, 0, 256),
-		pending: make(map[string]int),
+		entries:  make([]Entry, 0, 256),
+		pending:  make(map[string]int),
+		logStore: logStore,
 	}
 }
 
@@ -112,6 +115,32 @@ func (s *Store) Add(direction string, raw []byte) {
 	for _, fn := range subs {
 		fn(e)
 	}
+
+	// Cross-post window/logMessage notifications to the log store.
+	if s.logStore != nil && e.Method == "window/logMessage" {
+		var params struct {
+			Type    int    `json:"type"`
+			Message string `json:"message"`
+		}
+		// The body is the full JSON-RPC message; extract params.
+		var rpc struct {
+			Params json.RawMessage `json:"params"`
+		}
+		if json.Unmarshal(e.Body, &rpc) == nil && rpc.Params != nil {
+			if json.Unmarshal(rpc.Params, &params) == nil {
+				level := "info"
+				switch params.Type {
+				case 1:
+					level = "error"
+				case 2:
+					level = "warning"
+				case 4:
+					level = "log"
+				}
+				s.logStore.Add(level, params.Message)
+			}
+		}
+	}
 }
 
 func (s *Store) updatePairedWith(entryID, pairedID int) {
@@ -132,10 +161,7 @@ func (s *Store) Entries(offset, limit int) []Entry {
 	if offset >= n {
 		return nil
 	}
-	end := offset + limit
-	if end > n {
-		end = n
-	}
+	end := min(offset+limit, n)
 	result := make([]Entry, end-offset)
 	copy(result, s.entries[offset:end])
 	return result

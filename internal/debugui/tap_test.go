@@ -13,7 +13,7 @@ type bufRWC struct {
 func (b bufRWC) Close() error { return nil }
 
 func TestTapRead(t *testing.T) {
-	store := NewStore()
+	store := NewStore(nil)
 
 	msg1 := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`
 	msg2 := `{"jsonrpc":"2.0","method":"initialized","params":{}}`
@@ -48,7 +48,7 @@ func TestTapRead(t *testing.T) {
 }
 
 func TestTapWrite(t *testing.T) {
-	store := NewStore()
+	store := NewStore(nil)
 
 	msg := `{"jsonrpc":"2.0","id":1,"result":{}}`
 	framed := FormatMessage([]byte(msg))
@@ -87,7 +87,7 @@ func TestTapWrite(t *testing.T) {
 }
 
 func TestTapPartialRead(t *testing.T) {
-	store := NewStore()
+	store := NewStore(nil)
 
 	msg := `{"jsonrpc":"2.0","id":1,"method":"test","params":{}}`
 	framed := FormatMessage([]byte(msg))
