@@ -318,16 +318,45 @@ srv := server.NewServer(&Handler{}, server.WithDebugUI(":7100"))
 srv.Run(ctx, server.RunStdio())
 ```
 
-Then open `http://localhost:7100` in a browser. The UI shows messages in real time via WebSocket, with:
+Then open `http://localhost:7100` in a browser. The tap is transparent -- it intercepts LSP frames for display without modifying them.
 
-- Request/response pairing with latency tracking
-- Direction and type filters
-- Full-text search across methods and JSON bodies
-- Pretty-printed message details
+### Messages tab
 
-The tap is transparent -- it intercepts LSP frames for display without modifying them.
+Real-time view of all JSON-RPC traffic between client and server:
+
+- **Request/response pairing** -- responses are matched to their originating request with latency displayed inline
+- **Direction and type filters** -- narrow the list to client-to-server, server-to-client, requests, or notifications
+- **Full-text search** across methods and JSON bodies (including paired responses)
+- **Pretty-printed detail pane** -- click any message to see the full JSON with syntax formatting
+
+### Logs tab
+
+Aggregated log output with level filtering (error, warning, info, log). `window/logMessage` notifications are automatically cross-posted here. Supports search and CSV export.
+
+### Timeline tab
+
+Waterfall view of request latency, grouped by method:
+
+- Each method gets a single row with all its request bars laid out on a time track
+- Bars are color-coded: green (<100ms), orange (100ms--1s), red (>1s), animated blue stripes (pending)
+- **Minimap** header with time axis ticks -- click or drag to scroll to a point in time
+- Zoom in/out to adjust the time scale
+- Click any bar to jump to that message in the Messages tab
+
+### Stats bar
+
+Runtime metrics updated every 2 seconds: uptime, heap usage, goroutine count, GC runs, request/response/notification counts, and average latency.
+
+**Method sparklines** appear below the stats bar once latency data is available, showing an inline SVG chart of the last 50 latency samples per method (top 10 by volume).
+
+### Other features
+
+- **Capabilities panel** -- slide-out panel showing which LSP capabilities the server advertised during initialization
+- **Dark / light theme** -- toggle between Catppuccin Mocha (dark) and Catppuccin Latte (light) themes, persisted in `localStorage`
 
 ![Debug UI](./.github/images/debugui.png)
+
+![Debug UI Timeline](./.github/images/debugui-timeline.png)
 
 ## Project structure
 

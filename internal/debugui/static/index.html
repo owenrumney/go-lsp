@@ -5,71 +5,163 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LSP Debug UI</title>
 <style>
+  :root {
+    --base: #1e1e2e;
+    --mantle: #181825;
+    --crust: #11111b;
+    --surface0: #313244;
+    --surface1: #45475a;
+    --overlay0: #6c7086;
+    --subtext: #a6adc8;
+    --text: #cdd6f4;
+    --blue: #89b4fa;
+    --flamingo: #f38ba8;
+    --green: #a6e3a1;
+    --peach: #fab387;
+    --yellow: #f9e2af;
+  }
+  [data-theme="light"] {
+    --base: #eff1f5;
+    --mantle: #e6e9ef;
+    --crust: #dce0e8;
+    --surface0: #ccd0da;
+    --surface1: #bcc0cc;
+    --overlay0: #7c7f93;
+    --subtext: #6c6f85;
+    --text: #4c4f69;
+    --blue: #1e66f5;
+    --flamingo: #dd7878;
+    --green: #40a02b;
+    --peach: #fe640b;
+    --yellow: #df8e1d;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; background: #1e1e2e; color: #cdd6f4; height: 100vh; display: flex; flex-direction: column; }
-  #topbar { display: flex; gap: 8px; padding: 8px 12px; background: #181825; border-bottom: 1px solid #313244; align-items: center; flex-shrink: 0; }
-  #topbar h1 { font-size: 14px; color: #89b4fa; margin-right: 8px; white-space: nowrap; }
-  .toolbar { display: flex; gap: 8px; padding: 8px 12px; background: #181825; border-bottom: 1px solid #313244; align-items: center; flex-shrink: 0; }
-  .toolbar input, .toolbar select { background: #313244; border: 1px solid #45475a; color: #cdd6f4; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; background: var(--base); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+  #topbar { display: flex; gap: 8px; padding: 8px 12px; background: var(--mantle); border-bottom: 1px solid var(--surface0); align-items: center; flex-shrink: 0; }
+  #topbar h1 { font-size: 14px; color: var(--blue); margin-right: 8px; white-space: nowrap; }
+  .toolbar { display: flex; gap: 8px; padding: 8px 12px; background: var(--mantle); border-bottom: 1px solid var(--surface0); align-items: center; flex-shrink: 0; }
+  .toolbar input, .toolbar select { background: var(--surface0); border: 1px solid var(--surface1); color: var(--text); padding: 4px 8px; border-radius: 4px; font-size: 13px; }
   .toolbar .search { flex: 1; max-width: 300px; }
-  .toolbar .counter { font-size: 12px; color: #6c7086; margin-left: auto; white-space: nowrap; }
-  #tabbar { display: flex; gap: 0; background: #181825; border-bottom: 1px solid #313244; flex-shrink: 0; }
-  .tab { padding: 6px 16px; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; color: #6c7086; }
-  .tab:hover { color: #cdd6f4; }
-  .tab.active { color: #89b4fa; border-bottom-color: #89b4fa; }
+  .toolbar .counter { font-size: 12px; color: var(--overlay0); margin-left: auto; white-space: nowrap; }
+  .toolbar .clear-btn { background: none; border: none; color: var(--overlay0); cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 4px; }
+  .toolbar .clear-btn:hover { background: var(--surface0); color: var(--flamingo); }
+  #tabbar { display: flex; gap: 0; background: var(--mantle); border-bottom: 1px solid var(--surface0); flex-shrink: 0; }
+  .tab { padding: 6px 16px; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--overlay0); }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
   .view { display: none; flex-direction: column; flex: 1; overflow: hidden; }
   .view.active { display: flex; }
   #msg-main { display: flex; flex: 1; overflow: hidden; }
-  #list { width: 40%; border-right: 1px solid #313244; overflow-y: auto; }
+  #list { width: 40%; border-right: 1px solid var(--surface0); overflow-y: auto; }
   #detail { width: 60%; overflow-y: auto; padding: 12px; }
-  .entry { padding: 6px 0; cursor: pointer; border-bottom: 1px solid #1e1e2e; font-size: 13px; display: flex; align-items: center; }
-  .entry:hover { background: #313244; }
-  .entry.selected { background: #45475a; }
-  .col-time { color: #6c7086; font-size: 11px; width: 90px; padding-left: 12px; flex-shrink: 0; }
+  .entry { padding: 6px 0; cursor: pointer; border-bottom: 1px solid var(--base); font-size: 13px; display: flex; align-items: center; }
+  .entry:hover { background: var(--surface0); }
+  .entry.selected { background: var(--surface1); }
+  .col-time { color: var(--overlay0); font-size: 11px; width: 90px; padding-left: 12px; flex-shrink: 0; }
   .col-type { width: 72px; flex-shrink: 0; }
   .col-dir { width: 20px; flex-shrink: 0; text-align: center; }
-  .col-dir.in { color: #a6e3a1; }
-  .col-dir.out { color: #f38ba8; }
+  .col-dir.in { color: var(--green); }
+  .col-dir.out { color: var(--flamingo); }
   .col-latency { width: 56px; flex-shrink: 0; text-align: right; font-size: 11px; padding-right: 8px; }
   .col-method { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 12px; }
   .badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; }
-  .badge.request { background: #89b4fa22; color: #89b4fa; }
-  .badge.notification { background: #f9e2af22; color: #f9e2af; }
-  .badge.error { background: #f38ba822; color: #f38ba8; }
-  .badge.warning { background: #fab38722; color: #fab387; }
-  .badge.info { background: #89b4fa22; color: #89b4fa; }
-  .badge.log { background: #6c708622; color: #6c7086; }
-  .latency { color: #6c7086; }
-  .latency.slow { color: #f9e2af; }
-  .latency.very-slow { color: #f38ba8; }
-  .pending-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #89b4fa; animation: pulse 1.5s infinite; }
+  .badge.request { background: color-mix(in srgb, var(--blue) 13%, transparent); color: var(--blue); }
+  .badge.notification { background: color-mix(in srgb, var(--yellow) 13%, transparent); color: var(--yellow); }
+  .badge.error { background: color-mix(in srgb, var(--flamingo) 13%, transparent); color: var(--flamingo); }
+  .badge.warning { background: color-mix(in srgb, var(--peach) 13%, transparent); color: var(--peach); }
+  .badge.info { background: color-mix(in srgb, var(--blue) 13%, transparent); color: var(--blue); }
+  .badge.log { background: color-mix(in srgb, var(--overlay0) 13%, transparent); color: var(--overlay0); }
+  .latency { color: var(--overlay0); }
+  .latency.slow { color: var(--yellow); }
+  .latency.very-slow { color: var(--flamingo); }
+  .pending-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--blue); animation: pulse 1.5s infinite; }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-  .error-indicator { color: #f38ba8; font-size: 11px; margin-right: 2px; }
-  #detail h3 { font-size: 13px; color: #89b4fa; margin: 12px 0 6px; }
+  .error-indicator { color: var(--flamingo); font-size: 11px; margin-right: 2px; }
+  #detail h3 { font-size: 13px; color: var(--blue); margin: 12px 0 6px; }
   #detail h3:first-child { margin-top: 0; }
-  #detail pre { background: #181825; padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; line-height: 1.5; }
-  #detail .meta { font-size: 12px; color: #6c7086; margin-bottom: 8px; }
-  .empty { padding: 40px; text-align: center; color: #6c7086; }
-  #new-indicator { display: none; position: fixed; bottom: 16px; left: calc(20% - 60px); background: #89b4fa; color: #1e1e2e; padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; z-index: 10; }
-  #statsbar { display: flex; gap: 16px; padding: 6px 12px; background: #11111b; border-bottom: 1px solid #313244; align-items: center; flex-shrink: 0; overflow: hidden; transition: max-height 0.2s, padding 0.2s, opacity 0.2s; max-height: 40px; opacity: 1; }
+  #detail pre { background: var(--mantle); padding: 10px; border-radius: 4px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; line-height: 1.5; }
+  #detail .meta { font-size: 12px; color: var(--overlay0); margin-bottom: 8px; }
+  .empty { padding: 40px; text-align: center; color: var(--overlay0); }
+  #new-indicator { display: none; position: fixed; bottom: 16px; left: calc(20% - 60px); background: var(--blue); color: var(--base); padding: 4px 12px; border-radius: 12px; font-size: 12px; cursor: pointer; z-index: 10; }
+  #statsbar { display: flex; gap: 16px; padding: 6px 12px; background: var(--crust); border-bottom: 1px solid var(--surface0); align-items: center; flex-shrink: 0; overflow: hidden; transition: max-height 0.2s, padding 0.2s, opacity 0.2s; max-height: 40px; opacity: 1; }
   #statsbar.collapsed { max-height: 0; padding: 0 12px; opacity: 0; border-bottom: none; }
   #statsbar .stat { font-size: 12px; white-space: nowrap; }
-  #statsbar .stat-label { color: #6c7086; margin-right: 4px; }
-  #statsbar .stat-value { color: #cdd6f4; font-variant-numeric: tabular-nums; }
-  #stats-toggle { background: none; border: none; color: #6c7086; cursor: pointer; font-size: 11px; padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
-  #stats-toggle:hover { color: #cdd6f4; background: #313244; }
+  #statsbar .stat-label { color: var(--overlay0); margin-right: 4px; }
+  #statsbar .stat-value { color: var(--text); font-variant-numeric: tabular-nums; }
+  .topbar-right { display: flex; gap: 8px; margin-left: auto; }
+  .topbar-btn { background: none; border: none; color: var(--overlay0); cursor: pointer; font-size: 11px; padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
+  .topbar-btn:hover { color: var(--text); background: var(--surface0); }
+  .topbar-btn.active { color: var(--blue); }
   #log-list { flex: 1; overflow-y: auto; }
-  .log-entry { padding: 4px 12px; font-size: 13px; border-bottom: 1px solid #1e1e2e; display: flex; align-items: baseline; gap: 8px; }
-  .log-entry:hover { background: #313244; }
-  .log-time { color: #6c7086; font-size: 11px; flex-shrink: 0; width: 90px; }
+  .log-entry { padding: 4px 12px; font-size: 13px; border-bottom: 1px solid var(--base); display: flex; align-items: baseline; gap: 8px; }
+  .log-entry:hover { background: var(--surface0); }
+  .log-time { color: var(--overlay0); font-size: 11px; flex-shrink: 0; width: 90px; }
   .log-level { flex-shrink: 0; width: 56px; }
   .log-msg { flex: 1; white-space: pre-wrap; word-break: break-all; }
+  #caps-panel { position: fixed; top: 0; right: 0; width: 340px; height: 100vh; background: var(--mantle); border-left: 1px solid var(--surface0); z-index: 100; transform: translateX(100%); transition: transform 0.2s ease; overflow-y: auto; padding: 16px; }
+  #caps-panel.open { transform: translateX(0); }
+  #caps-panel h2 { font-size: 14px; color: var(--blue); margin-bottom: 12px; }
+  .caps-group { margin-bottom: 16px; }
+  .caps-group h3 { font-size: 12px; color: var(--subtext); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .cap-item { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 13px; }
+  .cap-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .cap-dot.on { background: var(--green); }
+  .cap-dot.off { background: var(--surface1); }
+  .cap-name { color: var(--text); }
+  .cap-name.off { color: var(--overlay0); }
+  .caps-waiting { color: var(--overlay0); font-size: 13px; }
+  #caps-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 99; }
+  #caps-overlay.open { display: block; }
+
+  /* Sparkline bar */
+  #sparkline-bar { display: flex; gap: 16px; padding: 6px 12px; background: var(--crust); border-bottom: 1px solid var(--surface0); align-items: center; flex-shrink: 0; overflow-x: auto; overflow-y: hidden; transition: max-height 0.2s, padding 0.2s, opacity 0.2s; max-height: 40px; opacity: 1; }
+  #sparkline-bar.collapsed { max-height: 0; padding: 0 12px; opacity: 0; border-bottom: none; }
+  #sparkline-bar:empty { display: none; }
+  .spark-item { display: flex; align-items: center; gap: 4px; font-size: 11px; white-space: nowrap; }
+  .spark-item .spark-method { color: var(--overlay0); max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+  .spark-item svg { flex-shrink: 0; }
+  .spark-item .spark-avg { color: var(--subtext); font-variant-numeric: tabular-nums; }
+
+  /* Timeline view */
+  #timeline-view .toolbar .zoom-btn { background: var(--surface0); border: 1px solid var(--surface1); color: var(--text); cursor: pointer; padding: 2px 8px; border-radius: 4px; font-size: 13px; }
+  #timeline-view .toolbar .zoom-btn:hover { background: var(--surface1); }
+  #tl-minimap { display: flex; height: 28px; background: var(--mantle); border-bottom: 1px solid var(--surface0); flex-shrink: 0; cursor: pointer; overflow: hidden; position: relative; }
+  #tl-minimap-pad { width: 200px; flex-shrink: 0; }
+  #tl-minimap-track { flex: 1; position: relative; overflow: hidden; }
+  .tl-tick { position: absolute; top: 0; height: 100%; border-left: 1px solid var(--surface0); }
+  .tl-tick-label { position: absolute; top: 2px; left: 4px; font-size: 9px; color: var(--overlay0); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  #tl-minimap-viewport { position: absolute; top: 0; height: 100%; background: color-mix(in srgb, var(--blue) 15%, transparent); border-left: 2px solid var(--blue); border-right: 2px solid var(--blue); pointer-events: none; }
+  .tl-minimap-bar { position: absolute; top: 16px; height: 6px; border-radius: 1px; opacity: 0.6; }
+  .tl-minimap-bar.lat-fast { background: var(--green); }
+  .tl-minimap-bar.lat-med { background: var(--peach); }
+  .tl-minimap-bar.lat-slow { background: var(--flamingo); }
+  .tl-minimap-bar.lat-pending { background: var(--blue); }
+  #timeline-container { flex: 1; overflow: auto; position: relative; }
+  .tl-row { display: flex; align-items: center; height: 24px; border-bottom: 1px solid var(--base); cursor: pointer; }
+  .tl-row:hover { background: var(--surface0); }
+  .tl-label { width: 200px; flex-shrink: 0; padding: 0 8px; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--subtext); }
+  .tl-track { flex: 1; position: relative; height: 100%; }
+  .tl-bar { position: absolute; top: 4px; height: 16px; border-radius: 3px; min-width: 3px; cursor: pointer; }
+  .tl-bar.lat-fast { background: var(--green); }
+  .tl-bar.lat-med { background: var(--peach); }
+  .tl-bar.lat-slow { background: var(--flamingo); }
+  .tl-bar.lat-pending { background: repeating-linear-gradient(90deg, var(--blue) 0px, var(--blue) 4px, transparent 4px, transparent 8px); background-size: 8px 100%; animation: barbershop 0.5s linear infinite; }
+  @keyframes barbershop { from { background-position: 0 0; } to { background-position: 8px 0; } }
 </style>
 </head>
 <body>
 <div id="topbar">
   <h1>go-lsp debug</h1>
-  <button id="stats-toggle" onclick="toggleStats()">runtime</button>
+  <div class="topbar-right">
+    <button id="stats-toggle" class="topbar-btn" onclick="toggleStats()">runtime</button>
+    <button id="caps-toggle" class="topbar-btn" onclick="toggleCaps()">capabilities</button>
+    <button id="theme-toggle" class="topbar-btn" onclick="toggleTheme()">light</button>
+  </div>
+</div>
+<div id="caps-overlay" onclick="toggleCaps()"></div>
+<div id="caps-panel">
+  <h2>Server Capabilities</h2>
+  <div id="caps-content"><span class="caps-waiting">Waiting for initialization...</span></div>
 </div>
 <div id="statsbar">
   <span class="stat"><span class="stat-label">Uptime</span><span class="stat-value" id="s-uptime">-</span></span>
@@ -82,9 +174,11 @@
   <span class="stat"><span class="stat-label">Notifications</span><span class="stat-value" id="s-notifications">-</span></span>
   <span class="stat"><span class="stat-label">Avg Latency</span><span class="stat-value" id="s-latency">-</span></span>
 </div>
+<div id="sparkline-bar"></div>
 <div id="tabbar">
   <div class="tab active" data-tab="messages">Messages</div>
   <div class="tab" data-tab="logs">Logs</div>
+  <div class="tab" data-tab="timeline">Timeline</div>
 </div>
 <div id="msg-view" class="view active">
   <div class="toolbar">
@@ -100,6 +194,7 @@
       <option value="notification">notification</option>
     </select>
     <span id="counter" class="counter">0 messages</span>
+    <button id="msg-clear" class="clear-btn" title="Clear messages">&#x1f5d1;</button>
   </div>
   <div id="msg-main">
     <div id="list"><div class="empty">Waiting for messages...</div></div>
@@ -117,10 +212,24 @@
       <option value="log">log</option>
     </select>
     <span id="log-counter" class="counter">0 logs</span>
+    <button id="log-copy" class="clear-btn" title="Copy visible logs as CSV">&#x1f4cb;</button>
+    <button id="log-clear" class="clear-btn" title="Clear logs">&#x1f5d1;</button>
   </div>
   <div id="log-list"><div class="empty">Waiting for logs...</div></div>
 </div>
-<div id="new-indicator" onclick="scrollToBottom()">↓ New messages</div>
+<div id="timeline-view" class="view">
+  <div class="toolbar">
+    <span id="tl-counter" class="counter">0 requests</span>
+    <button class="zoom-btn" onclick="tlZoom(-1)">-</button>
+    <button class="zoom-btn" onclick="tlZoom(1)">+</button>
+  </div>
+  <div id="tl-minimap">
+    <div id="tl-minimap-pad"></div>
+    <div id="tl-minimap-track"></div>
+  </div>
+  <div id="timeline-container"></div>
+</div>
+<div id="new-indicator" onclick="scrollToBottom()">&#x2193; New messages</div>
 
 <script>
 const listEl = document.getElementById('list');
@@ -145,8 +254,25 @@ let allLogs = [];
 let logAutoScroll = true;
 let logsDirty = false;
 let messagesDirty = false;
+let timelineDirty = false;
 
 let activeTab = 'messages';
+
+// Theme
+const themeToggle = document.getElementById('theme-toggle');
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  themeToggle.textContent = theme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('debugui-theme', theme);
+}
+(function initTheme() {
+  const saved = localStorage.getItem('debugui-theme') || 'dark';
+  applyTheme(saved);
+})();
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
 
 // Tab switching
 document.getElementById('tabbar').addEventListener('click', (ev) => {
@@ -158,6 +284,7 @@ document.getElementById('tabbar').addEventListener('click', (ev) => {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.getElementById('msg-view').classList.toggle('active', name === 'messages');
   document.getElementById('log-view').classList.toggle('active', name === 'logs');
+  document.getElementById('timeline-view').classList.toggle('active', name === 'timeline');
   if (name === 'logs' && logsDirty) {
     renderLogs();
     logsDirty = false;
@@ -165,6 +292,10 @@ document.getElementById('tabbar').addEventListener('click', (ev) => {
   if (name === 'messages' && messagesDirty) {
     renderList();
     messagesDirty = false;
+  }
+  if (name === 'timeline' && timelineDirty) {
+    renderTimeline();
+    timelineDirty = false;
   }
 });
 
@@ -185,7 +316,6 @@ function latencyClass(ms) {
   return '';
 }
 
-// Returns rows for the list: requests and notifications only (responses are merged into their request).
 function getListRows() {
   return allEntries.filter(e => e.msgType === 'request' || e.msgType === 'notification');
 }
@@ -198,7 +328,6 @@ function matchesFilter(e) {
   if (type_ && e.msgType !== type_) return false;
   if (q) {
     let matchText = e.method.toLowerCase() + JSON.stringify(e.body).toLowerCase();
-    // Also search in paired response body.
     if (e.pairedWith >= 0) {
       const resp = entryById[e.pairedWith];
       if (resp) matchText += JSON.stringify(resp.body).toLowerCase();
@@ -288,7 +417,6 @@ function escapeHtml(s) {
 
 function addEntry(e) {
   entryById[e.id] = e;
-  // Update paired entry if this is a response.
   if (e.pairedWith >= 0) {
     const req = entryById[e.pairedWith];
     if (req && req.pairedWith < 0) req.pairedWith = e.id;
@@ -311,6 +439,16 @@ searchEl.addEventListener('input', () => {
 });
 dirFilter.addEventListener('change', renderList);
 typeFilter.addEventListener('change', renderList);
+document.getElementById('msg-clear').addEventListener('click', () => {
+  fetch('/api/messages', { method: 'DELETE' }).then(() => {
+    allEntries.length = 0;
+    entryById = {};
+    selectedId = null;
+    renderList();
+    renderTimeline();
+    detailEl.innerHTML = '<div class="empty">Select a message to view details</div>';
+  });
+});
 
 listEl.addEventListener('scroll', () => {
   const atBottom = listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight < 50;
@@ -359,6 +497,21 @@ logSearchEl.addEventListener('input', () => {
   logSearchTimeout = setTimeout(() => { renderLogs(); }, 200);
 });
 logLevelFilter.addEventListener('change', renderLogs);
+document.getElementById('log-copy').addEventListener('click', () => {
+  const rows = allLogs.filter(matchesLogFilter);
+  const csvQuote = s => '"' + s.replace(/"/g, '""') + '"';
+  const lines = ['timestamp,level,message'];
+  for (const e of rows) {
+    lines.push([e.timestamp, e.level, csvQuote(e.message)].join(','));
+  }
+  navigator.clipboard.writeText(lines.join('\n'));
+});
+document.getElementById('log-clear').addEventListener('click', () => {
+  fetch('/api/logs', { method: 'DELETE' }).then(() => {
+    allLogs.length = 0;
+    renderLogs();
+  });
+});
 
 logListEl.addEventListener('scroll', () => {
   const atBottom = logListEl.scrollHeight - logListEl.scrollTop - logListEl.clientHeight < 50;
@@ -370,16 +523,228 @@ function scrollLogsToBottom() {
   logAutoScroll = true;
 }
 
+// --- Timeline ---
+const tlContainer = document.getElementById('timeline-container');
+const tlCounterEl = document.getElementById('tl-counter');
+const tlMinimapTrack = document.getElementById('tl-minimap-track');
+let tlZoomLevel = 1; // seconds per 100px
+const tlZoomSteps = [0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60];
+let tlZoomIdx = 3;
+let tlWindowStart = 0;
+let tlWindowEnd = 0;
+let tlTrackWidth = 0;
+
+function tlZoom(dir) {
+  tlZoomIdx = Math.max(0, Math.min(tlZoomSteps.length - 1, tlZoomIdx + dir));
+  tlZoomLevel = tlZoomSteps[tlZoomIdx];
+  renderTimeline();
+}
+
+function getTimelineRows() {
+  const requests = allEntries.filter(e => e.msgType === 'request');
+  return requests.slice(-500);
+}
+
+function computeBarInfo(e, now, windowStart, pxPerMs) {
+  const t0 = new Date(e.timestamp).getTime();
+  let t1, barClass;
+  if (e.pairedWith >= 0) {
+    const resp = entryById[e.pairedWith];
+    if (resp) {
+      t1 = new Date(resp.timestamp).getTime();
+      const ms = t1 - t0;
+      barClass = ms < 100 ? 'lat-fast' : ms < 1000 ? 'lat-med' : 'lat-slow';
+    } else {
+      t1 = now;
+      barClass = 'lat-pending';
+    }
+  } else {
+    t1 = now;
+    barClass = 'lat-pending';
+  }
+  const left = (t0 - windowStart) * pxPerMs;
+  let width = Math.max(3, (t1 - t0) * pxPerMs);
+  if (barClass === 'lat-pending') width = Math.min(width, 120);
+  return { left, width, barClass };
+}
+
+function formatTickTime(ms) {
+  const d = new Date(ms);
+  return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function renderTimeline() {
+  const rows = getTimelineRows();
+  tlCounterEl.textContent = rows.length + ' requests';
+  if (rows.length === 0) {
+    tlContainer.innerHTML = '<div class="empty">No requests yet</div>';
+    tlMinimapTrack.innerHTML = '';
+    return;
+  }
+
+  const now = Date.now();
+  const starts = rows.map(e => new Date(e.timestamp).getTime());
+  const windowStart = Math.min(...starts);
+  const windowEnd = now;
+  const pxPerMs = 100 / (tlZoomLevel * 1000);
+  const trackWidth = Math.max(400, (windowEnd - windowStart) * pxPerMs);
+
+  tlWindowStart = windowStart;
+  tlWindowEnd = windowEnd;
+  tlTrackWidth = trackWidth;
+
+  // Group requests by method, preserving order of first appearance.
+  const methodOrder = [];
+  const methodEntries = {};
+  for (const e of rows) {
+    if (!methodEntries[e.method]) {
+      methodOrder.push(e.method);
+      methodEntries[e.method] = [];
+    }
+    methodEntries[e.method].push(e);
+  }
+
+  tlContainer.innerHTML = methodOrder.map(method => {
+    const entries = methodEntries[method];
+    const bars = entries.map(e => {
+      const b = computeBarInfo(e, now, windowStart, pxPerMs);
+      return `<span class="tl-bar ${b.barClass}" data-id="${e.id}" style="left:${b.left}px;width:${b.width}px"></span>`;
+    }).join('');
+    return `<div class="tl-row">
+      <span class="tl-label" title="${escapeHtml(method)}">${escapeHtml(method)}</span>
+      <span class="tl-track" style="width:${trackWidth}px">${bars}</span>
+    </div>`;
+  }).join('');
+
+  renderMinimap(rows, now, windowStart, windowEnd, trackWidth, pxPerMs);
+}
+
+function renderMinimap(rows, now, windowStart, windowEnd, trackWidth, pxPerMs) {
+  const mapWidth = tlMinimapTrack.clientWidth;
+  if (mapWidth <= 0) return;
+  const totalMs = windowEnd - windowStart;
+  if (totalMs <= 0) return;
+  const mapScale = mapWidth / totalMs;
+
+  // Time ticks — pick a nice interval.
+  const targetTicks = Math.max(3, Math.floor(mapWidth / 80));
+  const rawInterval = totalMs / targetTicks;
+  const niceIntervals = [100, 250, 500, 1000, 2000, 5000, 10000, 30000, 60000, 120000, 300000, 600000];
+  let tickInterval = niceIntervals.find(n => n >= rawInterval) || rawInterval;
+
+  const firstTick = Math.ceil(windowStart / tickInterval) * tickInterval;
+  let ticksHtml = '';
+  for (let t = firstTick; t <= windowEnd; t += tickInterval) {
+    const x = (t - windowStart) * mapScale;
+    ticksHtml += `<div class="tl-tick" style="left:${x}px"><span class="tl-tick-label">${formatTickTime(t)}</span></div>`;
+  }
+
+  // Mini bars (one per request, condensed).
+  const barsHtml = rows.map(e => {
+    const b = computeBarInfo(e, now, windowStart, pxPerMs);
+    const miniLeft = (b.left / trackWidth) * mapWidth;
+    const miniWidth = Math.max(1, (b.width / trackWidth) * mapWidth);
+    return `<span class="tl-minimap-bar ${b.barClass}" style="left:${miniLeft}px;width:${miniWidth}px"></span>`;
+  }).join('');
+
+  // Viewport indicator.
+  const visibleLeft = tlContainer.scrollLeft;
+  const visibleWidth = tlContainer.clientWidth - 200; // minus label column
+  const vpLeft = (visibleLeft / trackWidth) * mapWidth;
+  const vpWidth = Math.max(4, (visibleWidth / trackWidth) * mapWidth);
+
+  tlMinimapTrack.innerHTML = ticksHtml + barsHtml +
+    `<div id="tl-minimap-viewport" style="left:${vpLeft}px;width:${vpWidth}px"></div>`;
+}
+
+// Update viewport indicator on scroll.
+tlContainer.addEventListener('scroll', () => {
+  const vp = document.getElementById('tl-minimap-viewport');
+  if (!vp || tlTrackWidth <= 0) return;
+  const mapWidth = tlMinimapTrack.clientWidth;
+  const visibleWidth = tlContainer.clientWidth - 200;
+  const vpLeft = (tlContainer.scrollLeft / tlTrackWidth) * mapWidth;
+  const vpWidth = Math.max(4, (visibleWidth / tlTrackWidth) * mapWidth);
+  vp.style.left = vpLeft + 'px';
+  vp.style.width = vpWidth + 'px';
+});
+
+// Click/drag on minimap to scroll the timeline.
+(function() {
+  let dragging = false;
+  function scrollToMapX(clientX) {
+    const rect = tlMinimapTrack.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const frac = x / rect.width;
+    const visibleWidth = tlContainer.clientWidth - 200;
+    const targetScroll = (frac * tlTrackWidth) - (visibleWidth / 2);
+    tlContainer.scrollLeft = Math.max(0, targetScroll);
+  }
+  tlMinimapTrack.addEventListener('mousedown', (ev) => {
+    dragging = true;
+    scrollToMapX(ev.clientX);
+    ev.preventDefault();
+  });
+  document.addEventListener('mousemove', (ev) => {
+    if (dragging) scrollToMapX(ev.clientX);
+  });
+  document.addEventListener('mouseup', () => { dragging = false; });
+})();
+
+tlContainer.addEventListener('click', (ev) => {
+  const bar = ev.target.closest('.tl-bar');
+  if (!bar || !bar.dataset.id) return;
+  selectedId = parseInt(bar.dataset.id, 10);
+  activeTab = 'messages';
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'messages'));
+  document.getElementById('msg-view').classList.add('active');
+  document.getElementById('log-view').classList.remove('active');
+  document.getElementById('timeline-view').classList.remove('active');
+  renderList();
+  renderDetail();
+});
+
+// Re-render pending bars periodically.
+setInterval(() => {
+  if (activeTab === 'timeline') {
+    const hasPending = allEntries.some(e => e.msgType === 'request' && e.pairedWith < 0);
+    if (hasPending) renderTimeline();
+  }
+}, 1000);
+
 // Stats bar
 const statsBar = document.getElementById('statsbar');
+const sparklineBar = document.getElementById('sparkline-bar');
 function toggleStats() {
   statsBar.classList.toggle('collapsed');
+  sparklineBar.classList.toggle('collapsed');
 }
 
 function formatBytes(b) {
   if (b < 1024) return b + ' B';
   if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
   return (b / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function renderSparklines(sparklines) {
+  if (!sparklines || sparklines.length === 0) {
+    sparklineBar.innerHTML = '';
+    return;
+  }
+  sparklineBar.innerHTML = sparklines.map(sp => {
+    const pts = sp.points;
+    if (pts.length === 0) return '';
+    const maxVal = Math.max(...pts, 1);
+    const w = 60, h = 16;
+    const step = w / Math.max(pts.length - 1, 1);
+    const polyPts = pts.map((v, i) => `${(i * step).toFixed(1)},${(h - (v / maxVal) * (h - 2) - 1).toFixed(1)}`).join(' ');
+    const shortMethod = sp.method.split('/').pop() || sp.method;
+    return `<span class="spark-item">
+      <span class="spark-method" title="${escapeHtml(sp.method)}">${escapeHtml(shortMethod)}</span>
+      <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${polyPts}" fill="none" stroke="var(--blue)" stroke-width="1.5"/></svg>
+      <span class="spark-avg">${sp.avgMs.toFixed(0)}ms</span>
+    </span>`;
+  }).join('');
 }
 
 function fetchStats() {
@@ -395,6 +760,7 @@ function fetchStats() {
       document.getElementById('s-responses').textContent = s.responses;
       document.getElementById('s-notifications').textContent = s.notifications;
       document.getElementById('s-latency').textContent = s.avgLatencyMs > 0 ? s.avgLatencyMs.toFixed(1) + 'ms' : '-';
+      renderSparklines(s.methodSparklines);
     })
     .catch(() => {});
 }
@@ -407,6 +773,7 @@ fetch('/api/messages?offset=0&limit=10000')
   .then(entries => {
     entries.forEach(addEntry);
     renderList();
+    renderTimeline();
     scrollToBottom();
   });
 
@@ -417,6 +784,101 @@ fetch('/api/logs?offset=0&limit=5000')
     renderLogs();
     scrollLogsToBottom();
   });
+
+// Capabilities panel
+let capsData = null;
+const capsPanel = document.getElementById('caps-panel');
+const capsOverlay = document.getElementById('caps-overlay');
+const capsToggle = document.getElementById('caps-toggle');
+const capsContent = document.getElementById('caps-content');
+
+function toggleCaps() {
+  const opening = !capsPanel.classList.contains('open');
+  capsPanel.classList.toggle('open');
+  capsOverlay.classList.toggle('open');
+  capsToggle.classList.toggle('active');
+  if (opening && capsData === null) fetchCaps();
+}
+
+function fetchCaps() {
+  fetch('/api/capabilities')
+    .then(r => r.json())
+    .then(data => {
+      if (data === null) return;
+      capsData = data;
+      renderCaps();
+    })
+    .catch(() => {});
+}
+
+function renderCaps() {
+  if (!capsData) {
+    capsContent.innerHTML = '<span class="caps-waiting">Waiting for initialization...</span>';
+    return;
+  }
+  const c = capsData;
+  const groups = [
+    { name: 'Text Document Sync', items: [
+      { label: 'Open / Close', on: hasCap(c.textDocumentSync) },
+      { label: 'Change', on: hasCap(c.textDocumentSync) },
+      { label: 'Save', on: hasSave(c.textDocumentSync) },
+      { label: 'Will Save', on: hasCap(c.textDocumentSync, 'willSave') },
+    ]},
+    { name: 'Language Features', items: [
+      { label: 'Completion', on: hasCap(c.completionProvider) },
+      { label: 'Hover', on: hasCap(c.hoverProvider) },
+      { label: 'Signature Help', on: hasCap(c.signatureHelpProvider) },
+      { label: 'Declaration', on: hasCap(c.declarationProvider) },
+      { label: 'Definition', on: hasCap(c.definitionProvider) },
+      { label: 'Type Definition', on: hasCap(c.typeDefinitionProvider) },
+      { label: 'Implementation', on: hasCap(c.implementationProvider) },
+      { label: 'References', on: hasCap(c.referencesProvider) },
+      { label: 'Document Highlight', on: hasCap(c.documentHighlightProvider) },
+      { label: 'Document Symbol', on: hasCap(c.documentSymbolProvider) },
+      { label: 'Code Action', on: hasCap(c.codeActionProvider) },
+      { label: 'Code Lens', on: hasCap(c.codeLensProvider) },
+      { label: 'Document Link', on: hasCap(c.documentLinkProvider) },
+      { label: 'Color', on: hasCap(c.colorProvider) },
+      { label: 'Formatting', on: hasCap(c.documentFormattingProvider) },
+      { label: 'Range Formatting', on: hasCap(c.documentRangeFormattingProvider) },
+      { label: 'On Type Formatting', on: hasCap(c.documentOnTypeFormattingProvider) },
+      { label: 'Rename', on: hasCap(c.renameProvider) },
+      { label: 'Folding Range', on: hasCap(c.foldingRangeProvider) },
+      { label: 'Selection Range', on: hasCap(c.selectionRangeProvider) },
+      { label: 'Linked Editing Range', on: hasCap(c.linkedEditingRangeProvider) },
+      { label: 'Call Hierarchy', on: hasCap(c.callHierarchyProvider) },
+      { label: 'Semantic Tokens', on: hasCap(c.semanticTokensProvider) },
+      { label: 'Moniker', on: hasCap(c.monikerProvider) },
+      { label: 'Type Hierarchy', on: hasCap(c.typeHierarchyProvider) },
+      { label: 'Inlay Hint', on: hasCap(c.inlayHintProvider) },
+      { label: 'Inline Value', on: hasCap(c.inlineValueProvider) },
+    ]},
+    { name: 'Workspace', items: [
+      { label: 'Workspace Symbols', on: hasCap(c.workspaceSymbolProvider) },
+      { label: 'Workspace Folders', on: hasCap(c.workspace) },
+      { label: 'Diagnostics', on: hasCap(c.diagnosticProvider) },
+    ]},
+  ];
+  capsContent.innerHTML = groups.map(g =>
+    `<div class="caps-group"><h3>${g.name}</h3>${g.items.map(i =>
+      `<div class="cap-item"><span class="cap-dot ${i.on ? 'on' : 'off'}"></span><span class="cap-name ${i.on ? '' : 'off'}">${i.label}</span></div>`
+    ).join('')}</div>`
+  ).join('');
+}
+
+function hasCap(v, subField) {
+  if (v === undefined || v === null || v === false) return false;
+  if (subField && typeof v === 'object') return !!v[subField];
+  return true;
+}
+
+function hasSave(sync) {
+  if (sync === undefined || sync === null) return false;
+  if (typeof sync === 'object' && sync.save !== undefined) return !!sync.save;
+  return typeof sync === 'number' && sync > 0;
+}
+
+fetchCaps();
 
 // WebSocket for live updates
 function connectWS() {
@@ -445,6 +907,11 @@ function connectWS() {
         }
       } else {
         messagesDirty = true;
+      }
+      if (activeTab === 'timeline') {
+        renderTimeline();
+      } else {
+        timelineDirty = true;
       }
     }
   };

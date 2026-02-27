@@ -152,6 +152,15 @@ func (s *Store) updatePairedWith(entryID, pairedID int) {
 	}
 }
 
+// Clear removes all entries and resets correlation state.
+func (s *Store) Clear() {
+	s.mu.Lock()
+	s.entries = s.entries[:0]
+	s.nextID = 0
+	s.pending = make(map[string]int)
+	s.mu.Unlock()
+}
+
 // Entries returns a paginated slice of entries.
 func (s *Store) Entries(offset, limit int) []Entry {
 	s.mu.RLock()

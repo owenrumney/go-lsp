@@ -53,6 +53,13 @@ func (c *Client) ShowMessageRequest(ctx context.Context, params *lsp.ShowMessage
 	return &item, nil
 }
 
+// CreateWorkDoneProgress sends a window/workDoneProgress/create request to the client.
+// This must be called before sending $/progress notifications with the same token.
+func (c *Client) CreateWorkDoneProgress(ctx context.Context, params *lsp.WorkDoneProgressCreateParams) error {
+	_, err := c.conn.Call(ctx, "window/workDoneProgress/create", params)
+	return err
+}
+
 // InlayHintRefresh sends a workspace/inlayHint/refresh request to the client.
 func (c *Client) InlayHintRefresh(ctx context.Context) error {
 	_, err := c.conn.Call(ctx, "workspace/inlayHint/refresh", nil)

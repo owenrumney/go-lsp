@@ -71,6 +71,14 @@ func (s *LogStore) Add(level, message string) {
 	}
 }
 
+// Clear removes all log entries.
+func (s *LogStore) Clear() {
+	s.mu.Lock()
+	s.entries = s.entries[:0]
+	s.nextID = 0
+	s.mu.Unlock()
+}
+
 // Entries returns a paginated slice of log entries.
 func (s *LogStore) Entries(offset, limit int) []LogEntry {
 	s.mu.RLock()

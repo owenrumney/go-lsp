@@ -219,6 +219,10 @@ func (s *Server) handleInitialize(ctx context.Context, params json.RawMessage) (
 	autoCaps := buildCapabilities(s.handler)
 	mergeCapabilities(&result.Capabilities, &autoCaps)
 
+	if s.debugUI != nil {
+		s.debugUI.SetCapabilities(result.Capabilities)
+	}
+
 	s.initialized = true
 	return result, nil
 }

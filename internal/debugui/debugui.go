@@ -74,6 +74,9 @@ type DebugUI struct {
 	hub      *Hub
 	stats    *Stats
 	srv      *http.Server
+
+	capsMu       sync.RWMutex
+	capabilities json.RawMessage
 }
 
 // New creates a DebugUI bound to the given address.
@@ -96,10 +99,13 @@ func New(addr string, store *Store, logStore *LogStore) *DebugUI {
 	mux.Handle("GET /", http.FileServerFS(staticFiles()))
 	mux.HandleFunc("GET /ws", d.handleWS)
 	mux.HandleFunc("GET /api/messages", d.handleMessages)
+	mux.HandleFunc("DELETE /api/messages", d.handleMessagesClear)
 	mux.HandleFunc("GET /api/messages/search", d.handleSearch)
 	mux.HandleFunc("GET /api/logs", d.handleLogs)
+	mux.HandleFunc("DELETE /api/logs", d.handleLogsClear)
 	mux.HandleFunc("GET /api/logs/search", d.handleLogSearch)
 	mux.HandleFunc("GET /api/stats", d.handleStats)
+	mux.HandleFunc("GET /api/capabilities", d.handleCapabilities)
 
 	d.srv = &http.Server{
 		Addr:              addr,
@@ -113,6 +119,17 @@ func New(addr string, store *Store, logStore *LogStore) *DebugUI {
 // SlogHandler returns a slog.Handler that sends log records to the debug UI's log tab.
 func (d *DebugUI) SlogHandler() *SlogHandler {
 	return NewSlogHandler(d.logStore)
+}
+
+// SetCapabilities stores the server's advertised capabilities for the debug UI.
+func (d *DebugUI) SetCapabilities(caps any) {
+	data, err := json.Marshal(caps)
+	if err != nil {
+		return
+	}
+	d.capsMu.Lock()
+	d.capabilities = data
+	d.capsMu.Unlock()
 }
 
 // ListenAndServe binds the port synchronously, then serves in the background.
@@ -228,6 +245,18 @@ func (d *DebugUI) handleLogs(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(entries)
 }
 
+func (d *DebugUI) handleMessagesClear(w http.ResponseWriter, _ *http.Request) {
+	d.store.Clear()
+	d.hub.Broadcast(wsMessage{Kind: "clear-messages"})
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (d *DebugUI) handleLogsClear(w http.ResponseWriter, _ *http.Request) {
+	d.logStore.Clear()
+	d.hub.Broadcast(wsMessage{Kind: "clear-logs"})
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (d *DebugUI) handleLogSearch(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	if q == "" {
@@ -248,6 +277,19 @@ func (d *DebugUI) handleLogSearch(w http.ResponseWriter, r *http.Request) {
 func (d *DebugUI) handleStats(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(d.stats.Snapshot())
+}
+
+func (d *DebugUI) handleCapabilities(w http.ResponseWriter, _ *http.Request) {
+	d.capsMu.RLock()
+	data := d.capabilities
+	d.capsMu.RUnlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	if data == nil {
+		_, _ = w.Write([]byte("null"))
+		return
+	}
+	_, _ = w.Write(data)
 }
 
 // staticFiles returns the filesystem for the embedded static files.
