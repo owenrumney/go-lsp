@@ -90,6 +90,11 @@ func (c *Client) SemanticTokensRefresh(ctx context.Context) error {
 	return err
 }
 
+// Notify sends a custom notification to the client.
+func (c *Client) Notify(ctx context.Context, method string, params any) error {
+	return c.conn.Notify(ctx, method, params)
+}
+
 // ShowDocument sends a window/showDocument request to the client and waits for a response.
 func (c *Client) ShowDocument(ctx context.Context, params *lsp.ShowDocumentParams) (*lsp.ShowDocumentResult, error) {
 	resp, err := c.conn.Call(ctx, "window/showDocument", params)
