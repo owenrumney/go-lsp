@@ -146,7 +146,7 @@ func (d *DebugUI) ListenAndServe(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
 		close(stop)
-		shutCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		shutCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 		defer cancel()
 		_ = d.srv.Shutdown(shutCtx)
 	}()
