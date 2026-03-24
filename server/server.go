@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"time"
 
 	"github.com/owenrumney/go-lsp/internal/debugui"
 	"github.com/owenrumney/go-lsp/internal/jsonrpc"
@@ -23,6 +24,7 @@ type Server struct {
 	customNotifications map[string]jsonrpc.NotificationHandler
 	debugAddr           string
 	debugUI             *debugui.DebugUI
+	logger              *slog.Logger
 }
 
 // NewServer creates a new LSP server with the given handler.
@@ -86,120 +88,124 @@ func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
 	s.registerNotifications(dispatcher)
 
 	for method, handler := range s.customMethods {
-		dispatcher.RegisterMethod(method, handler)
+		dispatcher.RegisterMethod(method, s.logMethod(method, handler))
 	}
 	for method, handler := range s.customNotifications {
-		dispatcher.RegisterNotification(method, handler)
+		dispatcher.RegisterNotification(method, s.logNotification(method, handler))
+	}
+
+	if s.logger != nil {
+		s.logger.Info("server starting")
 	}
 
 	return s.conn.Serve(ctx)
 }
 
 func (s *Server) registerMethods(d *jsonrpc.Dispatcher) {
-	d.RegisterMethod("initialize", s.handleInitialize)
-	d.RegisterMethod("shutdown", s.handleShutdown)
+	d.RegisterMethod("initialize", s.logMethod("initialize", s.handleInitialize))
+	d.RegisterMethod("shutdown", s.logMethod("shutdown", s.handleShutdown))
 
-	registerIf(d, s.handler, "textDocument/completion", handleCompletion)
-	registerIf(d, s.handler, "completionItem/resolve", handleCompletionResolve)
-	registerIf(d, s.handler, "textDocument/hover", handleHover)
-	registerIf(d, s.handler, "textDocument/signatureHelp", handleSignatureHelp)
-	registerIf(d, s.handler, "textDocument/declaration", handleDeclaration)
-	registerIf(d, s.handler, "textDocument/definition", handleDefinition)
-	registerIf(d, s.handler, "textDocument/typeDefinition", handleTypeDefinition)
-	registerIf(d, s.handler, "textDocument/implementation", handleImplementation)
-	registerIf(d, s.handler, "textDocument/references", handleReferences)
-	registerIf(d, s.handler, "textDocument/documentHighlight", handleDocumentHighlight)
-	registerIf(d, s.handler, "textDocument/documentSymbol", handleDocumentSymbol)
-	registerIf(d, s.handler, "textDocument/codeAction", handleCodeAction)
-	registerIf(d, s.handler, "codeAction/resolve", handleCodeActionResolve)
-	registerIf(d, s.handler, "textDocument/codeLens", handleCodeLens)
-	registerIf(d, s.handler, "codeLens/resolve", handleCodeLensResolve)
-	registerIf(d, s.handler, "textDocument/documentLink", handleDocumentLink)
-	registerIf(d, s.handler, "documentLink/resolve", handleDocumentLinkResolve)
-	registerIf(d, s.handler, "textDocument/documentColor", handleDocumentColor)
-	registerIf(d, s.handler, "textDocument/colorPresentation", handleColorPresentation)
-	registerIf(d, s.handler, "textDocument/formatting", handleFormatting)
-	registerIf(d, s.handler, "textDocument/rangeFormatting", handleRangeFormatting)
-	registerIf(d, s.handler, "textDocument/onTypeFormatting", handleOnTypeFormatting)
-	registerIf(d, s.handler, "textDocument/rename", handleRename)
-	registerIf(d, s.handler, "textDocument/prepareRename", handlePrepareRename)
-	registerIf(d, s.handler, "textDocument/foldingRange", handleFoldingRange)
-	registerIf(d, s.handler, "textDocument/selectionRange", handleSelectionRange)
-	registerIf(d, s.handler, "textDocument/linkedEditingRange", handleLinkedEditingRange)
-	registerIf(d, s.handler, "textDocument/moniker", handleMoniker)
-	registerIf(d, s.handler, "textDocument/willSaveWaitUntil", handleWillSaveWaitUntil)
-	registerIf(d, s.handler, "workspace/symbol", handleWorkspaceSymbol)
-	registerIf(d, s.handler, "workspace/executeCommand", handleExecuteCommand)
-	registerIf(d, s.handler, "workspace/willCreateFiles", handleWillCreateFiles)
-	registerIf(d, s.handler, "workspace/willRenameFiles", handleWillRenameFiles)
-	registerIf(d, s.handler, "workspace/willDeleteFiles", handleWillDeleteFiles)
+	registerIf(d, s, "textDocument/completion", handleCompletion)
+	registerIf(d, s, "completionItem/resolve", handleCompletionResolve)
+	registerIf(d, s, "textDocument/hover", handleHover)
+	registerIf(d, s, "textDocument/signatureHelp", handleSignatureHelp)
+	registerIf(d, s, "textDocument/declaration", handleDeclaration)
+	registerIf(d, s, "textDocument/definition", handleDefinition)
+	registerIf(d, s, "textDocument/typeDefinition", handleTypeDefinition)
+	registerIf(d, s, "textDocument/implementation", handleImplementation)
+	registerIf(d, s, "textDocument/references", handleReferences)
+	registerIf(d, s, "textDocument/documentHighlight", handleDocumentHighlight)
+	registerIf(d, s, "textDocument/documentSymbol", handleDocumentSymbol)
+	registerIf(d, s, "textDocument/codeAction", handleCodeAction)
+	registerIf(d, s, "codeAction/resolve", handleCodeActionResolve)
+	registerIf(d, s, "textDocument/codeLens", handleCodeLens)
+	registerIf(d, s, "codeLens/resolve", handleCodeLensResolve)
+	registerIf(d, s, "textDocument/documentLink", handleDocumentLink)
+	registerIf(d, s, "documentLink/resolve", handleDocumentLinkResolve)
+	registerIf(d, s, "textDocument/documentColor", handleDocumentColor)
+	registerIf(d, s, "textDocument/colorPresentation", handleColorPresentation)
+	registerIf(d, s, "textDocument/formatting", handleFormatting)
+	registerIf(d, s, "textDocument/rangeFormatting", handleRangeFormatting)
+	registerIf(d, s, "textDocument/onTypeFormatting", handleOnTypeFormatting)
+	registerIf(d, s, "textDocument/rename", handleRename)
+	registerIf(d, s, "textDocument/prepareRename", handlePrepareRename)
+	registerIf(d, s, "textDocument/foldingRange", handleFoldingRange)
+	registerIf(d, s, "textDocument/selectionRange", handleSelectionRange)
+	registerIf(d, s, "textDocument/linkedEditingRange", handleLinkedEditingRange)
+	registerIf(d, s, "textDocument/moniker", handleMoniker)
+	registerIf(d, s, "textDocument/willSaveWaitUntil", handleWillSaveWaitUntil)
+	registerIf(d, s, "workspace/symbol", handleWorkspaceSymbol)
+	registerIf(d, s, "workspace/executeCommand", handleExecuteCommand)
+	registerIf(d, s, "workspace/willCreateFiles", handleWillCreateFiles)
+	registerIf(d, s, "workspace/willRenameFiles", handleWillRenameFiles)
+	registerIf(d, s, "workspace/willDeleteFiles", handleWillDeleteFiles)
 
 	if h, ok := s.handler.(CallHierarchyHandler); ok {
-		d.RegisterMethod("textDocument/prepareCallHierarchy", typedHandler(h, CallHierarchyHandler.PrepareCallHierarchy))
-		d.RegisterMethod("callHierarchy/incomingCalls", typedHandler(h, CallHierarchyHandler.IncomingCalls))
-		d.RegisterMethod("callHierarchy/outgoingCalls", typedHandler(h, CallHierarchyHandler.OutgoingCalls))
+		d.RegisterMethod("textDocument/prepareCallHierarchy", s.logMethod("textDocument/prepareCallHierarchy", typedHandler(h, CallHierarchyHandler.PrepareCallHierarchy)))
+		d.RegisterMethod("callHierarchy/incomingCalls", s.logMethod("callHierarchy/incomingCalls", typedHandler(h, CallHierarchyHandler.IncomingCalls)))
+		d.RegisterMethod("callHierarchy/outgoingCalls", s.logMethod("callHierarchy/outgoingCalls", typedHandler(h, CallHierarchyHandler.OutgoingCalls)))
 	}
 
 	if h, ok := s.handler.(TypeHierarchyHandler); ok {
-		d.RegisterMethod("textDocument/prepareTypeHierarchy", typedHandler(h, TypeHierarchyHandler.PrepareTypeHierarchy))
-		d.RegisterMethod("typeHierarchy/supertypes", typedHandler(h, TypeHierarchyHandler.Supertypes))
-		d.RegisterMethod("typeHierarchy/subtypes", typedHandler(h, TypeHierarchyHandler.Subtypes))
+		d.RegisterMethod("textDocument/prepareTypeHierarchy", s.logMethod("textDocument/prepareTypeHierarchy", typedHandler(h, TypeHierarchyHandler.PrepareTypeHierarchy)))
+		d.RegisterMethod("typeHierarchy/supertypes", s.logMethod("typeHierarchy/supertypes", typedHandler(h, TypeHierarchyHandler.Supertypes)))
+		d.RegisterMethod("typeHierarchy/subtypes", s.logMethod("typeHierarchy/subtypes", typedHandler(h, TypeHierarchyHandler.Subtypes)))
 	}
 
-	registerIf(d, s.handler, "textDocument/inlayHint", handleInlayHint)
-	registerIf(d, s.handler, "inlayHint/resolve", handleInlayHintResolve)
-	registerIf(d, s.handler, "textDocument/inlineValue", handleInlineValue)
-	registerIf(d, s.handler, "textDocument/diagnostic", handleDocumentDiagnostic)
-	registerIf(d, s.handler, "workspace/diagnostic", handleWorkspaceDiagnostic)
+	registerIf(d, s, "textDocument/inlayHint", handleInlayHint)
+	registerIf(d, s, "inlayHint/resolve", handleInlayHintResolve)
+	registerIf(d, s, "textDocument/inlineValue", handleInlineValue)
+	registerIf(d, s, "textDocument/diagnostic", handleDocumentDiagnostic)
+	registerIf(d, s, "workspace/diagnostic", handleWorkspaceDiagnostic)
 
 	if h, ok := s.handler.(SemanticTokensFullHandler); ok {
-		d.RegisterMethod("textDocument/semanticTokens/full", typedHandler(h, SemanticTokensFullHandler.SemanticTokensFull))
+		d.RegisterMethod("textDocument/semanticTokens/full", s.logMethod("textDocument/semanticTokens/full", typedHandler(h, SemanticTokensFullHandler.SemanticTokensFull)))
 	}
 	if h, ok := s.handler.(SemanticTokensDeltaHandler); ok {
-		d.RegisterMethod("textDocument/semanticTokens/full/delta", typedHandler(h, SemanticTokensDeltaHandler.SemanticTokensDelta))
+		d.RegisterMethod("textDocument/semanticTokens/full/delta", s.logMethod("textDocument/semanticTokens/full/delta", typedHandler(h, SemanticTokensDeltaHandler.SemanticTokensDelta)))
 	}
 	if h, ok := s.handler.(SemanticTokensRangeHandler); ok {
-		d.RegisterMethod("textDocument/semanticTokens/range", typedHandler(h, SemanticTokensRangeHandler.SemanticTokensRange))
+		d.RegisterMethod("textDocument/semanticTokens/range", s.logMethod("textDocument/semanticTokens/range", typedHandler(h, SemanticTokensRangeHandler.SemanticTokensRange)))
 	}
 }
 
 func (s *Server) registerNotifications(d *jsonrpc.Dispatcher) {
-	d.RegisterNotification("initialized", func(_ context.Context, _ json.RawMessage) error {
+	d.RegisterNotification("initialized", s.logNotification("initialized", func(_ context.Context, _ json.RawMessage) error {
 		return nil
-	})
+	}))
 
-	d.RegisterNotification("exit", func(_ context.Context, _ json.RawMessage) error {
+	d.RegisterNotification("exit", s.logNotification("exit", func(_ context.Context, _ json.RawMessage) error {
 		return fmt.Errorf("exit")
-	})
+	}))
 
 	if h, ok := s.handler.(TextDocumentSyncHandler); ok {
-		d.RegisterNotification("textDocument/didOpen", notifHandler(h, TextDocumentSyncHandler.DidOpen))
-		d.RegisterNotification("textDocument/didChange", notifHandler(h, TextDocumentSyncHandler.DidChange))
-		d.RegisterNotification("textDocument/didClose", notifHandler(h, TextDocumentSyncHandler.DidClose))
+		d.RegisterNotification("textDocument/didOpen", s.logNotification("textDocument/didOpen", notifHandler(h, TextDocumentSyncHandler.DidOpen)))
+		d.RegisterNotification("textDocument/didChange", s.logNotification("textDocument/didChange", notifHandler(h, TextDocumentSyncHandler.DidChange)))
+		d.RegisterNotification("textDocument/didClose", s.logNotification("textDocument/didClose", notifHandler(h, TextDocumentSyncHandler.DidClose)))
 	}
 
 	if h, ok := s.handler.(TextDocumentSaveHandler); ok {
-		d.RegisterNotification("textDocument/didSave", notifHandler(h, TextDocumentSaveHandler.DidSave))
+		d.RegisterNotification("textDocument/didSave", s.logNotification("textDocument/didSave", notifHandler(h, TextDocumentSaveHandler.DidSave)))
 	}
 
 	if h, ok := s.handler.(TextDocumentWillSaveHandler); ok {
-		d.RegisterNotification("textDocument/willSave", notifHandler(h, TextDocumentWillSaveHandler.WillSave))
+		d.RegisterNotification("textDocument/willSave", s.logNotification("textDocument/willSave", notifHandler(h, TextDocumentWillSaveHandler.WillSave)))
 	}
 
 	if h, ok := s.handler.(WorkspaceFoldersHandler); ok {
-		d.RegisterNotification("workspace/didChangeWorkspaceFolders", notifHandler(h, WorkspaceFoldersHandler.DidChangeWorkspaceFolders))
+		d.RegisterNotification("workspace/didChangeWorkspaceFolders", s.logNotification("workspace/didChangeWorkspaceFolders", notifHandler(h, WorkspaceFoldersHandler.DidChangeWorkspaceFolders)))
 	}
 
 	if h, ok := s.handler.(DidChangeConfigurationHandler); ok {
-		d.RegisterNotification("workspace/didChangeConfiguration", notifHandler(h, DidChangeConfigurationHandler.DidChangeConfiguration))
+		d.RegisterNotification("workspace/didChangeConfiguration", s.logNotification("workspace/didChangeConfiguration", notifHandler(h, DidChangeConfigurationHandler.DidChangeConfiguration)))
 	}
 
 	if h, ok := s.handler.(DidChangeWatchedFilesHandler); ok {
-		d.RegisterNotification("workspace/didChangeWatchedFiles", notifHandler(h, DidChangeWatchedFilesHandler.DidChangeWatchedFiles))
+		d.RegisterNotification("workspace/didChangeWatchedFiles", s.logNotification("workspace/didChangeWatchedFiles", notifHandler(h, DidChangeWatchedFilesHandler.DidChangeWatchedFiles)))
 	}
 
 	if h, ok := s.handler.(SetTraceHandler); ok {
-		d.RegisterNotification("$/setTrace", notifHandler(h, SetTraceHandler.SetTrace))
+		d.RegisterNotification("$/setTrace", s.logNotification("$/setTrace", notifHandler(h, SetTraceHandler.SetTrace)))
 	}
 }
 
@@ -224,6 +230,11 @@ func (s *Server) handleInitialize(ctx context.Context, params json.RawMessage) (
 	}
 
 	s.initialized = true
+
+	if s.logger != nil {
+		s.logger.Info("server initialized", "serverName", result.ServerInfo.Name)
+	}
+
 	return result, nil
 }
 
@@ -231,6 +242,11 @@ func (s *Server) handleShutdown(ctx context.Context, _ json.RawMessage) (any, er
 	h := s.handler.(LifecycleHandler)
 	err := h.Shutdown(ctx)
 	s.shutdown = true
+
+	if s.logger != nil {
+		s.logger.Info("server shutdown")
+	}
+
 	return nil, err
 }
 
@@ -332,11 +348,12 @@ func mergeCapabilities(dst, src *lsp.ServerCapabilities) {
 }
 
 // registerIf registers a method handler only if the server handler implements the interface.
-func registerIf[H any](d *jsonrpc.Dispatcher, handler any, method string, fn func(context.Context, H, json.RawMessage) (any, error)) {
-	if h, ok := handler.(H); ok {
-		d.RegisterMethod(method, func(ctx context.Context, params json.RawMessage) (any, error) {
+func registerIf[H any](d *jsonrpc.Dispatcher, s *Server, method string, fn func(context.Context, H, json.RawMessage) (any, error)) {
+	if h, ok := s.handler.(H); ok {
+		handler := jsonrpc.MethodHandler(func(ctx context.Context, params json.RawMessage) (any, error) {
 			return fn(ctx, h, params)
 		})
+		d.RegisterMethod(method, s.logMethod(method, handler))
 	}
 }
 
@@ -359,6 +376,42 @@ func notifHandler[H any, P any](h H, fn func(H, context.Context, *P) error) json
 			return err
 		}
 		return fn(h, ctx, &p)
+	}
+}
+
+// logMethod wraps a MethodHandler with logging for dispatch, duration, and errors.
+func (s *Server) logMethod(method string, handler jsonrpc.MethodHandler) jsonrpc.MethodHandler {
+	if s.logger == nil {
+		return handler
+	}
+	return func(ctx context.Context, params json.RawMessage) (any, error) {
+		start := time.Now()
+		result, err := handler(ctx, params)
+		duration := time.Since(start)
+		if err != nil {
+			s.logger.Error("method error", "method", method, "duration", duration, "error", err)
+		} else {
+			s.logger.Debug("method handled", "method", method, "duration", duration)
+		}
+		return result, err
+	}
+}
+
+// logNotification wraps a NotificationHandler with logging.
+func (s *Server) logNotification(method string, handler jsonrpc.NotificationHandler) jsonrpc.NotificationHandler {
+	if s.logger == nil {
+		return handler
+	}
+	return func(ctx context.Context, params json.RawMessage) error {
+		start := time.Now()
+		err := handler(ctx, params)
+		duration := time.Since(start)
+		if err != nil {
+			s.logger.Error("notification error", "method", method, "duration", duration, "error", err)
+		} else {
+			s.logger.Debug("notification handled", "method", method, "duration", duration)
+		}
+		return err
 	}
 }
 
