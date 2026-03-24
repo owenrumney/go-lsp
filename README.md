@@ -19,6 +19,8 @@ This library targets **LSP 3.17**. The table below shows which parts of the spec
 		- [Workspace](#workspace)
 	- [Server-to-client communication](#server-to-client-communication)
 	- [Custom methods](#custom-methods)
+	- [Logging](#logging)
+	- [Testing](#testing)
 	- [Debug UI](#debug-ui)
 	- [Project structure](#project-structure)
 
@@ -307,6 +309,68 @@ srv.Run(ctx, rwc)
 
 Custom handlers must be registered before calling `Run`.
 
+## Logging
+
+The server supports structured logging via `log/slog`. Pass a logger with the `WithLogger` option:
+
+```go
+srv := server.NewServer(&handler{}, server.WithLogger(slog.Default()))
+```
+
+When enabled, the server logs:
+
+| Event | Level | Attributes |
+|---|---|---|
+| Server starting | Info | |
+| Initialized | Info | `serverName` |
+| Shutdown | Info | |
+| Method handled | Debug | `method`, `duration` |
+| Notification handled | Debug | `method`, `duration` |
+| Handler error | Error | `method`, `duration`, `error` |
+
+If no logger is set, no logging is performed. Use any `slog.Handler` — JSON for production, text for development:
+
+```go
+// JSON to stderr
+logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
+srv := server.NewServer(&handler{}, server.WithLogger(logger))
+
+// Debug-level text output
+logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+srv := server.NewServer(&handler{}, server.WithLogger(logger))
+```
+
+## Testing
+
+The `servertest` package provides a test harness that simulates an LSP client over in-memory pipes. It handles JSON-RPC framing, initialization, and cleanup automatically:
+
+```go
+func TestHover(t *testing.T) {
+    h := servertest.New(t, &myHandler{})
+
+    h.DidOpen("file:///test.txt", "plaintext", "hello world")
+
+    hover, err := h.Hover("file:///test.txt", 0, 5)
+    if err != nil {
+        t.Fatal(err)
+    }
+    // assert on hover.Contents
+}
+```
+
+The harness collects server-to-client notifications (diagnostics, messages) so you can assert on them:
+
+```go
+h.DidSave("file:///test.txt")
+
+ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+defer cancel()
+
+diags, err := h.WaitForDiagnostics(ctx, "file:///test.txt")
+```
+
+See the [testing guide](docs/testing.md) for the full API.
+
 ## Debug UI
 
 The library includes an optional debug UI that captures all LSP traffic and displays it in a web interface. This is useful for inspecting the messages flowing between client and server during development.
@@ -360,8 +424,9 @@ Runtime metrics updated every 2 seconds: uptime, heap usage, goroutine count, GC
 
 ## Project structure
 
-The library is split into three packages:
+The library is split into four packages:
 
-- **`jsonrpc`** -- JSON-RPC 2.0 framing over an `io.ReadWriteCloser`, with method and notification dispatch.
-- **`lsp`** -- Go types for LSP structures (capabilities, params, results, enums). No logic, just data definitions.
 - **`server`** -- The `Server` that ties it together: accepts a handler, registers LSP methods based on the interfaces it implements, and manages the connection lifecycle.
+- **`lsp`** -- Go types for LSP structures (capabilities, params, results, enums). No logic, just data definitions.
+- **`servertest`** -- Test harness that simulates an LSP client over in-memory pipes for writing unit tests.
+- **`internal/jsonrpc`** -- JSON-RPC 2.0 framing over an `io.ReadWriteCloser`, with method and notification dispatch.
