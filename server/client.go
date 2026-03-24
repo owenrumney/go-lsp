@@ -18,18 +18,22 @@ func newClient(conn *jsonrpc.Conn) *Client {
 	return &Client{conn: conn}
 }
 
+// PublishDiagnostics sends a textDocument/publishDiagnostics notification to the client.
 func (c *Client) PublishDiagnostics(ctx context.Context, params *lsp.PublishDiagnosticsParams) error {
 	return c.conn.Notify(ctx, "textDocument/publishDiagnostics", params)
 }
 
+// ShowMessage sends a window/showMessage notification to the client.
 func (c *Client) ShowMessage(ctx context.Context, params *lsp.ShowMessageParams) error {
 	return c.conn.Notify(ctx, "window/showMessage", params)
 }
 
+// LogMessage sends a window/logMessage notification to the client.
 func (c *Client) LogMessage(ctx context.Context, params *lsp.LogMessageParams) error {
 	return c.conn.Notify(ctx, "window/logMessage", params)
 }
 
+// Progress sends a $/progress notification to the client.
 func (c *Client) Progress(ctx context.Context, params *lsp.ProgressParams) error {
 	return c.conn.Notify(ctx, "$/progress", params)
 }
