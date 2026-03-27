@@ -1,0 +1,171 @@
+package handler
+
+import (
+	"context"
+{{- if .HasFeature "diagnostics"}}
+	"strings"
+{{- end}}
+
+	"github.com/owenrumney/go-lsp/lsp"
+{{- if or (.HasFeature "diagnostics") (.HasFeature "codeactions")}}
+	"github.com/owenrumney/go-lsp/server"
+{{- end}}
+)
+
+// Handler implements the LSP handler interfaces for {{.Name}}.
+type Handler struct {
+{{- if .NeedsDocSync}}
+	documents map[lsp.DocumentURI]string
+{{- end}}
+{{- if or (.HasFeature "diagnostics") (.HasFeature "codeactions")}}
+	client *server.Client
+{{- end}}
+}
+
+// New creates a new Handler.
+func New() *Handler {
+	return &Handler{
+{{- if .NeedsDocSync}}
+		documents: make(map[lsp.DocumentURI]string),
+{{- end}}
+	}
+}
+
+{{- if or (.HasFeature "diagnostics") (.HasFeature "codeactions")}}
+
+func (h *Handler) SetClient(client *server.Client) {
+	h.client = client
+}
+{{- end}}
+
+func (h *Handler) Initialize(_ context.Context, _ *lsp.InitializeParams) (*lsp.InitializeResult, error) {
+	return &lsp.InitializeResult{
+{{- if .HasFeature "diagnostics"}}
+		Capabilities: lsp.ServerCapabilities{
+			TextDocumentSync: &lsp.TextDocumentSyncOptions{
+				OpenClose: boolPtr(true),
+				Change:    lsp.SyncFull,
+				Save:      &lsp.SaveOptions{IncludeText: boolPtr(true)},
+			},
+		},
+{{- end}}
+		ServerInfo: &lsp.ServerInfo{Name: "{{.Name}}", Version: "0.1.0"},
+	}, nil
+}
+
+func (h *Handler) Shutdown(_ context.Context) error { return nil }
+
+{{- if .NeedsDocSync}}
+
+func (h *Handler) DidOpen(_ context.Context, params *lsp.DidOpenTextDocumentParams) error {
+	h.documents[params.TextDocument.URI] = params.TextDocument.Text
+	return nil
+}
+
+func (h *Handler) DidChange(_ context.Context, params *lsp.DidChangeTextDocumentParams) error {
+	if len(params.ContentChanges) > 0 {
+		h.documents[params.TextDocument.URI] = params.ContentChanges[len(params.ContentChanges)-1].Text
+	}
+	return nil
+}
+
+func (h *Handler) DidClose(_ context.Context, params *lsp.DidCloseTextDocumentParams) error {
+	delete(h.documents, params.TextDocument.URI)
+	return nil
+}
+{{- end}}
+
+{{- if .HasFeature "diagnostics"}}
+
+func (h *Handler) DidSave(ctx context.Context, params *lsp.DidSaveTextDocumentParams) error {
+	var diags []lsp.Diagnostic
+
+	text := h.documents[params.TextDocument.URI]
+	for i, line := range strings.Split(text, "\n") {
+		if idx := strings.Index(line, "TODO"); idx >= 0 {
+			sev := lsp.SeverityWarning
+			diags = append(diags, lsp.Diagnostic{
+				Range: lsp.Range{
+					Start: lsp.Position{Line: i, Character: idx},
+					End:   lsp.Position{Line: i, Character: idx + 4},
+				},
+				Severity: &sev,
+				Source:   "{{.Name}}",
+				Message:  "TODO found",
+			})
+		}
+	}
+
+	return h.client.PublishDiagnostics(ctx, &lsp.PublishDiagnosticsParams{
+		URI:         params.TextDocument.URI,
+		Diagnostics: diags,
+	})
+}
+{{- end}}
+
+{{- if .HasFeature "hover"}}
+
+func (h *Handler) Hover(_ context.Context, _ *lsp.HoverParams) (*lsp.Hover, error) {
+	return &lsp.Hover{
+		Contents: lsp.MarkupContent{
+			Kind:  lsp.Markdown,
+			Value: "**{{.Name}}** hover",
+		},
+	}, nil
+}
+{{- end}}
+
+{{- if .HasFeature "completion"}}
+
+func (h *Handler) Completion(_ context.Context, _ *lsp.CompletionParams) (*lsp.CompletionList, error) {
+	return &lsp.CompletionList{
+		Items: []lsp.CompletionItem{
+			{Label: "example"},
+		},
+	}, nil
+}
+{{- end}}
+
+{{- if .HasFeature "definition"}}
+
+func (h *Handler) Definition(_ context.Context, _ *lsp.DefinitionParams) ([]lsp.Location, error) {
+	return nil, nil
+}
+{{- end}}
+
+{{- if .HasFeature "references"}}
+
+func (h *Handler) References(_ context.Context, _ *lsp.ReferenceParams) ([]lsp.Location, error) {
+	return nil, nil
+}
+{{- end}}
+
+{{- if .HasFeature "formatting"}}
+
+func (h *Handler) Formatting(_ context.Context, _ *lsp.DocumentFormattingParams) ([]lsp.TextEdit, error) {
+	return nil, nil
+}
+{{- end}}
+
+{{- if .HasFeature "codeactions"}}
+
+func (h *Handler) CodeAction(_ context.Context, _ *lsp.CodeActionParams) ([]lsp.CodeAction, error) {
+	return nil, nil
+}
+{{- end}}
+
+{{- if .HasFeature "symbols"}}
+
+func (h *Handler) DocumentSymbol(_ context.Context, _ *lsp.DocumentSymbolParams) ([]lsp.DocumentSymbol, error) {
+	return nil, nil
+}
+
+func (h *Handler) WorkspaceSymbol(_ context.Context, _ *lsp.WorkspaceSymbolParams) ([]lsp.SymbolInformation, error) {
+	return nil, nil
+}
+{{- end}}
+
+{{- if .HasFeature "diagnostics"}}
+
+func boolPtr(b bool) *bool { return &b }
+{{- end}}

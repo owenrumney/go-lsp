@@ -1,6 +1,9 @@
 package server
 
-import "log/slog"
+import (
+	"log/slog"
+	"time"
+)
 
 // Option configures a Server.
 type Option func(*Server)
@@ -17,5 +20,15 @@ func WithDebugUI(addr string) Option {
 func WithLogger(logger *slog.Logger) Option {
 	return func(s *Server) {
 		s.logger = logger
+	}
+}
+
+// WithRequestTimeout sets a default timeout for all incoming JSON-RPC requests.
+// If a handler does not respond within the timeout, the request context is
+// cancelled and the client receives a RequestCancelled error. A zero duration
+// means no timeout (the default).
+func WithRequestTimeout(d time.Duration) Option {
+	return func(s *Server) {
+		s.requestTimeout = d
 	}
 }
