@@ -1,0 +1,17 @@
+package main
+
+import (
+	"context"
+	"log"
+
+	"{{.Module}}/handler"
+	"github.com/owenrumney/go-lsp/server"
+)
+
+func main() {
+	h := handler.New()
+	srv := server.NewServer(h)
+	if err := srv.Run(context.Background(), server.RunStdio()); err != nil {
+		log.Fatal(err)
+	}
+}

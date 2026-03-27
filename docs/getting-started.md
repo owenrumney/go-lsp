@@ -7,6 +7,36 @@ This guide walks you through building a language server from scratch using `go-l
 - Go 1.25+
 - An editor that supports LSP (VS Code, Neovim, etc.)
 
+## Quick Start with Scaffold
+
+The fastest way to get started is to generate a project:
+
+```bash
+go run github.com/owenrumney/go-lsp/cmd/scaffold@latest
+```
+
+This walks you through a few prompts and generates a working LSP server with the features you pick — including a passing test. You can also pass flags for scripting:
+
+```bash
+go run github.com/owenrumney/go-lsp/cmd/scaffold@latest \
+  --name mylang \
+  --module github.com/you/mylang-lsp \
+  --lang mylang \
+  --features hover,completion,diagnostics
+```
+
+Available features: `hover`, `completion`, `diagnostics`, `definition`, `references`, `formatting`, `codeactions`, `symbols`.
+
+The generated project includes:
+- `main.go` — server entrypoint wired to stdio
+- `handler/handler.go` — handler struct with the interfaces you selected
+- `handler/handler_test.go` — passing tests using the `servertest` harness
+- `go.mod` with the go-lsp dependency
+
+Build it, point your editor at the binary, and you're running.
+
+If you'd rather build from scratch to understand how things work, read on.
+
 ## Install
 
 ```bash

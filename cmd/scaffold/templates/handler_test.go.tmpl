@@ -1,0 +1,75 @@
+package handler_test
+
+import (
+{{- if .HasFeature "diagnostics"}}
+	"context"
+	"time"
+{{- end}}
+	"testing"
+
+	"{{.Module}}/handler"
+	"github.com/owenrumney/go-lsp/servertest"
+)
+
+func TestInitialize(t *testing.T) {
+	h := servertest.New(t, handler.New())
+
+	if h.InitResult.ServerInfo == nil || h.InitResult.ServerInfo.Name != "{{.Name}}" {
+		t.Error("expected server info to be set")
+	}
+}
+
+{{- if .HasFeature "hover"}}
+
+func TestHover(t *testing.T) {
+	h := servertest.New(t, handler.New())
+
+	h.DidOpen("file:///test.txt", "{{.LangID}}", "hello world")
+
+	hover, err := h.Hover("file:///test.txt", 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hover == nil {
+		t.Fatal("expected hover result")
+	}
+}
+{{- end}}
+
+{{- if .HasFeature "completion"}}
+
+func TestCompletion(t *testing.T) {
+	h := servertest.New(t, handler.New())
+
+	h.DidOpen("file:///test.txt", "{{.LangID}}", "hello")
+
+	result, err := h.Completion("file:///test.txt", 0, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Items) == 0 {
+		t.Error("expected at least one completion item")
+	}
+}
+{{- end}}
+
+{{- if .HasFeature "diagnostics"}}
+
+func TestDiagnostics(t *testing.T) {
+	h := servertest.New(t, handler.New())
+
+	h.DidOpen("file:///test.txt", "{{.LangID}}", "TODO fix this")
+	h.DidSave("file:///test.txt")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	diags, err := h.WaitForDiagnostics(ctx, "file:///test.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(diags) == 0 {
+		t.Error("expected diagnostics for TODO")
+	}
+}
+{{- end}}

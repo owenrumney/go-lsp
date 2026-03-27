@@ -3,6 +3,7 @@ package jsonrpc
 import (
 	"context"
 	"encoding/json"
+	"errors"
 )
 
 // MethodHandler handles a JSON-RPC request and returns a result or error.
@@ -42,6 +43,9 @@ func (d *Dispatcher) HandleRequest(ctx context.Context, req *Request) *Response 
 	if err != nil {
 		if respErr, ok := err.(*ResponseError); ok {
 			return NewErrorResponse(req.ID, respErr)
+		}
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+			return NewErrorResponse(req.ID, NewError(CodeRequestCancelled, err.Error()))
 		}
 		return NewErrorResponse(req.ID, NewError(CodeInternalError, err.Error()))
 	}

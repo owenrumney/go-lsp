@@ -10,19 +10,21 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // Conn is a JSON-RPC 2.0 connection over a Content-Length framed stream.
 type Conn struct {
-	reader     *bufio.Reader
-	writer     io.Writer
-	writeMu    sync.Mutex
-	dispatcher *Dispatcher
-	cancelMu   sync.Mutex
-	cancels    map[string]context.CancelFunc
-	nextID     atomic.Int64
-	pendingMu  sync.Mutex
-	pending    map[string]chan *Response
+	reader         *bufio.Reader
+	writer         io.Writer
+	writeMu        sync.Mutex
+	dispatcher     *Dispatcher
+	cancelMu       sync.Mutex
+	cancels        map[string]context.CancelFunc
+	nextID         atomic.Int64
+	pendingMu      sync.Mutex
+	pending        map[string]chan *Response
+	requestTimeout time.Duration
 }
 
 func NewConn(rw io.ReadWriteCloser, dispatcher *Dispatcher) *Conn {
@@ -117,8 +119,20 @@ func (c *Conn) Serve(ctx context.Context) error {
 	}
 }
 
+// SetRequestTimeout sets a default timeout for all incoming requests.
+// A zero duration means no timeout (the default).
+func (c *Conn) SetRequestTimeout(d time.Duration) {
+	c.requestTimeout = d
+}
+
 func (c *Conn) handleRequest(ctx context.Context, req *Request) {
-	reqCtx, cancel := context.WithCancel(ctx)
+	var reqCtx context.Context
+	var cancel context.CancelFunc
+	if c.requestTimeout > 0 {
+		reqCtx, cancel = context.WithTimeout(ctx, c.requestTimeout)
+	} else {
+		reqCtx, cancel = context.WithCancel(ctx)
+	}
 	idStr := req.ID.String()
 
 	c.cancelMu.Lock()

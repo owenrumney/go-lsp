@@ -25,6 +25,7 @@ type Server struct {
 	debugAddr           string
 	debugUI             *debugui.DebugUI
 	logger              *slog.Logger
+	requestTimeout      time.Duration
 }
 
 // NewServer creates a new LSP server with the given handler.
@@ -78,6 +79,9 @@ func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
 
 	dispatcher := jsonrpc.NewDispatcher()
 	s.conn = jsonrpc.NewConn(rw, dispatcher)
+	if s.requestTimeout > 0 {
+		s.conn.SetRequestTimeout(s.requestTimeout)
+	}
 	s.Client = newClient(s.conn)
 
 	if h, ok := s.handler.(ClientHandler); ok {
