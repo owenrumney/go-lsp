@@ -1,6 +1,6 @@
 package lsp
 
-// CompletionItemKind represents the kind of a completion item.
+// CompletionItemKind is an int enum classifying completions (Function, Variable, Class, etc.) so the editor can show appropriate icons.
 type CompletionItemKind int
 
 const (
@@ -44,7 +44,7 @@ type CompletionContext struct {
 	TriggerCharacter string                `json:"triggerCharacter,omitempty"`
 }
 
-// CompletionParams contains the params for textDocument/completion.
+// CompletionParams is sent to request completions at a cursor position.
 type CompletionParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
@@ -52,7 +52,7 @@ type CompletionParams struct {
 	Context *CompletionContext `json:"context,omitempty"`
 }
 
-// CompletionItem represents a completion suggestion.
+// CompletionItem is a single completion entry with label, kind, documentation, and the text edit to apply on acceptance.
 type CompletionItem struct {
 	Label               string              `json:"label"`
 	Kind                *CompletionItemKind `json:"kind,omitempty"`
@@ -73,7 +73,7 @@ type CompletionItem struct {
 	Data                any                 `json:"data,omitempty"`
 }
 
-// CompletionList represents a collection of completion items.
+// CompletionList wraps a list of completion items, indicating whether the list is incomplete and further typing should re-query.
 type CompletionList struct {
 	IsIncomplete bool             `json:"isIncomplete"`
 	Items        []CompletionItem `json:"items"`

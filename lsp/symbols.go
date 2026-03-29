@@ -1,6 +1,6 @@
 package lsp
 
-// SymbolKind represents the kind of a symbol.
+// SymbolKind is an int enum classifying symbols (File, Class, Method, Variable, etc.) for icons and filtering.
 type SymbolKind int
 
 const (
@@ -61,14 +61,14 @@ type DocumentSymbol struct {
 	Children       []DocumentSymbol `json:"children,omitempty"`
 }
 
-// DocumentSymbolParams contains the params for textDocument/documentSymbol.
+// DocumentSymbolParams is sent to request the symbol outline (functions, classes, variables, etc.) of a document.
 type DocumentSymbolParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 }
 
-// WorkspaceSymbolParams contains the params for workspace/symbol.
+// WorkspaceSymbolParams is sent to search for symbols by name across the entire workspace.
 type WorkspaceSymbolParams struct {
 	WorkDoneProgressParams
 	PartialResultParams

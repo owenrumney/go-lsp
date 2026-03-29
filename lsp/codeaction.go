@@ -1,6 +1,6 @@
 package lsp
 
-// CodeActionKind represents the kind of a code action.
+// CodeActionKind is a string enum classifying code actions (e.g. "quickfix", "refactor.extract", "source.organizeImports").
 type CodeActionKind string
 
 const (
@@ -19,7 +19,7 @@ type CodeActionContext struct {
 	Only        []CodeActionKind `json:"only,omitempty"`
 }
 
-// CodeActionParams contains the params for textDocument/codeAction.
+// CodeActionParams is sent to request available fixes and refactorings for diagnostics or a selected range.
 type CodeActionParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
@@ -28,7 +28,7 @@ type CodeActionParams struct {
 	Context      CodeActionContext      `json:"context"`
 }
 
-// CodeAction represents a change that can be performed in code.
+// CodeAction is a fix, refactoring, or source action the server offers, optionally carrying a workspace edit and/or a command.
 type CodeAction struct {
 	Title       string          `json:"title"`
 	Kind        *CodeActionKind `json:"kind,omitempty"`

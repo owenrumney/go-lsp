@@ -2,13 +2,13 @@ package lsp
 
 import "encoding/json"
 
-// CallHierarchyPrepareParams contains the params for textDocument/prepareCallHierarchy.
+// CallHierarchyPrepareParams is sent to resolve the call hierarchy item at a given cursor position before navigating callers/callees.
 type CallHierarchyPrepareParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
 }
 
-// CallHierarchyItem represents an item in the call hierarchy.
+// CallHierarchyItem represents a function or method that can be navigated to in a call hierarchy view.
 type CallHierarchyItem struct {
 	Name           string          `json:"name"`
 	Kind           SymbolKind      `json:"kind"`
@@ -20,27 +20,27 @@ type CallHierarchyItem struct {
 	Data           json.RawMessage `json:"data,omitempty"`
 }
 
-// CallHierarchyIncomingCallsParams contains the params for callHierarchy/incomingCalls.
+// CallHierarchyIncomingCallsParams is sent to find all callers of a given call hierarchy item.
 type CallHierarchyIncomingCallsParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
 	Item CallHierarchyItem `json:"item"`
 }
 
-// CallHierarchyIncomingCall represents an incoming call.
+// CallHierarchyIncomingCall identifies a caller of a call hierarchy item, including the ranges where the call occurs.
 type CallHierarchyIncomingCall struct {
 	From       CallHierarchyItem `json:"from"`
 	FromRanges []Range           `json:"fromRanges"`
 }
 
-// CallHierarchyOutgoingCallsParams contains the params for callHierarchy/outgoingCalls.
+// CallHierarchyOutgoingCallsParams is sent to find all functions/methods called from a given call hierarchy item.
 type CallHierarchyOutgoingCallsParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
 	Item CallHierarchyItem `json:"item"`
 }
 
-// CallHierarchyOutgoingCall represents an outgoing call.
+// CallHierarchyOutgoingCall identifies a function/method called from a call hierarchy item, including the call-site ranges.
 type CallHierarchyOutgoingCall struct {
 	To         CallHierarchyItem `json:"to"`
 	FromRanges []Range           `json:"fromRanges"`

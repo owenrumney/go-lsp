@@ -2,7 +2,7 @@ package lsp
 
 import "encoding/json"
 
-// InlayHintKind defines the kind of an inlay hint.
+// InlayHintKind is an int enum: type hint (1) or parameter name hint (2).
 type InlayHintKind int
 
 const (
@@ -10,14 +10,14 @@ const (
 	InlayHintKindParameter InlayHintKind = 2
 )
 
-// InlayHintParams contains the params for textDocument/inlayHint.
+// InlayHintParams is sent to request inlay hints (inline type/parameter annotations) for a document range.
 type InlayHintParams struct {
 	WorkDoneProgressParams
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 	Range        Range                  `json:"range"`
 }
 
-// InlayHintLabelPart represents a part of an inlay hint label.
+// InlayHintLabelPart is one segment of a multi-part inlay hint label, optionally clickable with a command or location.
 type InlayHintLabelPart struct {
 	Value    string         `json:"value"`
 	Tooltip  *MarkupContent `json:"tooltip,omitempty"`
@@ -25,7 +25,7 @@ type InlayHintLabelPart struct {
 	Command  *Command       `json:"command,omitempty"`
 }
 
-// InlayHint represents an inlay hint.
+// InlayHint is an inline annotation the editor renders in the source (e.g. inferred types, parameter names).
 type InlayHint struct {
 	Position     Position        `json:"position"`
 	Label        json.RawMessage `json:"label"`
@@ -37,13 +37,13 @@ type InlayHint struct {
 	Data         json.RawMessage `json:"data,omitempty"`
 }
 
-// InlayHintOptions describes inlay hint options.
+// InlayHintOptions configures whether the server supports resolving inlay hints lazily.
 type InlayHintOptions struct {
 	WorkDoneProgressOptions
 	ResolveProvider *bool `json:"resolveProvider,omitempty"`
 }
 
-// InlayHintClientCapabilities defines capabilities for inlay hints.
+// InlayHintClientCapabilities declares editor support for inlay hint features like lazy resolution.
 type InlayHintClientCapabilities struct {
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
 	ResolveSupport      *struct {
@@ -51,7 +51,7 @@ type InlayHintClientCapabilities struct {
 	} `json:"resolveSupport,omitempty"`
 }
 
-// InlayHintWorkspaceClientCapabilities defines workspace capabilities for inlay hints.
+// InlayHintWorkspaceClientCapabilities declares whether the editor will refresh inlay hints when the server requests it.
 type InlayHintWorkspaceClientCapabilities struct {
 	RefreshSupport *bool `json:"refreshSupport,omitempty"`
 }

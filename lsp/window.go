@@ -1,6 +1,6 @@
 package lsp
 
-// MessageType represents the type of a show message notification.
+// MessageType is an int enum: error (1), warning (2), info (3), or log (4).
 type MessageType int
 
 const (
@@ -10,31 +10,31 @@ const (
 	MessageTypeLog     MessageType = 4
 )
 
-// ShowMessageParams contains the params for window/showMessage.
+// ShowMessageParams is sent from server to client to display a notification message in the editor.
 type ShowMessageParams struct {
 	Type    MessageType `json:"type"`
 	Message string      `json:"message"`
 }
 
-// ShowMessageRequestParams contains the params for window/showMessageRequest.
+// ShowMessageRequestParams is sent from server to client to show a message with clickable action buttons.
 type ShowMessageRequestParams struct {
 	Type    MessageType         `json:"type"`
 	Message string              `json:"message"`
 	Actions []MessageActionItem `json:"actions,omitempty"`
 }
 
-// MessageActionItem represents a message action item.
+// MessageActionItem is a button label offered in a showMessageRequest that the user can click.
 type MessageActionItem struct {
 	Title string `json:"title"`
 }
 
-// LogMessageParams contains the params for window/logMessage.
+// LogMessageParams is sent from server to client to log a message to the editor's output channel.
 type LogMessageParams struct {
 	Type    MessageType `json:"type"`
 	Message string      `json:"message"`
 }
 
-// ShowDocumentParams contains the params for window/showDocument.
+// ShowDocumentParams is sent from server to client to open a URI (file, URL) in the editor or external browser.
 type ShowDocumentParams struct {
 	URI       URI    `json:"uri"`
 	External  *bool  `json:"external,omitempty"`
@@ -42,7 +42,7 @@ type ShowDocumentParams struct {
 	Selection *Range `json:"selection,omitempty"`
 }
 
-// ShowDocumentResult is the result of a show document request.
+// ShowDocumentResult indicates whether the editor successfully showed the requested document.
 type ShowDocumentResult struct {
 	Success bool `json:"success"`
 }

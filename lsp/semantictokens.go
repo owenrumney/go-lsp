@@ -19,14 +19,14 @@ type SemanticTokensFull struct {
 	Delta *bool `json:"delta,omitempty"`
 }
 
-// SemanticTokensParams contains the params for textDocument/semanticTokens/full.
+// SemanticTokensParams is sent to request all semantic tokens for a document (for syntax highlighting beyond grammar-based tokenization).
 type SemanticTokensParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 }
 
-// SemanticTokensDeltaParams contains the params for textDocument/semanticTokens/full/delta.
+// SemanticTokensDeltaParams is sent to request only the semantic tokens that changed since a previous response.
 type SemanticTokensDeltaParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
@@ -34,7 +34,7 @@ type SemanticTokensDeltaParams struct {
 	PreviousResultID string                 `json:"previousResultId"`
 }
 
-// SemanticTokensRangeParams contains the params for textDocument/semanticTokens/range.
+// SemanticTokensRangeParams is sent to request semantic tokens for a visible range (for large files where full tokenization is too slow).
 type SemanticTokensRangeParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
@@ -42,13 +42,13 @@ type SemanticTokensRangeParams struct {
 	Range        Range                  `json:"range"`
 }
 
-// SemanticTokens represents the result of a semantic tokens request.
+// SemanticTokens contains encoded token data (position, length, type, modifiers) as a flat integer array.
 type SemanticTokens struct {
 	ResultID string `json:"resultId,omitempty"`
 	Data     []int  `json:"data"`
 }
 
-// SemanticTokensDelta represents a delta update for semantic tokens.
+// SemanticTokensDelta contains a set of edits to apply to previously returned token data, avoiding full retransmission.
 type SemanticTokensDelta struct {
 	ResultID string               `json:"resultId,omitempty"`
 	Edits    []SemanticTokensEdit `json:"edits"`

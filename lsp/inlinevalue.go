@@ -6,26 +6,26 @@ type InlineValueContext struct {
 	StoppedLocation Range `json:"stoppedLocation"`
 }
 
-// InlineValueText represents an inline value as text.
+// InlineValueText displays a static text value inline at a source position during debugging.
 type InlineValueText struct {
 	Range Range  `json:"range"`
 	Text  string `json:"text"`
 }
 
-// InlineValueVariableLookup represents an inline value via variable lookup.
+// InlineValueVariableLookup tells the debugger to look up a variable's value and display it inline at a source position.
 type InlineValueVariableLookup struct {
 	Range               Range  `json:"range"`
 	VariableName        string `json:"variableName,omitempty"`
 	CaseSensitiveLookup bool   `json:"caseSensitiveLookup"`
 }
 
-// InlineValueEvaluatableExpression represents an inline value via an evaluatable expression.
+// InlineValueEvaluatableExpression tells the debugger to evaluate an expression and display the result inline at a source position.
 type InlineValueEvaluatableExpression struct {
 	Range      Range  `json:"range"`
 	Expression string `json:"expression,omitempty"`
 }
 
-// InlineValueParams contains the params for textDocument/inlineValue.
+// InlineValueParams is sent to request inline debug values for a document in a stopped debug session.
 type InlineValueParams struct {
 	WorkDoneProgressParams
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
@@ -38,7 +38,7 @@ type InlineValueOptions struct {
 	WorkDoneProgressOptions
 }
 
-// InlineValueWorkspaceClientCapabilities defines workspace capabilities for inline values.
+// InlineValueWorkspaceClientCapabilities declares whether the editor will refresh inline values when the server requests it.
 type InlineValueWorkspaceClientCapabilities struct {
 	RefreshSupport *bool `json:"refreshSupport,omitempty"`
 }

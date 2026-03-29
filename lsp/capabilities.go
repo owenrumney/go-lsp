@@ -2,7 +2,7 @@ package lsp
 
 import "encoding/json"
 
-// ClientCapabilities defines the capabilities provided by the client.
+// ClientCapabilities declares which LSP features the editor supports, sent during initialization so the server can adapt its behavior.
 type ClientCapabilities struct {
 	Workspace    *WorkspaceClientCapabilities    `json:"workspace,omitempty"`
 	TextDocument *TextDocumentClientCapabilities `json:"textDocument,omitempty"`
@@ -11,7 +11,7 @@ type ClientCapabilities struct {
 	Experimental json.RawMessage                 `json:"experimental,omitempty"`
 }
 
-// WorkspaceClientCapabilities defines workspace specific client capabilities.
+// WorkspaceClientCapabilities declares editor support for workspace-wide operations like symbol search, file watching, and workspace edits.
 type WorkspaceClientCapabilities struct {
 	ApplyEdit              *bool                                      `json:"applyEdit,omitempty"`
 	WorkspaceEdit          *WorkspaceEditClientCapabilities           `json:"workspaceEdit,omitempty"`
@@ -29,12 +29,12 @@ type WorkspaceClientCapabilities struct {
 	Diagnostics            *DiagnosticWorkspaceClientCapabilities     `json:"diagnostics,omitempty"`
 }
 
-// DynamicRegistrationCapability indicates whether the client supports dynamic registration.
+// DynamicRegistrationCapability indicates the editor can register/unregister capabilities at runtime rather than only at initialization.
 type DynamicRegistrationCapability struct {
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
 }
 
-// WorkspaceEditClientCapabilities defines capabilities for workspace edits.
+// WorkspaceEditClientCapabilities declares which workspace edit features the editor supports (document changes, resource operations, change annotations).
 type WorkspaceEditClientCapabilities struct {
 	DocumentChanges         *bool                   `json:"documentChanges,omitempty"`
 	ResourceOperations      []ResourceOperationKind `json:"resourceOperations,omitempty"`
@@ -45,7 +45,7 @@ type WorkspaceEditClientCapabilities struct {
 	} `json:"changeAnnotationSupport,omitempty"`
 }
 
-// WorkspaceSymbolClientCapabilities defines capabilities for workspace symbols.
+// WorkspaceSymbolClientCapabilities declares editor support for workspace-wide symbol search, including supported symbol kinds and tags.
 type WorkspaceSymbolClientCapabilities struct {
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
 	SymbolKind          *struct {
@@ -56,17 +56,17 @@ type WorkspaceSymbolClientCapabilities struct {
 	} `json:"tagSupport,omitempty"`
 }
 
-// SemanticTokensWorkspaceClientCapabilities defines capabilities for semantic tokens in workspace.
+// SemanticTokensWorkspaceClientCapabilities declares whether the editor will refresh semantic tokens when the server requests it.
 type SemanticTokensWorkspaceClientCapabilities struct {
 	RefreshSupport *bool `json:"refreshSupport,omitempty"`
 }
 
-// CodeLensWorkspaceClientCapabilities defines capabilities for code lens in workspace.
+// CodeLensWorkspaceClientCapabilities declares whether the editor will refresh code lenses when the server requests it.
 type CodeLensWorkspaceClientCapabilities struct {
 	RefreshSupport *bool `json:"refreshSupport,omitempty"`
 }
 
-// FileOperationClientCapabilities defines capabilities for file operations.
+// FileOperationClientCapabilities declares editor support for file create/rename/delete notifications and willCreate/willRename/willDelete requests.
 type FileOperationClientCapabilities struct {
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
 	DidCreate           *bool `json:"didCreate,omitempty"`
@@ -77,7 +77,7 @@ type FileOperationClientCapabilities struct {
 	WillDelete          *bool `json:"willDelete,omitempty"`
 }
 
-// TextDocumentClientCapabilities defines text document specific client capabilities.
+// TextDocumentClientCapabilities declares editor support for document-level features like completion, hover, diagnostics, formatting, etc.
 type TextDocumentClientCapabilities struct {
 	Synchronization    *TextDocumentSyncClientCapabilities   `json:"synchronization,omitempty"`
 	Completion         *CompletionClientCapabilities         `json:"completion,omitempty"`
@@ -111,7 +111,7 @@ type TextDocumentClientCapabilities struct {
 	Diagnostic         *DiagnosticClientCapabilities         `json:"diagnostic,omitempty"`
 }
 
-// TextDocumentSyncClientCapabilities defines capabilities for text document sync.
+// TextDocumentSyncClientCapabilities declares editor support for open/close/change/save document notifications.
 type TextDocumentSyncClientCapabilities struct {
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
 	WillSave            *bool `json:"willSave,omitempty"`
@@ -119,7 +119,7 @@ type TextDocumentSyncClientCapabilities struct {
 	DidSave             *bool `json:"didSave,omitempty"`
 }
 
-// CompletionClientCapabilities defines capabilities for completion.
+// CompletionClientCapabilities declares which completion features the editor supports (snippets, commit characters, markdown docs, etc).
 type CompletionClientCapabilities struct {
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
 	CompletionItem      *struct {
@@ -145,13 +145,13 @@ type CompletionClientCapabilities struct {
 	ContextSupport *bool `json:"contextSupport,omitempty"`
 }
 
-// HoverClientCapabilities defines capabilities for hover.
+// HoverClientCapabilities declares which content formats (plaintext, markdown) the editor supports in hover results.
 type HoverClientCapabilities struct {
 	DynamicRegistration *bool        `json:"dynamicRegistration,omitempty"`
 	ContentFormat       []MarkupKind `json:"contentFormat,omitempty"`
 }
 
-// SignatureHelpClientCapabilities defines capabilities for signature help.
+// SignatureHelpClientCapabilities declares editor support for signature help features like active parameter highlighting and context tracking.
 type SignatureHelpClientCapabilities struct {
 	DynamicRegistration  *bool `json:"dynamicRegistration,omitempty"`
 	SignatureInformation *struct {
@@ -164,31 +164,31 @@ type SignatureHelpClientCapabilities struct {
 	ContextSupport *bool `json:"contextSupport,omitempty"`
 }
 
-// DeclarationClientCapabilities defines capabilities for go to declaration.
+// DeclarationClientCapabilities declares editor support for go-to-declaration, including dynamic registration and LocationLink responses.
 type DeclarationClientCapabilities struct {
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
 	LinkSupport         *bool `json:"linkSupport,omitempty"`
 }
 
-// DefinitionClientCapabilities defines capabilities for go to definition.
+// DefinitionClientCapabilities declares editor support for go-to-definition, including dynamic registration and LocationLink responses.
 type DefinitionClientCapabilities struct {
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
 	LinkSupport         *bool `json:"linkSupport,omitempty"`
 }
 
-// TypeDefinitionClientCapabilities defines capabilities for go to type definition.
+// TypeDefinitionClientCapabilities declares editor support for go-to-type-definition, including dynamic registration and LocationLink responses.
 type TypeDefinitionClientCapabilities struct {
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
 	LinkSupport         *bool `json:"linkSupport,omitempty"`
 }
 
-// ImplementationClientCapabilities defines capabilities for go to implementation.
+// ImplementationClientCapabilities declares editor support for go-to-implementation, including dynamic registration and LocationLink responses.
 type ImplementationClientCapabilities struct {
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
 	LinkSupport         *bool `json:"linkSupport,omitempty"`
 }
 
-// DocumentSymbolClientCapabilities defines capabilities for document symbols.
+// DocumentSymbolClientCapabilities declares editor support for document symbol features like hierarchical symbols and symbol tags.
 type DocumentSymbolClientCapabilities struct {
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
 	SymbolKind          *struct {
@@ -201,7 +201,7 @@ type DocumentSymbolClientCapabilities struct {
 	LabelSupport *bool `json:"labelSupport,omitempty"`
 }
 
-// CodeActionClientCapabilities defines capabilities for code actions.
+// CodeActionClientCapabilities declares editor support for code action features like action kinds, lazy resolution, and disabled action display.
 type CodeActionClientCapabilities struct {
 	DynamicRegistration      *bool `json:"dynamicRegistration,omitempty"`
 	CodeActionLiteralSupport *struct {
@@ -218,13 +218,13 @@ type CodeActionClientCapabilities struct {
 	HonorsChangeAnnotations *bool `json:"honorsChangeAnnotations,omitempty"`
 }
 
-// DocumentLinkClientCapabilities defines capabilities for document links.
+// DocumentLinkClientCapabilities declares editor support for document link features like tooltip display.
 type DocumentLinkClientCapabilities struct {
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
 	TooltipSupport      *bool `json:"tooltipSupport,omitempty"`
 }
 
-// RenameClientCapabilities defines capabilities for rename.
+// RenameClientCapabilities declares editor support for rename features like prepare-rename and honoring change annotations.
 type RenameClientCapabilities struct {
 	DynamicRegistration           *bool                          `json:"dynamicRegistration,omitempty"`
 	PrepareSupport                *bool                          `json:"prepareSupport,omitempty"`
@@ -232,7 +232,7 @@ type RenameClientCapabilities struct {
 	HonorsChangeAnnotations       *bool                          `json:"honorsChangeAnnotations,omitempty"`
 }
 
-// PublishDiagnosticsClientCapabilities defines capabilities for publish diagnostics.
+// PublishDiagnosticsClientCapabilities declares editor support for diagnostic features like related information, tags (deprecated/unnecessary), and versioning.
 type PublishDiagnosticsClientCapabilities struct {
 	RelatedInformation *bool `json:"relatedInformation,omitempty"`
 	TagSupport         *struct {
@@ -243,14 +243,14 @@ type PublishDiagnosticsClientCapabilities struct {
 	DataSupport            *bool `json:"dataSupport,omitempty"`
 }
 
-// FoldingRangeClientCapabilities defines capabilities for folding ranges.
+// FoldingRangeClientCapabilities declares editor support for folding ranges, including range limits and line-only folding.
 type FoldingRangeClientCapabilities struct {
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
 	RangeLimit          *int  `json:"rangeLimit,omitempty"`
 	LineFoldingOnly     *bool `json:"lineFoldingOnly,omitempty"`
 }
 
-// SemanticTokensClientCapabilities defines capabilities for semantic tokens.
+// SemanticTokensClientCapabilities declares which semantic token types, modifiers, and request styles (full, delta, range) the editor supports.
 type SemanticTokensClientCapabilities struct {
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
 	Requests            struct {
@@ -264,7 +264,7 @@ type SemanticTokensClientCapabilities struct {
 	MultilineTokenSupport   *bool         `json:"multilineTokenSupport,omitempty"`
 }
 
-// WindowClientCapabilities defines window specific client capabilities.
+// WindowClientCapabilities declares editor support for window features like work-done progress, show-message requests, and show-document.
 type WindowClientCapabilities struct {
 	WorkDoneProgress *bool `json:"workDoneProgress,omitempty"`
 	ShowMessage      *struct {
@@ -277,7 +277,7 @@ type WindowClientCapabilities struct {
 	} `json:"showDocument,omitempty"`
 }
 
-// GeneralClientCapabilities defines general client capabilities.
+// GeneralClientCapabilities declares cross-cutting editor capabilities like supported markdown parser, regex engine, and position encodings.
 type GeneralClientCapabilities struct {
 	RegularExpressions *struct {
 		Engine  string `json:"engine"`
@@ -290,7 +290,7 @@ type GeneralClientCapabilities struct {
 	} `json:"markdown,omitempty"`
 }
 
-// ServerCapabilities defines the capabilities provided by a server.
+// ServerCapabilities declares which LSP features this server supports, returned during initialization so the editor knows what to request.
 type ServerCapabilities struct {
 	TextDocumentSync                 *TextDocumentSyncOptions         `json:"textDocumentSync,omitempty"`
 	CompletionProvider               *CompletionOptions               `json:"completionProvider,omitempty"`
@@ -327,13 +327,13 @@ type ServerCapabilities struct {
 	Experimental                     json.RawMessage                  `json:"experimental,omitempty"`
 }
 
-// ServerWorkspaceCapabilities defines workspace specific server capabilities.
+// ServerWorkspaceCapabilities declares server support for workspace features like workspace folders and file operations.
 type ServerWorkspaceCapabilities struct {
 	WorkspaceFolders *WorkspaceFoldersServerCapabilities `json:"workspaceFolders,omitempty"`
 	FileOperations   *FileOperationOptions               `json:"fileOperations,omitempty"`
 }
 
-// WorkspaceFoldersServerCapabilities defines workspace folder capabilities.
+// WorkspaceFoldersServerCapabilities declares whether the server supports multi-root workspaces and wants workspace folder change notifications.
 type WorkspaceFoldersServerCapabilities struct {
 	Supported           *bool `json:"supported,omitempty"`
 	ChangeNotifications *bool `json:"changeNotifications,omitempty"`
@@ -367,7 +367,7 @@ type FileOperationPattern struct {
 	Options *FileOperationPatternOptions `json:"options,omitempty"`
 }
 
-// FileOperationPatternKind represents the kind of file operation pattern.
+// FileOperationPatternKind is a string enum ("file" or "folder") filtering which filesystem entries a file operation pattern matches.
 type FileOperationPatternKind string
 
 const (
@@ -380,7 +380,7 @@ type FileOperationPatternOptions struct {
 	IgnoreCase *bool `json:"ignoreCase,omitempty"`
 }
 
-// TextDocumentSyncOptions describes text document sync options.
+// TextDocumentSyncOptions configures how the server receives document content: open/close notifications, incremental vs full change events, and save behavior.
 type TextDocumentSyncOptions struct {
 	OpenClose         *bool                `json:"openClose,omitempty"`
 	Change            TextDocumentSyncKind `json:"change,omitempty"`
@@ -389,12 +389,12 @@ type TextDocumentSyncOptions struct {
 	Save              *SaveOptions         `json:"save,omitempty"`
 }
 
-// SaveOptions describes save options.
+// SaveOptions configures whether the server receives document text on save.
 type SaveOptions struct {
 	IncludeText *bool `json:"includeText,omitempty"`
 }
 
-// CompletionOptions describes completion options.
+// CompletionOptions configures server completion behavior: trigger characters, resolve support, and work-done progress.
 type CompletionOptions struct {
 	WorkDoneProgressOptions
 	TriggerCharacters   []string `json:"triggerCharacters,omitempty"`
@@ -402,45 +402,45 @@ type CompletionOptions struct {
 	ResolveProvider     *bool    `json:"resolveProvider,omitempty"`
 }
 
-// SignatureHelpOptions describes signature help options.
+// SignatureHelpOptions configures which characters trigger signature help and which re-trigger it inside an active signature.
 type SignatureHelpOptions struct {
 	WorkDoneProgressOptions
 	TriggerCharacters   []string `json:"triggerCharacters,omitempty"`
 	RetriggerCharacters []string `json:"retriggerCharacters,omitempty"`
 }
 
-// CodeActionOptions describes code action options.
+// CodeActionOptions configures which code action kinds the server supports and whether actions can be lazily resolved.
 type CodeActionOptions struct {
 	WorkDoneProgressOptions
 	CodeActionKinds []CodeActionKind `json:"codeActionKinds,omitempty"`
 	ResolveProvider *bool            `json:"resolveProvider,omitempty"`
 }
 
-// CodeLensOptions describes code lens options.
+// CodeLensOptions configures whether code lenses can be lazily resolved via codeLens/resolve.
 type CodeLensOptions struct {
 	WorkDoneProgressOptions
 	ResolveProvider *bool `json:"resolveProvider,omitempty"`
 }
 
-// DocumentLinkOptions describes document link options.
+// DocumentLinkOptions configures whether document links can be lazily resolved via documentLink/resolve.
 type DocumentLinkOptions struct {
 	WorkDoneProgressOptions
 	ResolveProvider *bool `json:"resolveProvider,omitempty"`
 }
 
-// DocumentOnTypeFormattingOptions describes on type formatting options.
+// DocumentOnTypeFormattingOptions configures which characters trigger on-type formatting (e.g. "}", ";", newline).
 type DocumentOnTypeFormattingOptions struct {
 	FirstTriggerCharacter string   `json:"firstTriggerCharacter"`
 	MoreTriggerCharacter  []string `json:"moreTriggerCharacter,omitempty"`
 }
 
-// RenameOptions describes rename options.
+// RenameOptions configures whether the server supports prepareRename for validating renames before applying them.
 type RenameOptions struct {
 	WorkDoneProgressOptions
 	PrepareProvider *bool `json:"prepareProvider,omitempty"`
 }
 
-// ExecuteCommandOptions describes execute command options.
+// ExecuteCommandOptions lists the command IDs the server can execute via workspace/executeCommand.
 type ExecuteCommandOptions struct {
 	WorkDoneProgressOptions
 	Commands []string `json:"commands"`

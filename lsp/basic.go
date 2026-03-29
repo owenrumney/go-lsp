@@ -1,9 +1,9 @@
 package lsp
 
-// DocumentURI is a URI as defined by RFC 3986.
+// DocumentURI is a URI identifying a text document, typically using the file:// scheme but other schemes are permitted.
 type DocumentURI string
 
-// URI is a generic URI string.
+// URI is a string-encoded URI as defined by RFC 3986.
 type URI string
 
 // Position in a text document expressed as zero-based line and character offset.
@@ -18,13 +18,13 @@ type Range struct {
 	End   Position `json:"end"`
 }
 
-// Location represents a location inside a resource.
+// Location identifies a range within a text document, used for go-to-definition results, references, etc.
 type Location struct {
 	URI   DocumentURI `json:"uri"`
 	Range Range       `json:"range"`
 }
 
-// LocationLink represents a link between a source and a target location.
+// LocationLink connects a source selection range to a target definition, used for rich go-to-definition results that highlight the origin.
 type LocationLink struct {
 	OriginSelectionRange *Range      `json:"originSelectionRange,omitempty"`
 	TargetURI            DocumentURI `json:"targetUri"`
