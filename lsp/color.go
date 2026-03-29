@@ -8,20 +8,20 @@ type Color struct {
 	Alpha float64 `json:"alpha"`
 }
 
-// ColorInformation represents a color range from a document.
+// ColorInformation pairs a document range with the color value found there, used by the editor to show color decorators.
 type ColorInformation struct {
 	Range Range `json:"range"`
 	Color Color `json:"color"`
 }
 
-// DocumentColorParams contains the params for textDocument/documentColor.
+// DocumentColorParams is sent to request all color literals in a document for inline color decoration.
 type DocumentColorParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 }
 
-// ColorPresentationParams contains the params for textDocument/colorPresentation.
+// ColorPresentationParams is sent to request how a color value can be represented as text (e.g. "#ff0000", "rgb(255,0,0)").
 type ColorPresentationParams struct {
 	WorkDoneProgressParams
 	PartialResultParams

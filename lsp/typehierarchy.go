@@ -2,13 +2,13 @@ package lsp
 
 import "encoding/json"
 
-// TypeHierarchyPrepareParams contains the params for textDocument/prepareTypeHierarchy.
+// TypeHierarchyPrepareParams is sent to resolve the type hierarchy item at a given cursor position.
 type TypeHierarchyPrepareParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
 }
 
-// TypeHierarchyItem represents an item in the type hierarchy.
+// TypeHierarchyItem represents a type (class, interface, etc.) with its location and detail, for navigating supertypes/subtypes.
 type TypeHierarchyItem struct {
 	Name           string          `json:"name"`
 	Kind           SymbolKind      `json:"kind"`
@@ -21,14 +21,14 @@ type TypeHierarchyItem struct {
 	Data           json.RawMessage `json:"data,omitempty"`
 }
 
-// TypeHierarchySupertypesParams contains the params for typeHierarchy/supertypes.
+// TypeHierarchySupertypesParams is sent to find all supertypes (parent classes, implemented interfaces) of a type.
 type TypeHierarchySupertypesParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
 	Item TypeHierarchyItem `json:"item"`
 }
 
-// TypeHierarchySubtypesParams contains the params for typeHierarchy/subtypes.
+// TypeHierarchySubtypesParams is sent to find all subtypes (child classes, implementors) of a type.
 type TypeHierarchySubtypesParams struct {
 	WorkDoneProgressParams
 	PartialResultParams

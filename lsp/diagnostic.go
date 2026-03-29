@@ -2,7 +2,7 @@ package lsp
 
 import "encoding/json"
 
-// DiagnosticSeverity indicates the severity of a diagnostic.
+// DiagnosticSeverity is an int enum: Error (1), Warning (2), Information (3), Hint (4).
 type DiagnosticSeverity int
 
 const (
@@ -20,7 +20,7 @@ const (
 	TagDeprecated  DiagnosticTag = 2
 )
 
-// DiagnosticRelatedInformation represents a related message and source code location.
+// DiagnosticRelatedInformation points to a related source location that helps explain a diagnostic (e.g. "variable declared here").
 type DiagnosticRelatedInformation struct {
 	Location Location `json:"location"`
 	Message  string   `json:"message"`
@@ -31,7 +31,7 @@ type CodeDescription struct {
 	Href URI `json:"href"`
 }
 
-// Diagnostic represents a diagnostic such as a compiler error or warning.
+// Diagnostic is an error, warning, or informational message attached to a source range, shown in the editor's problems panel.
 type Diagnostic struct {
 	Range              Range                          `json:"range"`
 	Severity           *DiagnosticSeverity            `json:"severity,omitempty"`
@@ -44,7 +44,7 @@ type Diagnostic struct {
 	Data               json.RawMessage                `json:"data,omitempty"`
 }
 
-// PublishDiagnosticsParams contains the params for textDocument/publishDiagnostics.
+// PublishDiagnosticsParams is sent from server to client to publish diagnostics (errors, warnings) for a document.
 type PublishDiagnosticsParams struct {
 	URI         DocumentURI  `json:"uri"`
 	Version     *int         `json:"version,omitempty"`

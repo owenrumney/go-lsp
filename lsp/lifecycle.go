@@ -2,7 +2,7 @@ package lsp
 
 import "encoding/json"
 
-// InitializeParams contains the params for the initialize request.
+// InitializeParams is the first message from client to server, carrying client capabilities, root URI, and configuration.
 type InitializeParams struct {
 	WorkDoneProgressParams
 	ProcessID             *int               `json:"processId"`
@@ -34,10 +34,10 @@ type ServerInfo struct {
 	Version string `json:"version,omitempty"`
 }
 
-// InitializedParams contains the params for the initialized notification.
+// InitializedParams is sent after the client receives the initialize result; the struct is intentionally empty.
 type InitializedParams struct{}
 
-// ReferenceParams contains the params for textDocument/references.
+// ReferenceParams is sent to find all references to a symbol at a given position.
 type ReferenceParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
@@ -50,53 +50,53 @@ type ReferenceContext struct {
 	IncludeDeclaration bool `json:"includeDeclaration"`
 }
 
-// DeclarationParams contains the params for textDocument/declaration.
+// DeclarationParams is sent to find the declaration of a symbol at a given position.
 type DeclarationParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
 	PartialResultParams
 }
 
-// DefinitionParams contains the params for textDocument/definition.
+// DefinitionParams is sent to find the definition of a symbol at a given position.
 type DefinitionParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
 	PartialResultParams
 }
 
-// TypeDefinitionParams contains the params for textDocument/typeDefinition.
+// TypeDefinitionParams is sent to find the type definition of a symbol at a given position.
 type TypeDefinitionParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
 	PartialResultParams
 }
 
-// ImplementationParams contains the params for textDocument/implementation.
+// ImplementationParams is sent to find implementations of an interface or abstract method at a given position.
 type ImplementationParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
 	PartialResultParams
 }
 
-// SetTraceParams contains the params for the $/setTrace notification.
+// SetTraceParams changes the server's trace verbosity level at runtime.
 type SetTraceParams struct {
 	Value TraceValue `json:"value"`
 }
 
-// DocumentHighlightParams contains the params for textDocument/documentHighlight.
+// DocumentHighlightParams is sent to request highlights for all occurrences of a symbol in a document.
 type DocumentHighlightParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
 	PartialResultParams
 }
 
-// DocumentHighlight represents a highlight in a document.
+// DocumentHighlight identifies a range to highlight when the cursor is on a symbol (e.g. all usages of a variable).
 type DocumentHighlight struct {
 	Range Range                  `json:"range"`
 	Kind  *DocumentHighlightKind `json:"kind,omitempty"`
 }
 
-// DocumentHighlightKind represents the kind of a document highlight.
+// DocumentHighlightKind is an int enum: text (1), read-access (2), or write-access (3).
 type DocumentHighlightKind int
 
 const (

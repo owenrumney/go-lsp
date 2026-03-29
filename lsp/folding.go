@@ -1,6 +1,6 @@
 package lsp
 
-// FoldingRangeKind represents the kind of a folding range.
+// FoldingRangeKind is a string enum: "comment", "imports", or "region".
 type FoldingRangeKind string
 
 const (
@@ -9,14 +9,14 @@ const (
 	FoldingRangeKindRegion  FoldingRangeKind = "region"
 )
 
-// FoldingRangeParams contains the params for textDocument/foldingRange.
+// FoldingRangeParams is sent to request all foldable regions in a document.
 type FoldingRangeParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 }
 
-// FoldingRange represents a folding range.
+// FoldingRange defines a collapsible region in a document (e.g. a function body, import block, or comment block).
 type FoldingRange struct {
 	StartLine      int               `json:"startLine"`
 	StartCharacter *int              `json:"startCharacter,omitempty"`

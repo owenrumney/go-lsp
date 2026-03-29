@@ -1,6 +1,6 @@
 package lsp
 
-// UniquenessLevel represents the uniqueness level of a moniker.
+// UniquenessLevel is a string enum indicating the scope at which a moniker is unique: document, project, group, scheme, or global.
 type UniquenessLevel string
 
 const (
@@ -11,7 +11,7 @@ const (
 	UniquenessLevelGlobal   UniquenessLevel = "global"
 )
 
-// MonikerKind represents the kind of a moniker.
+// MonikerKind is a string enum: "import" (referencing external), "export" (visible to others), or "local" (internal).
 type MonikerKind string
 
 const (
@@ -20,14 +20,14 @@ const (
 	MonikerKindLocal  MonikerKind = "local"
 )
 
-// MonikerParams contains the params for textDocument/moniker.
+// MonikerParams is sent to request stable, cross-project identifiers for a symbol (used for cross-repo navigation and indexing).
 type MonikerParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
 	PartialResultParams
 }
 
-// Moniker represents a moniker.
+// Moniker is a stable, cross-project identifier for a symbol, enabling features like cross-repository go-to-definition.
 type Moniker struct {
 	Scheme     string          `json:"scheme"`
 	Identifier string          `json:"identifier"`

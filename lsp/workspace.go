@@ -2,7 +2,7 @@ package lsp
 
 import "encoding/json"
 
-// WorkspaceFolder represents a workspace folder.
+// WorkspaceFolder is a root folder in a multi-root workspace, identified by URI and a display name.
 type WorkspaceFolder struct {
 	URI  DocumentURI `json:"uri"`
 	Name string      `json:"name"`
@@ -27,7 +27,7 @@ type CreateFileOptions struct {
 	IgnoreIfExists *bool `json:"ignoreIfExists,omitempty"`
 }
 
-// CreateFile represents a create file operation.
+// CreateFile is a workspace edit operation that creates a new file, with optional overwrite/ignoreIfExists flags.
 type CreateFile struct {
 	Kind    string             `json:"kind"` // "create"
 	URI     DocumentURI        `json:"uri"`
@@ -40,7 +40,7 @@ type RenameFileOptions struct {
 	IgnoreIfExists *bool `json:"ignoreIfExists,omitempty"`
 }
 
-// RenameFile represents a rename file operation.
+// RenameFile is a workspace edit operation that renames/moves a file, with optional overwrite/ignoreIfExists flags.
 type RenameFile struct {
 	Kind    string             `json:"kind"` // "rename"
 	OldURI  DocumentURI        `json:"oldUri"`
@@ -54,20 +54,20 @@ type DeleteFileOptions struct {
 	IgnoreIfNotExists *bool `json:"ignoreIfNotExists,omitempty"`
 }
 
-// DeleteFile represents a delete file operation.
+// DeleteFile is a workspace edit operation that deletes a file, with optional recursive and ignoreIfNotExists flags.
 type DeleteFile struct {
 	Kind    string             `json:"kind"` // "delete"
 	URI     DocumentURI        `json:"uri"`
 	Options *DeleteFileOptions `json:"options,omitempty"`
 }
 
-// FileEvent represents an event describing a file change.
+// FileEvent pairs a URI with a change type (created/changed/deleted) in a didChangeWatchedFiles notification.
 type FileEvent struct {
 	URI  DocumentURI    `json:"uri"`
 	Type FileChangeType `json:"type"`
 }
 
-// DidChangeWatchedFilesParams contains the params for workspace/didChangeWatchedFiles.
+// DidChangeWatchedFilesParams notifies the server that watched files have been created, changed, or deleted.
 type DidChangeWatchedFilesParams struct {
 	Changes []FileEvent `json:"changes"`
 }
@@ -78,23 +78,23 @@ type FileSystemWatcher struct {
 	Kind        *WatchKind `json:"kind,omitempty"`
 }
 
-// DidChangeConfigurationParams contains the params for workspace/didChangeConfiguration.
+// DidChangeConfigurationParams notifies the server that the client's configuration settings have changed.
 type DidChangeConfigurationParams struct {
 	Settings any `json:"settings"`
 }
 
-// ConfigurationParams contains the params for workspace/configuration.
+// ConfigurationParams is sent from server to client to fetch configuration values for one or more scopes.
 type ConfigurationParams struct {
 	Items []ConfigurationItem `json:"items"`
 }
 
-// ConfigurationItem represents a configuration item.
+// ConfigurationItem identifies a configuration section to fetch, optionally scoped to a resource URI.
 type ConfigurationItem struct {
 	ScopeURI *DocumentURI `json:"scopeUri,omitempty"`
 	Section  string       `json:"section,omitempty"`
 }
 
-// DidChangeWorkspaceFoldersParams contains the params for workspace/didChangeWorkspaceFolders.
+// DidChangeWorkspaceFoldersParams notifies the server that workspace folders were added or removed.
 type DidChangeWorkspaceFoldersParams struct {
 	Event WorkspaceFoldersChangeEvent `json:"event"`
 }
@@ -105,45 +105,45 @@ type WorkspaceFoldersChangeEvent struct {
 	Removed []WorkspaceFolder `json:"removed"`
 }
 
-// ExecuteCommandParams contains the params for workspace/executeCommand.
+// ExecuteCommandParams is sent to ask the server to run a registered command by ID with the given arguments.
 type ExecuteCommandParams struct {
 	WorkDoneProgressParams
 	Command   string            `json:"command"`
 	Arguments []json.RawMessage `json:"arguments,omitempty"`
 }
 
-// FileCreate represents a file that was created.
+// FileCreate carries the URI of a file that was created, for willCreateFiles/didCreateFiles notifications.
 type FileCreate struct {
 	URI string `json:"uri"`
 }
 
-// CreateFilesParams contains the params for workspace/willCreateFiles.
+// CreateFilesParams notifies the server that files are about to be created, allowing it to return a workspace edit.
 type CreateFilesParams struct {
 	Files []FileCreate `json:"files"`
 }
 
-// FileRename represents a file that was renamed.
+// FileRename carries the old and new URIs of a renamed file.
 type FileRename struct {
 	OldURI string `json:"oldUri"`
 	NewURI string `json:"newUri"`
 }
 
-// RenameFilesParams contains the params for workspace/willRenameFiles.
+// RenameFilesParams notifies the server that files are about to be renamed, allowing it to return a workspace edit (e.g. import path updates).
 type RenameFilesParams struct {
 	Files []FileRename `json:"files"`
 }
 
-// FileDelete represents a file that was deleted.
+// FileDelete carries the URI of a file that was deleted.
 type FileDelete struct {
 	URI string `json:"uri"`
 }
 
-// DeleteFilesParams contains the params for workspace/willDeleteFiles.
+// DeleteFilesParams notifies the server that files are about to be deleted, allowing it to return a workspace edit.
 type DeleteFilesParams struct {
 	Files []FileDelete `json:"files"`
 }
 
-// ApplyWorkspaceEditParams contains the params for workspace/applyEdit.
+// ApplyWorkspaceEditParams is sent from server to client to apply a set of text edits and file operations across the workspace.
 type ApplyWorkspaceEditParams struct {
 	Label string        `json:"label,omitempty"`
 	Edit  WorkspaceEdit `json:"edit"`

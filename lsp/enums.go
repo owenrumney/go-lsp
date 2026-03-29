@@ -1,6 +1,6 @@
 package lsp
 
-// TextDocumentSyncKind defines how the host (editor) should sync document changes.
+// TextDocumentSyncKind is an int enum controlling whether the editor sends no content (0), full content (1), or incremental diffs (2) on each change.
 type TextDocumentSyncKind int
 
 const (
@@ -9,7 +9,7 @@ const (
 	SyncIncremental TextDocumentSyncKind = 2
 )
 
-// FileChangeType represents the type of a file event.
+// FileChangeType is an int enum: created (1), changed (2), or deleted (3).
 type FileChangeType int
 
 const (
@@ -18,7 +18,7 @@ const (
 	FileDeleted FileChangeType = 3
 )
 
-// WatchKind represents the kind of file events to watch.
+// WatchKind is a bitmask for subscribing to file create (1), change (2), and/or delete (4) events.
 type WatchKind int
 
 const (
@@ -27,7 +27,7 @@ const (
 	WatchDelete WatchKind = 4
 )
 
-// CompletionTriggerKind indicates how a completion was triggered.
+// CompletionTriggerKind is an int enum: invoked manually (1), by a trigger character (2), or for incomplete completions (3).
 type CompletionTriggerKind int
 
 const (
@@ -36,7 +36,7 @@ const (
 	CompletionTriggerForIncompleteCompletions CompletionTriggerKind = 3
 )
 
-// SignatureHelpTriggerKind indicates how signature help was triggered.
+// SignatureHelpTriggerKind is an int enum: invoked manually (1), by a trigger character (2), or by cursor movement within a signature (3).
 type SignatureHelpTriggerKind int
 
 const (
@@ -45,7 +45,7 @@ const (
 	SignatureHelpTriggerContentChange SignatureHelpTriggerKind = 3
 )
 
-// InsertTextFormat defines how an insert text is interpreted.
+// InsertTextFormat is an int enum: plain text (1) or a snippet with tab stops and placeholders (2).
 type InsertTextFormat int
 
 const (
@@ -53,7 +53,7 @@ const (
 	InsertTextFormatSnippet   InsertTextFormat = 2
 )
 
-// InsertTextMode indicates how whitespace and indentation is handled during completion.
+// InsertTextMode is an int enum: asIs (1) keeps original whitespace, adjustIndentation (2) adapts leading whitespace to the insertion context.
 type InsertTextMode int
 
 const (
@@ -61,7 +61,7 @@ const (
 	InsertTextModeAdjustIndentation InsertTextMode = 2
 )
 
-// ResourceOperationKind represents the kind of resource operations.
+// ResourceOperationKind is a string enum: "create", "rename", or "delete" for workspace edit file operations.
 type ResourceOperationKind string
 
 const (
@@ -80,21 +80,21 @@ const (
 	FailureHandlingTextOnlyTransactional FailureHandlingKind = "textOnlyTransactional"
 )
 
-// PrepareSupportDefaultBehavior represents the default behavior for prepare support.
+// PrepareSupportDefaultBehavior is an int enum defining fallback behavior when the server doesn't support prepareRename (1 = use identifier under cursor).
 type PrepareSupportDefaultBehavior int
 
 const (
 	PrepareSupportDefaultBehaviorIdentifier PrepareSupportDefaultBehavior = 1
 )
 
-// TokenFormat represents the token format.
+// TokenFormat is a string enum for semantic token encoding; currently only "relative" is defined.
 type TokenFormat string
 
 const (
 	TokenFormatRelative TokenFormat = "relative"
 )
 
-// TraceValue represents the trace setting level.
+// TraceValue is a string enum ("off", "messages", "verbose") controlling LSP message tracing.
 type TraceValue string
 
 const (

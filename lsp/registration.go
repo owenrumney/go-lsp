@@ -2,14 +2,14 @@ package lsp
 
 import "encoding/json"
 
-// Registration represents a general registration request.
+// Registration dynamically registers a server capability at runtime (e.g. adding file watchers after initialization).
 type Registration struct {
 	ID              string          `json:"id"`
 	Method          string          `json:"method"`
 	RegisterOptions json.RawMessage `json:"registerOptions,omitempty"`
 }
 
-// RegistrationParams contains the params for client/registerCapability.
+// RegistrationParams is sent from server to client to dynamically register one or more capabilities.
 type RegistrationParams struct {
 	Registrations []Registration `json:"registrations"`
 }
@@ -20,7 +20,7 @@ type Unregistration struct {
 	Method string `json:"method"`
 }
 
-// UnregistrationParams contains the params for client/unregisterCapability.
+// UnregistrationParams is sent from server to client to remove previously registered capabilities.
 type UnregistrationParams struct {
 	Unregisterations []Unregistration `json:"unregisterations"`
 }

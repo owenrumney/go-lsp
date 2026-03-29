@@ -8,7 +8,7 @@ const (
 	Markdown  MarkupKind = "markdown"
 )
 
-// MarkupContent represents a string value with a specific content type.
+// MarkupContent carries documentation or descriptive text tagged as either plaintext or markdown.
 type MarkupContent struct {
 	Kind  MarkupKind `json:"kind"`
 	Value string     `json:"value"`

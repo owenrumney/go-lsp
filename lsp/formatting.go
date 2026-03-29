@@ -9,14 +9,14 @@ type FormattingOptions struct {
 	TrimFinalNewlines      *bool `json:"trimFinalNewlines,omitempty"`
 }
 
-// DocumentFormattingParams contains the params for textDocument/formatting.
+// DocumentFormattingParams is sent to request formatting of an entire document.
 type DocumentFormattingParams struct {
 	WorkDoneProgressParams
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 	Options      FormattingOptions      `json:"options"`
 }
 
-// DocumentRangeFormattingParams contains the params for textDocument/rangeFormatting.
+// DocumentRangeFormattingParams is sent to request formatting of a selected range within a document.
 type DocumentRangeFormattingParams struct {
 	WorkDoneProgressParams
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
@@ -24,7 +24,7 @@ type DocumentRangeFormattingParams struct {
 	Options      FormattingOptions      `json:"options"`
 }
 
-// DocumentOnTypeFormattingParams contains the params for textDocument/onTypeFormatting.
+// DocumentOnTypeFormattingParams is sent to request formatting triggered by typing a character (e.g. closing brace or semicolon).
 type DocumentOnTypeFormattingParams struct {
 	TextDocumentPositionParams
 	Character string            `json:"ch"`

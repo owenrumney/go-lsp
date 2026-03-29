@@ -1,6 +1,6 @@
 package lsp
 
-// SelectionRangeParams contains the params for textDocument/selectionRange.
+// SelectionRangeParams is sent to request nested selection ranges (expand/shrink selection) at given positions.
 type SelectionRangeParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
@@ -8,7 +8,7 @@ type SelectionRangeParams struct {
 	Positions    []Position             `json:"positions"`
 }
 
-// SelectionRange represents a selection range.
+// SelectionRange is a nested range tree enabling incremental expand/shrink selection (e.g. expression -> statement -> block -> function).
 type SelectionRange struct {
 	Range  Range           `json:"range"`
 	Parent *SelectionRange `json:"parent,omitempty"`

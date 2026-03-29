@@ -1,6 +1,6 @@
 package lsp
 
-// SignatureHelpParams contains the params for textDocument/signatureHelp.
+// SignatureHelpParams is sent to request parameter hints for a function call at the cursor position.
 type SignatureHelpParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
@@ -15,14 +15,14 @@ type SignatureHelpContext struct {
 	ActiveSignatureHelp *SignatureHelp           `json:"activeSignatureHelp,omitempty"`
 }
 
-// SignatureHelp represents the signature of something callable.
+// SignatureHelp contains one or more function signatures and indicates which signature and parameter are currently active.
 type SignatureHelp struct {
 	Signatures      []SignatureInformation `json:"signatures"`
 	ActiveSignature *int                   `json:"activeSignature,omitempty"`
 	ActiveParameter *int                   `json:"activeParameter,omitempty"`
 }
 
-// SignatureInformation represents the signature of something callable.
+// SignatureInformation describes a single callable signature: its label, documentation, and parameter list.
 type SignatureInformation struct {
 	Label           string                 `json:"label"`
 	Documentation   *MarkupContent         `json:"documentation,omitempty"`
@@ -30,7 +30,7 @@ type SignatureInformation struct {
 	ActiveParameter *int                   `json:"activeParameter,omitempty"`
 }
 
-// ParameterInformation represents a parameter of a callable-signature.
+// ParameterInformation describes one parameter in a signature: its label (or label range) and optional documentation.
 type ParameterInformation struct {
 	Label         any            `json:"label"` // string | [int, int]
 	Documentation *MarkupContent `json:"documentation,omitempty"`

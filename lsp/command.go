@@ -2,7 +2,7 @@ package lsp
 
 import "encoding/json"
 
-// Command represents a reference to a command.
+// Command is an editor command with a title and arguments, typically shown in the UI and executed via workspace/executeCommand.
 type Command struct {
 	Title     string            `json:"title"`
 	Command   string            `json:"command"`
