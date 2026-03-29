@@ -120,7 +120,7 @@ func (c *rpcConn) routeResponse(_ []byte, raw rawMsg) {
 	}
 }
 
-func (c *rpcConn) handleIncomingRequest(data []byte, raw rawMsg) {
+func (c *rpcConn) handleIncomingRequest(_ []byte, raw rawMsg) {
 	// Parse the ID
 	var id any
 	if raw.ID != nil {
@@ -161,7 +161,6 @@ func (c *rpcConn) handleIncomingRequest(data []byte, raw rawMsg) {
 		Error:   rpcErr,
 	}
 	_ = c.writeJSON(resp)
-	_ = data // suppress unused warning at compile time by referencing
 }
 
 func (c *rpcConn) readFrame() ([]byte, error) {
