@@ -140,7 +140,7 @@ func TestDispatcher_HandleRequest(t *testing.T) {
 		Params:  json.RawMessage(`{"A":2,"B":3}`),
 	}
 
-	resp := d.HandleRequest(context.Background(), req)
+	resp := d.HandleRequest(t.Context(), req)
 	if resp.Error != nil {
 		t.Fatal(resp.Error)
 	}
@@ -158,7 +158,7 @@ func TestDispatcher_MethodNotFound(t *testing.T) {
 	d := NewDispatcher()
 	req := &Request{JSONRPC: Version, ID: IntID(1), Method: "missing"}
 
-	resp := d.HandleRequest(context.Background(), req)
+	resp := d.HandleRequest(t.Context(), req)
 	if resp.Error == nil {
 		t.Fatal("expected error")
 	}
@@ -189,7 +189,7 @@ func TestConn_HandleRequest_PanicRecovery(t *testing.T) {
 	req := msg.(*Request)
 
 	// handleRequest runs the handler and writes the response; a panic should be recovered.
-	conn.handleRequest(context.Background(), req)
+	conn.handleRequest(t.Context(), req)
 
 	// Read the response that was written back.
 	respConn := NewConn(nopCloser{Reader: &responseBuf, Writer: io.Discard}, NewDispatcher())
@@ -231,5 +231,5 @@ func TestConn_HandleNotification_PanicRecovery(t *testing.T) {
 	}
 
 	// Should not panic — recovery catches it.
-	conn.handleNotification(context.Background(), notif)
+	conn.handleNotification(t.Context(), notif)
 }

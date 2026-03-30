@@ -40,7 +40,7 @@ func TestRequestTimeout(t *testing.T) {
 	h := &slowHoverHandler{delay: 2 * time.Second}
 	s := NewServer(h, WithRequestTimeout(50*time.Millisecond))
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	go func() {
@@ -82,7 +82,7 @@ func TestNoTimeoutByDefault(t *testing.T) {
 	h := &slowHoverHandler{delay: 50 * time.Millisecond}
 	s := NewServer(h) // no timeout
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	go func() {

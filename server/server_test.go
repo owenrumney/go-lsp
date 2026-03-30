@@ -82,7 +82,7 @@ func TestServerInitializeHandshake(t *testing.T) {
 	h := &mockHandler{}
 	s := NewServer(h)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	errCh := make(chan error, 1)

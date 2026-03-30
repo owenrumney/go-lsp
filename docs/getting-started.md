@@ -239,7 +239,7 @@ func TestDiagnostics(t *testing.T) {
     h.DidOpen("file:///test.txt", "mylang", "TODO fix this")
     h.DidSave("file:///test.txt")
 
-    ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+    ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
     defer cancel()
 
     diags, err := h.WaitForDiagnostics(ctx, "file:///test.txt")
