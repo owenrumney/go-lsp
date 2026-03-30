@@ -128,7 +128,7 @@ func (h *Handler) Shutdown(ctx context.Context) error {
 func (h *Handler) Hover(ctx context.Context, params *lsp.HoverParams) (*lsp.Hover, error) {
 	return &lsp.Hover{
 		Contents: lsp.MarkupContent{
-			Kind:  lsp.MarkupKindMarkdown,
+			Kind:  lsp.Markdown,
 			Value: "Hello from the server",
 		},
 	}, nil

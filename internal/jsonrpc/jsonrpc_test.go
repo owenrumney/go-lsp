@@ -166,3 +166,70 @@ func TestDispatcher_MethodNotFound(t *testing.T) {
 		t.Errorf("code = %d, want %d", resp.Error.Code, CodeMethodNotFound)
 	}
 }
+
+func TestConn_HandleRequest_PanicRecovery(t *testing.T) {
+	d := NewDispatcher()
+	d.RegisterMethod("boom", func(_ context.Context, _ json.RawMessage) (any, error) {
+		panic("handler blew up")
+	})
+
+	var responseBuf bytes.Buffer
+	requestBody := `{"jsonrpc":"2.0","id":1,"method":"boom","params":{}}`
+	framedRequest := fmt.Sprintf("Content-Length: %d\r\n\r\n%s", len(requestBody), requestBody)
+
+	conn := NewConn(nopCloser{
+		Reader: bytes.NewReader([]byte(framedRequest)),
+		Writer: &responseBuf,
+	}, d)
+
+	msg, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := msg.(*Request)
+
+	// handleRequest runs the handler and writes the response; a panic should be recovered.
+	conn.handleRequest(context.Background(), req)
+
+	// Read the response that was written back.
+	respConn := NewConn(nopCloser{Reader: &responseBuf, Writer: io.Discard}, NewDispatcher())
+	respMsg, err := respConn.ReadMessage()
+	if err != nil {
+		t.Fatalf("failed to read response after panic recovery: %v", err)
+	}
+
+	resp, ok := respMsg.(*Response)
+	if !ok {
+		t.Fatalf("got %T, want *Response", respMsg)
+	}
+	if resp.Error == nil {
+		t.Fatal("expected error response after panic")
+	}
+	if resp.Error.Code != CodeInternalError {
+		t.Errorf("code = %d, want %d", resp.Error.Code, CodeInternalError)
+	}
+	if resp.Error.Message == "" {
+		t.Error("expected non-empty error message")
+	}
+}
+
+func TestConn_HandleNotification_PanicRecovery(t *testing.T) {
+	d := NewDispatcher()
+	d.RegisterNotification("explode", func(_ context.Context, _ json.RawMessage) error {
+		panic("notification blew up")
+	})
+
+	conn := NewConn(nopCloser{
+		Reader: bytes.NewReader(nil),
+		Writer: io.Discard,
+	}, d)
+
+	notif := &Notification{
+		JSONRPC: Version,
+		Method:  "explode",
+		Params:  json.RawMessage(`{}`),
+	}
+
+	// Should not panic — recovery catches it.
+	conn.handleNotification(context.Background(), notif)
+}
