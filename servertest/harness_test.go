@@ -170,7 +170,7 @@ func TestHarness(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 				defer cancel()
 
 				diags, err := h.WaitForDiagnostics(ctx, uri)

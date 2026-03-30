@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"strconv"
 	"strings"
 	"sync"
@@ -140,6 +141,10 @@ func (c *Conn) handleRequest(ctx context.Context, req *Request) {
 	c.cancelMu.Unlock()
 
 	defer func() {
+		if r := recover(); r != nil {
+			resp := NewErrorResponse(req.ID, NewError(CodeInternalError, fmt.Sprintf("panic in handler %s: %v", req.Method, r)))
+			_ = c.WriteMessage(resp)
+		}
 		cancel()
 		c.cancelMu.Lock()
 		delete(c.cancels, idStr)
@@ -151,6 +156,12 @@ func (c *Conn) handleRequest(ctx context.Context, req *Request) {
 }
 
 func (c *Conn) handleNotification(ctx context.Context, notif *Notification) {
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("panic in notification handler", "method", notif.Method, "panic", r)
+		}
+	}()
+
 	if notif.Method == "$/cancelRequest" {
 		c.handleCancel(notif)
 		return
