@@ -2,7 +2,7 @@ package server
 
 import "github.com/owenrumney/go-lsp/lsp"
 
-const enabled = true
+var enabled = true
 
 func buildCapabilities(handler any) lsp.ServerCapabilities {
 	var caps lsp.ServerCapabilities
