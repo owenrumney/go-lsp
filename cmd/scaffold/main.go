@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/template"
 )
@@ -23,12 +24,7 @@ type templateData struct {
 }
 
 func (d templateData) HasFeature(name string) bool {
-	for _, f := range d.Features {
-		if f == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(d.Features, name)
 }
 
 func (d templateData) NeedsDocSync() bool {
@@ -169,7 +165,7 @@ func writeTemplate(tmpl *template.Template, name, path string, data templateData
 
 func parseFeatures(s string) []string {
 	var features []string
-	for _, f := range strings.Split(s, ",") {
+	for f := range strings.SplitSeq(s, ",") {
 		f = strings.TrimSpace(f)
 		if f != "" {
 			features = append(features, f)
