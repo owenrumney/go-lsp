@@ -24,6 +24,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+<<<<<<< HEAD
+=======
+        with:
+          enablement: true
+>>>>>>> 4dfd76d (Add document store, trace export, and docs site (#12))
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs-site

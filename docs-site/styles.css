@@ -112,6 +112,26 @@ h3 {
   margin: 26px 0 8px;
 }
 
+.heading-anchor {
+  color: var(--muted);
+  font-weight: 500;
+  margin-left: 0.35em;
+  opacity: 0;
+  text-decoration: none;
+}
+
+h1:hover .heading-anchor,
+h2:hover .heading-anchor,
+h3:hover .heading-anchor,
+.heading-anchor:focus {
+  opacity: 1;
+}
+
+.heading-anchor:hover {
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+
 p {
   margin: 0 0 14px;
 }
