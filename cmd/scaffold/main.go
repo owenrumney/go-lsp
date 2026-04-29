@@ -106,7 +106,9 @@ func main() {
 		cmd.Dir = outDir
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		_ = cmd.Run()
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: go mod tidy failed: %v\n", err)
+		}
 	}
 
 	fmt.Printf("\nCreated %s/\n", outDir)

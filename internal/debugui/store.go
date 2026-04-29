@@ -2,6 +2,7 @@ package debugui
 
 import (
 	"encoding/json"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -173,6 +174,17 @@ func (s *Store) Entries(offset, limit int) []Entry {
 	end := min(offset+limit, n)
 	result := make([]Entry, end-offset)
 	copy(result, s.entries[offset:end])
+	return result
+}
+
+// All returns all stored entries ordered by entry ID.
+func (s *Store) All() []Entry {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	result := make([]Entry, len(s.entries))
+	copy(result, s.entries)
+	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
 	return result
 }
 

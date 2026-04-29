@@ -4,24 +4,19 @@ import (
 	"context"
 	"log"
 	"strings"
-	"sync"
 
+	"github.com/owenrumney/go-lsp/document"
 	"github.com/owenrumney/go-lsp/lsp"
 	"github.com/owenrumney/go-lsp/server"
 )
 
 type handler struct {
-	mu   sync.Mutex
-	docs map[lsp.DocumentURI]string // URI -> full text
+	docs *document.Store
 }
 
 func (h *handler) Initialize(_ context.Context, _ *lsp.InitializeParams) (*lsp.InitializeResult, error) {
 	return &lsp.InitializeResult{
 		Capabilities: lsp.ServerCapabilities{
-			TextDocumentSync: &lsp.TextDocumentSyncOptions{
-				OpenClose: boolPtr(true),
-				Change:    lsp.SyncFull,
-			},
 			DocumentSymbolProvider:  boolPtr(true),
 			WorkspaceSymbolProvider: boolPtr(true),
 		},
@@ -34,34 +29,24 @@ func (h *handler) Shutdown(_ context.Context) error { return nil }
 // TextDocumentSyncHandler
 
 func (h *handler) DidOpen(_ context.Context, params *lsp.DidOpenTextDocumentParams) error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.docs[params.TextDocument.URI] = params.TextDocument.Text
-	return nil
+	_, err := h.docs.Open(params)
+	return err
 }
 
 func (h *handler) DidChange(_ context.Context, params *lsp.DidChangeTextDocumentParams) error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	if len(params.ContentChanges) > 0 {
-		h.docs[params.TextDocument.URI] = params.ContentChanges[len(params.ContentChanges)-1].Text
-	}
-	return nil
+	_, err := h.docs.Change(params)
+	return err
 }
 
 func (h *handler) DidClose(_ context.Context, params *lsp.DidCloseTextDocumentParams) error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	delete(h.docs, params.TextDocument.URI)
+	h.docs.Close(params)
 	return nil
 }
 
 // DocumentSymbolHandler
 
 func (h *handler) DocumentSymbol(_ context.Context, params *lsp.DocumentSymbolParams) ([]lsp.DocumentSymbol, error) {
-	h.mu.Lock()
-	text, ok := h.docs[params.TextDocument.URI]
-	h.mu.Unlock()
+	text, ok := h.docs.Text(params.TextDocument.URI)
 	if !ok {
 		return nil, nil
 	}
@@ -73,11 +58,9 @@ func (h *handler) DocumentSymbol(_ context.Context, params *lsp.DocumentSymbolPa
 func (h *handler) WorkspaceSymbol(_ context.Context, params *lsp.WorkspaceSymbolParams) ([]lsp.SymbolInformation, error) {
 	query := strings.ToLower(params.Query)
 
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	var results []lsp.SymbolInformation
-	for uri, text := range h.docs {
+	for _, uri := range h.docs.URIs() {
+		text, _ := h.docs.Text(uri)
 		for _, sym := range parseSymbols(uri, text) {
 			if query == "" || strings.Contains(strings.ToLower(sym.Name), query) {
 				results = append(results, sym)
@@ -162,7 +145,7 @@ func matchLine(line string) (name string, kind lsp.SymbolKind, ok bool) {
 func boolPtr(b bool) *bool { return &b }
 
 func main() {
-	srv := server.NewServer(&handler{docs: make(map[lsp.DocumentURI]string)})
+	srv := server.NewServer(&handler{docs: document.NewStore()})
 	if err := srv.Run(context.Background(), server.RunStdio()); err != nil {
 		log.Fatal(err)
 	}

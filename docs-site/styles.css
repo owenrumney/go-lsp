@@ -1,0 +1,278 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f8fafc;
+  --panel: #ffffff;
+  --text: #172033;
+  --muted: #607086;
+  --border: #d7dee8;
+  --accent: #0f766e;
+  --accent-strong: #115e59;
+  --code-bg: #111827;
+  --code-text: #e5e7eb;
+  --nav: #0f172a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.6;
+}
+
+a {
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: var(--nav);
+  color: white;
+  padding: 28px 22px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+}
+
+.brand {
+  color: white;
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 750;
+  margin-bottom: 4px;
+}
+
+.tagline {
+  color: #b6c3d6;
+  font-size: 0.92rem;
+  margin: 0 0 24px;
+}
+
+.nav {
+  display: grid;
+  gap: 6px;
+}
+
+.nav a {
+  border-radius: 6px;
+  color: #dbe5f5;
+  padding: 8px 10px;
+}
+
+.nav a[aria-current="page"],
+.nav a:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  text-decoration: none;
+}
+
+.content {
+  max-width: 980px;
+  padding: 48px 56px 80px;
+  width: 100%;
+}
+
+.hero {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 34px;
+  padding-bottom: 30px;
+}
+
+h1 {
+  font-size: clamp(2.1rem, 4vw, 3.5rem);
+  letter-spacing: 0;
+  line-height: 1.05;
+  margin: 0 0 16px;
+}
+
+h2 {
+  border-top: 1px solid var(--border);
+  font-size: 1.55rem;
+  margin: 36px 0 14px;
+  padding-top: 28px;
+}
+
+h3 {
+  font-size: 1.15rem;
+  margin: 26px 0 8px;
+}
+
+p {
+  margin: 0 0 14px;
+}
+
+.lead {
+  color: var(--muted);
+  font-size: 1.13rem;
+  max-width: 760px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.button {
+  align-items: center;
+  background: var(--accent);
+  border-radius: 6px;
+  color: white;
+  display: inline-flex;
+  font-weight: 650;
+  min-height: 40px;
+  padding: 8px 14px;
+}
+
+.button.secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.button:hover {
+  text-decoration: none;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  margin: 20px 0 10px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.card h3 {
+  margin-top: 0;
+}
+
+code {
+  background: rgba(15, 23, 42, 0.08);
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.92em;
+  padding: 0.12em 0.3em;
+}
+
+pre {
+  background: var(--code-bg);
+  border-radius: 8px;
+  color: var(--code-text);
+  line-height: 1.5;
+  margin: 16px 0 22px;
+  overflow: auto;
+  padding: 18px;
+}
+
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 16px 0 24px;
+  width: 100%;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: var(--muted);
+  font-size: 0.86rem;
+  text-transform: uppercase;
+}
+
+img {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  height: auto;
+  max-width: 100%;
+}
+
+.callout {
+  background: #e6fffb;
+  border: 1px solid #99f6e4;
+  border-radius: 8px;
+  color: #134e4a;
+  margin: 18px 0;
+  padding: 14px 16px;
+}
+
+.footer {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  margin-top: 44px;
+  padding-top: 20px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #10141f;
+    --panel: #151b29;
+    --text: #eef4ff;
+    --muted: #a8b4c8;
+    --border: #2a3446;
+    --accent: #14b8a6;
+    --accent-strong: #5eead4;
+    --nav: #080d17;
+  }
+
+  code {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .callout {
+    background: #062f2d;
+    border-color: #0f766e;
+    color: #ccfbf1;
+  }
+}
+
+@media (max-width: 840px) {
+  .layout {
+    display: block;
+  }
+
+  .sidebar {
+    height: auto;
+    position: relative;
+  }
+
+  .nav {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  }
+
+  .content {
+    padding: 34px 22px 60px;
+  }
+}

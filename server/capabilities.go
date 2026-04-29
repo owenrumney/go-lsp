@@ -161,10 +161,16 @@ func buildCapabilities(handler any) lsp.ServerCapabilities {
 		caps.WorkspaceSymbolProvider = &enabled
 	}
 
-	// Workspace file operations
-	allFiles := lsp.FileOperationRegistrationOptions{
-		Filters: []lsp.FileOperationFilter{{Pattern: lsp.FileOperationPattern{Glob: "**/*"}}},
+	if _, ok := handler.(ExecuteCommandHandler); ok {
+		caps.ExecuteCommandProvider = &lsp.ExecuteCommandOptions{}
 	}
+
+	if hasSemanticTokensHandler(handler) {
+		caps.SemanticTokensProvider = buildSemanticTokensOptions(handler, nil)
+	}
+
+	// Workspace file operations
+	allFiles := fileOperationRegistrationOptions(nil)
 	fileOps := &lsp.FileOperationOptions{}
 	hasFileOps := false
 	if _, ok := handler.(WillCreateFilesHandler); ok {
@@ -186,4 +192,99 @@ func buildCapabilities(handler any) lsp.ServerCapabilities {
 	}
 
 	return caps
+}
+
+func applyCapabilityOptions(caps *lsp.ServerCapabilities, handler any, opts CapabilityOptions) {
+	if opts.PositionEncoding != nil {
+		caps.PositionEncoding = opts.PositionEncoding
+	}
+
+	if caps.CompletionProvider != nil && opts.Completion != nil {
+		completion := *opts.Completion
+		if _, ok := handler.(CompletionResolveHandler); ok {
+			completion.ResolveProvider = &enabled
+		}
+		caps.CompletionProvider = &completion
+	}
+
+	if caps.SignatureHelpProvider != nil && opts.SignatureHelp != nil {
+		signatureHelp := *opts.SignatureHelp
+		caps.SignatureHelpProvider = &signatureHelp
+	}
+
+	if caps.CodeActionProvider != nil && opts.CodeAction != nil {
+		codeAction := *opts.CodeAction
+		if _, ok := handler.(CodeActionResolveHandler); ok {
+			codeAction.ResolveProvider = &enabled
+		}
+		caps.CodeActionProvider = &codeAction
+	}
+
+	if caps.ExecuteCommandProvider != nil && opts.ExecuteCommand != nil {
+		executeCommand := *opts.ExecuteCommand
+		caps.ExecuteCommandProvider = &executeCommand
+	}
+
+	if hasSemanticTokensHandler(handler) && opts.SemanticTokens != nil {
+		caps.SemanticTokensProvider = buildSemanticTokensOptions(handler, opts.SemanticTokens)
+	}
+
+	if len(opts.FileOperationFilters) > 0 && caps.Workspace != nil && caps.Workspace.FileOperations != nil {
+		reg := fileOperationRegistrationOptions(opts.FileOperationFilters)
+		fileOps := caps.Workspace.FileOperations
+		if fileOps.WillCreate != nil {
+			fileOps.WillCreate = &reg
+		}
+		if fileOps.WillRename != nil {
+			fileOps.WillRename = &reg
+		}
+		if fileOps.WillDelete != nil {
+			fileOps.WillDelete = &reg
+		}
+	}
+}
+
+func hasSemanticTokensHandler(handler any) bool {
+	if _, ok := handler.(SemanticTokensFullHandler); ok {
+		return true
+	}
+	if _, ok := handler.(SemanticTokensDeltaHandler); ok {
+		return true
+	}
+	if _, ok := handler.(SemanticTokensRangeHandler); ok {
+		return true
+	}
+	return false
+}
+
+func buildSemanticTokensOptions(handler any, configured *lsp.SemanticTokensOptions) *lsp.SemanticTokensOptions {
+	opts := &lsp.SemanticTokensOptions{}
+	if configured != nil {
+		copied := *configured
+		opts = &copied
+	}
+	if _, ok := handler.(SemanticTokensFullHandler); ok {
+		if opts.Full == nil {
+			opts.Full = &lsp.SemanticTokensFull{}
+		}
+	}
+	if _, ok := handler.(SemanticTokensDeltaHandler); ok {
+		if opts.Full == nil {
+			opts.Full = &lsp.SemanticTokensFull{}
+		}
+		opts.Full.Delta = &enabled
+	}
+	if _, ok := handler.(SemanticTokensRangeHandler); ok {
+		opts.Range = &enabled
+	}
+	return opts
+}
+
+func fileOperationRegistrationOptions(filters []lsp.FileOperationFilter) lsp.FileOperationRegistrationOptions {
+	if len(filters) == 0 {
+		filters = []lsp.FileOperationFilter{{Pattern: lsp.FileOperationPattern{Glob: "**/*"}}}
+	}
+	return lsp.FileOperationRegistrationOptions{
+		Filters: append([]lsp.FileOperationFilter(nil), filters...),
+	}
 }

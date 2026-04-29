@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Core Concepts - go-lsp</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <a class="brand" href="index.html">go-lsp</a>
+        <p class="tagline">Build Language Server Protocol servers in Go.</p>
+        <nav class="nav" aria-label="Documentation">
+          <a href="index.html">Home</a>
+          <a href="getting-started.html">Getting Started</a>
+          <a href="concepts.html" aria-current="page">Core Concepts</a>
+          <a href="documents.html">Documents</a>
+          <a href="capabilities.html">Capabilities</a>
+          <a href="testing.html">Testing</a>
+          <a href="debugging.html">Debugging</a>
+          <a href="examples.html">Examples</a>
+        </nav>
+      </aside>
+      <main class="content">
+        <section class="hero">
+          <h1>Core Concepts</h1>
+          <p class="lead">A go-lsp server is a handler object plus optional server configuration.</p>
+        </section>
+
+        <h2>Lifecycle Is Required</h2>
+        <p>Every server implements <code>LifecycleHandler</code>:</p>
+        <pre><code class="language-go">type LifecycleHandler interface {
+    Initialize(context.Context, *lsp.InitializeParams) (*lsp.InitializeResult, error)
+    Shutdown(context.Context) error
+}</code></pre>
+
+        <h2>Everything Else Is Opt-in</h2>
+        <p>Implement a feature interface and go-lsp registers the method and advertises support. For example, implementing <code>HoverHandler</code> enables <code>textDocument/hover</code>.</p>
+        <pre><code class="language-go">func (h *Handler) Hover(ctx context.Context, params *lsp.HoverParams) (*lsp.Hover, error) {
+    return &lsp.Hover{
+        Contents: lsp.MarkupContent{Kind: lsp.Markdown, Value: "hello"},
+    }, nil
+}</code></pre>
+
+        <h2>Client Access</h2>
+        <p>Implement <code>ClientHandler</code> when your server needs to send diagnostics, messages, progress, or client requests.</p>
+        <pre><code class="language-go">func (h *Handler) SetClient(client *server.Client) {
+    h.client = client
+}</code></pre>
+
+        <h2>Custom Methods</h2>
+        <p>Use custom methods for server-specific extensions outside the LSP spec.</p>
+        <pre><code class="language-go">srv.HandleMethod("custom/status", func(ctx context.Context, params json.RawMessage) (any, error) {
+    return map[string]string{"status": "ok"}, nil
+})</code></pre>
+      </main>
+    </div>
+  </body>
+</html>

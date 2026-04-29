@@ -87,18 +87,19 @@ import (
     "context"
     "strings"
 
+    "github.com/owenrumney/go-lsp/document"
     "github.com/owenrumney/go-lsp/lsp"
     "github.com/owenrumney/go-lsp/server"
 )
 
 type Handler struct {
-    documents map[lsp.DocumentURI]string
+    documents *document.Store
     client    *server.Client
 }
 
 func New() *Handler {
     return &Handler{
-        documents: make(map[lsp.DocumentURI]string),
+        documents: document.NewStore(),
     }
 }
 
@@ -108,13 +109,6 @@ func (h *Handler) SetClient(client *server.Client) {
 
 func (h *Handler) Initialize(_ context.Context, _ *lsp.InitializeParams) (*lsp.InitializeResult, error) {
     return &lsp.InitializeResult{
-        Capabilities: lsp.ServerCapabilities{
-            TextDocumentSync: &lsp.TextDocumentSyncOptions{
-                OpenClose: boolPtr(true),
-                Change:    lsp.SyncFull,
-                Save:      &lsp.SaveOptions{IncludeText: boolPtr(true)},
-            },
-        },
         ServerInfo: &lsp.ServerInfo{Name: "mylang", Version: "0.1.0"},
     }, nil
 }
@@ -122,28 +116,30 @@ func (h *Handler) Initialize(_ context.Context, _ *lsp.InitializeParams) (*lsp.I
 func (h *Handler) Shutdown(_ context.Context) error { return nil }
 
 func (h *Handler) DidOpen(_ context.Context, params *lsp.DidOpenTextDocumentParams) error {
-    h.documents[params.TextDocument.URI] = params.TextDocument.Text
-    return nil
+    _, err := h.documents.Open(params)
+    return err
 }
 
 func (h *Handler) DidChange(_ context.Context, params *lsp.DidChangeTextDocumentParams) error {
-    if len(params.ContentChanges) > 0 {
-        h.documents[params.TextDocument.URI] = params.ContentChanges[len(params.ContentChanges)-1].Text
-    }
-    return nil
+    _, err := h.documents.Change(params)
+    return err
 }
 
 func (h *Handler) DidClose(_ context.Context, params *lsp.DidCloseTextDocumentParams) error {
-    delete(h.documents, params.TextDocument.URI)
+    h.documents.Close(params)
     return nil
 }
 
 func (h *Handler) DidSave(ctx context.Context, params *lsp.DidSaveTextDocumentParams) error {
     var diags []lsp.Diagnostic
 
-    text := h.documents[params.TextDocument.URI]
-    for i, line := range strings.Split(text, "\n") {
-        if idx := strings.Index(line, "TODO"); idx >= 0 {
+    text, ok := h.documents.Text(params.TextDocument.URI)
+    if ok {
+        for i, line := range strings.Split(text, "\n") {
+            idx := strings.Index(line, "TODO")
+            if idx < 0 {
+                continue
+            }
             sev := lsp.SeverityWarning
             diags = append(diags, lsp.Diagnostic{
                 Range: lsp.Range{
@@ -179,8 +175,6 @@ func (h *Handler) Completion(_ context.Context, _ *lsp.CompletionParams) (*lsp.C
         },
     }, nil
 }
-
-func boolPtr(b bool) *bool { return &b }
 ```
 
 ### `handler/handler_test.go`
@@ -269,6 +263,68 @@ type LifecycleHandler interface {
 
 Everything else is opt-in. Want hover? Implement `HoverHandler`. Want completions? Implement `CompletionHandler`. The server figures out the rest.
 
+Some features need extra capability metadata. For example, if your completion handler should run when the user types `.`, or your server exposes commands for the editor to invoke, pass capability options when creating the server:
+
+```go
+srv := server.NewServer(h,
+    server.WithCompletionOptions(lsp.CompletionOptions{
+        TriggerCharacters: []string{"."},
+    }),
+    server.WithExecuteCommandOptions(lsp.ExecuteCommandOptions{
+        Commands: []string{"mylang.generateDebugBundle"},
+    }),
+)
+```
+
+These options enrich auto-detected capabilities. They do not advertise a feature unless your handler implements the matching interface, and explicit capabilities returned from `Initialize` still take precedence.
+
+LSP defaults to UTF-16 positions. If your server deliberately uses another LSP 3.17 position encoding, advertise it with:
+
+```go
+srv := server.NewServer(h,
+    server.WithPositionEncoding(lsp.PositionEncodingUTF8),
+)
+```
+
+## Tracking Documents
+
+Most language features need the current text for an open file. Use `document.Store` rather than maintaining a raw `map[lsp.DocumentURI]string`:
+
+```go
+type Handler struct {
+    documents *document.Store
+}
+
+func (h *Handler) DidOpen(_ context.Context, params *lsp.DidOpenTextDocumentParams) error {
+    _, err := h.documents.Open(params)
+    return err
+}
+
+func (h *Handler) DidChange(_ context.Context, params *lsp.DidChangeTextDocumentParams) error {
+    _, err := h.documents.Change(params)
+    return err
+}
+
+func (h *Handler) DidClose(_ context.Context, params *lsp.DidCloseTextDocumentParams) error {
+    h.documents.Close(params)
+    return nil
+}
+```
+
+The store applies full or incremental changes and keeps the document version updated. It also converts between byte offsets and LSP positions:
+
+```go
+doc, ok := h.documents.Get(uri)
+if !ok {
+    return nil
+}
+
+offset, err := doc.OffsetAt(lsp.Position{Line: 0, Character: 5})
+pos, err := doc.PositionAt(offset)
+```
+
+LSP `character` values are UTF-16 code units. This matters for non-ASCII text, especially emoji and other characters represented as surrogate pairs in UTF-16.
+
 ## Connect Your Editor
 
 ### VS Code
@@ -329,6 +385,18 @@ srv := server.NewServer(h, server.WithDebugUI(":7100"))
 ```
 
 Open `http://localhost:7100` to see all JSON-RPC messages flowing between client and server.
+
+You can also save the captured session as a JSON trace from your own server code:
+
+```go
+err := srv.SaveDebugTrace("/tmp/mylang.trace.json", server.TraceExportOptions{
+    RedactDocumentText: true,
+    RedactFilePaths:    true,
+    Pretty:             true,
+})
+```
+
+Use this from a custom command, signal handler, or debug endpoint when you need a portable trace for a bug report or regression test.
 
 ## Adding More Features
 
@@ -413,5 +481,6 @@ See the [testing guide](testing.md) for the full API including diagnostics colle
 ## Next Steps
 
 - Browse the [examples](../examples/) for focused feature demos
+- Read the [document guide](documents.md) for document sync and UTF-16 position handling
 - Check the [LSP specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/) for protocol details
 - See [`server/handlers.go`](../server/handlers.go) for all available handler interfaces

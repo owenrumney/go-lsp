@@ -67,6 +67,171 @@ func TestBuildCapabilities(t *testing.T) {
 	}
 }
 
+type richCapabilityHandler struct {
+	mockHandler
+}
+
+func (h *richCapabilityHandler) Completion(_ context.Context, _ *lsp.CompletionParams) (*lsp.CompletionList, error) {
+	return &lsp.CompletionList{}, nil
+}
+
+func (h *richCapabilityHandler) ResolveCompletionItem(_ context.Context, item *lsp.CompletionItem) (*lsp.CompletionItem, error) {
+	return item, nil
+}
+
+func (h *richCapabilityHandler) SignatureHelp(_ context.Context, _ *lsp.SignatureHelpParams) (*lsp.SignatureHelp, error) {
+	return &lsp.SignatureHelp{}, nil
+}
+
+func (h *richCapabilityHandler) CodeAction(_ context.Context, _ *lsp.CodeActionParams) ([]lsp.CodeAction, error) {
+	return nil, nil
+}
+
+func (h *richCapabilityHandler) ResolveCodeAction(_ context.Context, action *lsp.CodeAction) (*lsp.CodeAction, error) {
+	return action, nil
+}
+
+func (h *richCapabilityHandler) ExecuteCommand(_ context.Context, _ *lsp.ExecuteCommandParams) (any, error) {
+	return nil, nil
+}
+
+func (h *richCapabilityHandler) SemanticTokensFull(_ context.Context, _ *lsp.SemanticTokensParams) (*lsp.SemanticTokens, error) {
+	return &lsp.SemanticTokens{}, nil
+}
+
+func (h *richCapabilityHandler) SemanticTokensDelta(_ context.Context, _ *lsp.SemanticTokensDeltaParams) (*lsp.SemanticTokensDelta, error) {
+	return &lsp.SemanticTokensDelta{}, nil
+}
+
+func (h *richCapabilityHandler) SemanticTokensRange(_ context.Context, _ *lsp.SemanticTokensRangeParams) (*lsp.SemanticTokens, error) {
+	return &lsp.SemanticTokens{}, nil
+}
+
+func (h *richCapabilityHandler) WillCreateFiles(_ context.Context, _ *lsp.CreateFilesParams) (*lsp.WorkspaceEdit, error) {
+	return nil, nil
+}
+
+func TestApplyCapabilityOptions(t *testing.T) {
+	h := &richCapabilityHandler{}
+	caps := buildCapabilities(h)
+	folder := lsp.FileOperationPatternKindFolder
+	applyCapabilityOptions(&caps, h, CapabilityOptions{
+		PositionEncoding: ptr(lsp.PositionEncodingUTF8),
+		Completion: &lsp.CompletionOptions{
+			TriggerCharacters: []string{"."},
+		},
+		SignatureHelp: &lsp.SignatureHelpOptions{
+			TriggerCharacters: []string{"("},
+		},
+		CodeAction: &lsp.CodeActionOptions{
+			CodeActionKinds: []lsp.CodeActionKind{lsp.CodeActionQuickFix},
+		},
+		ExecuteCommand: &lsp.ExecuteCommandOptions{
+			Commands: []string{"test.generateDebugBundle"},
+		},
+		SemanticTokens: &lsp.SemanticTokensOptions{
+			Legend: lsp.SemanticTokensLegend{
+				TokenTypes:     []string{"type", "function"},
+				TokenModifiers: []string{"declaration"},
+			},
+		},
+		FileOperationFilters: []lsp.FileOperationFilter{
+			{
+				Pattern: lsp.FileOperationPattern{
+					Glob:    "**/*.test",
+					Matches: &folder,
+				},
+			},
+		},
+	})
+
+	if got := caps.CompletionProvider.TriggerCharacters; len(got) != 1 || got[0] != "." {
+		t.Fatalf("completion triggers = %v", got)
+	}
+	if caps.PositionEncoding == nil || *caps.PositionEncoding != lsp.PositionEncodingUTF8 {
+		t.Fatalf("position encoding = %v", caps.PositionEncoding)
+	}
+	if caps.CompletionProvider.ResolveProvider == nil || !*caps.CompletionProvider.ResolveProvider {
+		t.Fatal("expected completion resolve provider")
+	}
+	if got := caps.SignatureHelpProvider.TriggerCharacters; len(got) != 1 || got[0] != "(" {
+		t.Fatalf("signature triggers = %v", got)
+	}
+	if got := caps.CodeActionProvider.CodeActionKinds; len(got) != 1 || got[0] != lsp.CodeActionQuickFix {
+		t.Fatalf("code action kinds = %v", got)
+	}
+	if caps.CodeActionProvider.ResolveProvider == nil || !*caps.CodeActionProvider.ResolveProvider {
+		t.Fatal("expected code action resolve provider")
+	}
+	if got := caps.ExecuteCommandProvider.Commands; len(got) != 1 || got[0] != "test.generateDebugBundle" {
+		t.Fatalf("commands = %v", got)
+	}
+	if got := caps.SemanticTokensProvider.Legend.TokenTypes; len(got) != 2 || got[0] != "type" {
+		t.Fatalf("semantic token legend = %v", got)
+	}
+	if caps.SemanticTokensProvider.Full == nil || caps.SemanticTokensProvider.Full.Delta == nil || !*caps.SemanticTokensProvider.Full.Delta {
+		t.Fatal("expected semantic full delta support")
+	}
+	if caps.SemanticTokensProvider.Range == nil || !*caps.SemanticTokensProvider.Range {
+		t.Fatal("expected semantic range support")
+	}
+	filters := caps.Workspace.FileOperations.WillCreate.Filters
+	if len(filters) != 1 || filters[0].Pattern.Glob != "**/*.test" || filters[0].Pattern.Matches == nil || *filters[0].Pattern.Matches != folder {
+		t.Fatalf("file operation filters = %#v", filters)
+	}
+}
+
+func ptr[T any](v T) *T {
+	return &v
+}
+
+func TestCapabilityOptionsDoNotAdvertiseMissingHandlers(t *testing.T) {
+	h := &mockHandler{}
+	caps := buildCapabilities(h)
+	applyCapabilityOptions(&caps, h, CapabilityOptions{
+		Completion: &lsp.CompletionOptions{TriggerCharacters: []string{"."}},
+		ExecuteCommand: &lsp.ExecuteCommandOptions{
+			Commands: []string{"test.generateDebugBundle"},
+		},
+	})
+
+	if caps.CompletionProvider != nil {
+		t.Fatal("did not expect completion provider without handler")
+	}
+	if caps.ExecuteCommandProvider != nil {
+		t.Fatal("did not expect execute command provider without handler")
+	}
+}
+
+func TestMergeCapabilitiesPreservesExplicitInitializeCapabilities(t *testing.T) {
+	explicit := &lsp.ServerCapabilities{
+		CompletionProvider: &lsp.CompletionOptions{
+			TriggerCharacters: []string{"#"},
+		},
+	}
+	auto := &lsp.ServerCapabilities{
+		CompletionProvider: &lsp.CompletionOptions{
+			TriggerCharacters: []string{"."},
+			ResolveProvider:   &enabled,
+		},
+		ExecuteCommandProvider: &lsp.ExecuteCommandOptions{
+			Commands: []string{"test.command"},
+		},
+	}
+
+	mergeCapabilities(explicit, auto)
+
+	if got := explicit.CompletionProvider.TriggerCharacters; len(got) != 1 || got[0] != "#" {
+		t.Fatalf("completion triggers = %v", got)
+	}
+	if explicit.CompletionProvider.ResolveProvider != nil {
+		t.Fatal("explicit completion provider should not be enriched by merge")
+	}
+	if got := explicit.ExecuteCommandProvider.Commands; len(got) != 1 || got[0] != "test.command" {
+		t.Fatalf("commands = %v", got)
+	}
+}
+
 type pipeRWC struct {
 	io.Reader
 	io.Writer

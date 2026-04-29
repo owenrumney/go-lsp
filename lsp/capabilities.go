@@ -2,6 +2,18 @@ package lsp
 
 import "encoding/json"
 
+// PositionEncodingKind is a string enum naming how positions are encoded.
+type PositionEncodingKind string
+
+const (
+	// PositionEncodingUTF8 means positions are measured in UTF-8 bytes.
+	PositionEncodingUTF8 PositionEncodingKind = "utf-8"
+	// PositionEncodingUTF16 means positions are measured in UTF-16 code units.
+	PositionEncodingUTF16 PositionEncodingKind = "utf-16"
+	// PositionEncodingUTF32 means positions are measured in UTF-32 code units.
+	PositionEncodingUTF32 PositionEncodingKind = "utf-32"
+)
+
 // ClientCapabilities declares which LSP features the editor supports, sent during initialization so the server can adapt its behavior.
 type ClientCapabilities struct {
 	Workspace    *WorkspaceClientCapabilities    `json:"workspace,omitempty"`
@@ -279,6 +291,7 @@ type WindowClientCapabilities struct {
 
 // GeneralClientCapabilities declares cross-cutting editor capabilities like supported markdown parser, regex engine, and position encodings.
 type GeneralClientCapabilities struct {
+	PositionEncodings  []PositionEncodingKind `json:"positionEncodings,omitempty"`
 	RegularExpressions *struct {
 		Engine  string `json:"engine"`
 		Version string `json:"version,omitempty"`
@@ -292,6 +305,7 @@ type GeneralClientCapabilities struct {
 
 // ServerCapabilities declares which LSP features this server supports, returned during initialization so the editor knows what to request.
 type ServerCapabilities struct {
+	PositionEncoding                 *PositionEncodingKind            `json:"positionEncoding,omitempty"`
 	TextDocumentSync                 *TextDocumentSyncOptions         `json:"textDocumentSync,omitempty"`
 	CompletionProvider               *CompletionOptions               `json:"completionProvider,omitempty"`
 	HoverProvider                    *bool                            `json:"hoverProvider,omitempty"`

@@ -6,6 +6,9 @@ import (
 	"strings"
 {{- end}}
 
+{{- if .NeedsDocSync}}
+	"github.com/owenrumney/go-lsp/document"
+{{- end}}
 	"github.com/owenrumney/go-lsp/lsp"
 {{- if or (.HasFeature "diagnostics") (.HasFeature "codeactions")}}
 	"github.com/owenrumney/go-lsp/server"
@@ -15,7 +18,7 @@ import (
 // Handler implements the LSP handler interfaces for {{.Name}}.
 type Handler struct {
 {{- if .NeedsDocSync}}
-	documents map[lsp.DocumentURI]string
+	documents *document.Store
 {{- end}}
 {{- if or (.HasFeature "diagnostics") (.HasFeature "codeactions")}}
 	client *server.Client
@@ -26,7 +29,7 @@ type Handler struct {
 func New() *Handler {
 	return &Handler{
 {{- if .NeedsDocSync}}
-		documents: make(map[lsp.DocumentURI]string),
+		documents: document.NewStore(),
 {{- end}}
 	}
 }
@@ -40,15 +43,6 @@ func (h *Handler) SetClient(client *server.Client) {
 
 func (h *Handler) Initialize(_ context.Context, _ *lsp.InitializeParams) (*lsp.InitializeResult, error) {
 	return &lsp.InitializeResult{
-{{- if .HasFeature "diagnostics"}}
-		Capabilities: lsp.ServerCapabilities{
-			TextDocumentSync: &lsp.TextDocumentSyncOptions{
-				OpenClose: boolPtr(true),
-				Change:    lsp.SyncFull,
-				Save:      &lsp.SaveOptions{IncludeText: boolPtr(true)},
-			},
-		},
-{{- end}}
 		ServerInfo: &lsp.ServerInfo{Name: "{{.Name}}", Version: "0.1.0"},
 	}, nil
 }
@@ -58,19 +52,17 @@ func (h *Handler) Shutdown(_ context.Context) error { return nil }
 {{- if .NeedsDocSync}}
 
 func (h *Handler) DidOpen(_ context.Context, params *lsp.DidOpenTextDocumentParams) error {
-	h.documents[params.TextDocument.URI] = params.TextDocument.Text
-	return nil
+	_, err := h.documents.Open(params)
+	return err
 }
 
 func (h *Handler) DidChange(_ context.Context, params *lsp.DidChangeTextDocumentParams) error {
-	if len(params.ContentChanges) > 0 {
-		h.documents[params.TextDocument.URI] = params.ContentChanges[len(params.ContentChanges)-1].Text
-	}
-	return nil
+	_, err := h.documents.Change(params)
+	return err
 }
 
 func (h *Handler) DidClose(_ context.Context, params *lsp.DidCloseTextDocumentParams) error {
-	delete(h.documents, params.TextDocument.URI)
+	h.documents.Close(params)
 	return nil
 }
 {{- end}}
@@ -80,9 +72,13 @@ func (h *Handler) DidClose(_ context.Context, params *lsp.DidCloseTextDocumentPa
 func (h *Handler) DidSave(ctx context.Context, params *lsp.DidSaveTextDocumentParams) error {
 	var diags []lsp.Diagnostic
 
-	text := h.documents[params.TextDocument.URI]
-	for i, line := range strings.Split(text, "\n") {
-		if idx := strings.Index(line, "TODO"); idx >= 0 {
+	text, ok := h.documents.Text(params.TextDocument.URI)
+	if ok {
+		for i, line := range strings.Split(text, "\n") {
+			idx := strings.Index(line, "TODO")
+			if idx < 0 {
+				continue
+			}
 			sev := lsp.SeverityWarning
 			diags = append(diags, lsp.Diagnostic{
 				Range: lsp.Range{
@@ -163,9 +159,4 @@ func (h *Handler) DocumentSymbol(_ context.Context, _ *lsp.DocumentSymbolParams)
 func (h *Handler) WorkspaceSymbol(_ context.Context, _ *lsp.WorkspaceSymbolParams) ([]lsp.SymbolInformation, error) {
 	return nil, nil
 }
-{{- end}}
-
-{{- if .HasFeature "diagnostics"}}
-
-func boolPtr(b bool) *bool { return &b }
 {{- end}}

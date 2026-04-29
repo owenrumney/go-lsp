@@ -3,6 +3,7 @@ package debugui
 import (
 	"context"
 	"log/slog"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -91,6 +92,17 @@ func (s *LogStore) Entries(offset, limit int) []LogEntry {
 	end := min(offset+limit, n)
 	result := make([]LogEntry, end-offset)
 	copy(result, s.entries[offset:end])
+	return result
+}
+
+// All returns all stored log entries ordered by entry ID.
+func (s *LogStore) All() []LogEntry {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	result := make([]LogEntry, len(s.entries))
+	copy(result, s.entries)
+	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
 	return result
 }
 

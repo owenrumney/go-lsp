@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Examples - go-lsp</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <a class="brand" href="index.html">go-lsp</a>
+        <p class="tagline">Build Language Server Protocol servers in Go.</p>
+        <nav class="nav" aria-label="Documentation">
+          <a href="index.html">Home</a>
+          <a href="getting-started.html">Getting Started</a>
+          <a href="concepts.html">Core Concepts</a>
+          <a href="documents.html">Documents</a>
+          <a href="capabilities.html">Capabilities</a>
+          <a href="testing.html">Testing</a>
+          <a href="debugging.html">Debugging</a>
+          <a href="examples.html" aria-current="page">Examples</a>
+        </nav>
+      </aside>
+      <main class="content">
+        <section class="hero">
+          <h1>Examples</h1>
+          <p class="lead">Focused servers that demonstrate one or two LSP features at a time.</p>
+        </section>
+
+        <div class="grid">
+          <article class="card">
+            <h3>Hover</h3>
+            <p>Minimal hover provider returning markdown content.</p>
+            <a href="https://github.com/owenrumney/go-lsp/tree/main/examples/hover">View source</a>
+          </article>
+          <article class="card">
+            <h3>Completion</h3>
+            <p>Keyword completions plus completion item resolve.</p>
+            <a href="https://github.com/owenrumney/go-lsp/tree/main/examples/completion">View source</a>
+          </article>
+          <article class="card">
+            <h3>Diagnostics</h3>
+            <p>Publishes TODO diagnostics using <code>document.Store</code>.</p>
+            <a href="https://github.com/owenrumney/go-lsp/tree/main/examples/diagnostics">View source</a>
+          </article>
+          <article class="card">
+            <h3>Code Actions</h3>
+            <p>Reports trailing whitespace and offers a quick fix edit.</p>
+            <a href="https://github.com/owenrumney/go-lsp/tree/main/examples/codeactions">View source</a>
+          </article>
+          <article class="card">
+            <h3>Symbols</h3>
+            <p>Document and workspace symbol providers over open documents.</p>
+            <a href="https://github.com/owenrumney/go-lsp/tree/main/examples/symbols">View source</a>
+          </article>
+          <article class="card">
+            <h3>Toylang</h3>
+            <p>A small env-file language server combining diagnostics, hover, completion, and definition.</p>
+            <a href="https://github.com/owenrumney/go-lsp/tree/main/examples/toylang">View source</a>
+          </article>
+        </div>
+
+        <h2>Run an Example</h2>
+        <pre><code>go run ./examples/diagnostics</code></pre>
+        <p>Point your editor's LSP configuration at the resulting command using stdio transport.</p>
+      </main>
+    </div>
+  </body>
+</html>

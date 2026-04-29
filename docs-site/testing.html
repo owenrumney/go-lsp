@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Testing - go-lsp</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <a class="brand" href="index.html">go-lsp</a>
+        <p class="tagline">Build Language Server Protocol servers in Go.</p>
+        <nav class="nav" aria-label="Documentation">
+          <a href="index.html">Home</a>
+          <a href="getting-started.html">Getting Started</a>
+          <a href="concepts.html">Core Concepts</a>
+          <a href="documents.html">Documents</a>
+          <a href="capabilities.html">Capabilities</a>
+          <a href="testing.html" aria-current="page">Testing</a>
+          <a href="debugging.html">Debugging</a>
+          <a href="examples.html">Examples</a>
+        </nav>
+      </aside>
+      <main class="content">
+        <section class="hero">
+          <h1>Testing</h1>
+          <p class="lead">Use <code>servertest</code> to exercise handlers without launching an editor.</p>
+        </section>
+
+        <h2>Basic Test</h2>
+        <pre><code class="language-go">func TestHover(t *testing.T) {
+    h := servertest.New(t, handler.New())
+
+    h.DidOpen("file:///test.txt", "plaintext", "hello world")
+
+    hover, err := h.Hover("file:///test.txt", 0, 5)
+    if err != nil {
+        t.Fatal(err)
+    }
+    if hover == nil {
+        t.Fatal("expected hover result")
+    }
+}</code></pre>
+
+        <h2>Document Operations</h2>
+        <pre><code class="language-go">h.DidOpen("file:///main.go", "go", source)
+h.DidChange("file:///main.go", 2, updated)
+h.DidSave("file:///main.go")
+h.DidClose("file:///main.go")</code></pre>
+
+        <h2>Diagnostics</h2>
+        <pre><code class="language-go">h.DidOpen("file:///test.txt", "plaintext", "TODO fix this")
+h.DidSave("file:///test.txt")
+
+ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+defer cancel()
+
+diags, err := h.WaitForDiagnostics(ctx, "file:///test.txt")</code></pre>
+
+        <h2>Options</h2>
+        <pre><code class="language-go">h := servertest.New(t, handler.New(),
+    servertest.WithInitializeParams(&lsp.InitializeParams{
+        Capabilities: lsp.ClientCapabilities{},
+    }),
+    servertest.WithServerOptions(
+        server.WithCompletionOptions(lsp.CompletionOptions{
+            TriggerCharacters: []string{"."},
+        }),
+    ),
+)</code></pre>
+      </main>
+    </div>
+  </body>
+</html>

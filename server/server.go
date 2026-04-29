@@ -26,6 +26,7 @@ type Server struct {
 	debugUI             *debugui.DebugUI
 	logger              *slog.Logger
 	requestTimeout      time.Duration
+	capabilityOptions   CapabilityOptions
 }
 
 // NewServer creates a new LSP server with the given handler.
@@ -225,8 +226,9 @@ func (s *Server) handleInitialize(ctx context.Context, params json.RawMessage) (
 		return nil, err
 	}
 
-	// Merge auto-detected capabilities
+	// Merge auto-detected capabilities.
 	autoCaps := buildCapabilities(s.handler)
+	applyCapabilityOptions(&autoCaps, s.handler, s.capabilityOptions)
 	mergeCapabilities(&result.Capabilities, &autoCaps)
 
 	if s.debugUI != nil {
@@ -256,6 +258,9 @@ func (s *Server) handleShutdown(ctx context.Context, _ json.RawMessage) (any, er
 
 // mergeCapabilities fills in any auto-detected capabilities that weren't explicitly set.
 func mergeCapabilities(dst, src *lsp.ServerCapabilities) {
+	if dst.PositionEncoding == nil {
+		dst.PositionEncoding = src.PositionEncoding
+	}
 	if dst.TextDocumentSync == nil {
 		dst.TextDocumentSync = src.TextDocumentSync
 	}
@@ -345,6 +350,9 @@ func mergeCapabilities(dst, src *lsp.ServerCapabilities) {
 	}
 	if dst.WorkspaceSymbolProvider == nil {
 		dst.WorkspaceSymbolProvider = src.WorkspaceSymbolProvider
+	}
+	if dst.ExecuteCommandProvider == nil {
+		dst.ExecuteCommandProvider = src.ExecuteCommandProvider
 	}
 	if dst.Workspace == nil {
 		dst.Workspace = src.Workspace

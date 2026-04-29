@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Documents - go-lsp</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <a class="brand" href="index.html">go-lsp</a>
+        <p class="tagline">Build Language Server Protocol servers in Go.</p>
+        <nav class="nav" aria-label="Documentation">
+          <a href="index.html">Home</a>
+          <a href="getting-started.html">Getting Started</a>
+          <a href="concepts.html">Core Concepts</a>
+          <a href="documents.html" aria-current="page">Documents</a>
+          <a href="capabilities.html">Capabilities</a>
+          <a href="testing.html">Testing</a>
+          <a href="debugging.html">Debugging</a>
+          <a href="examples.html">Examples</a>
+        </nav>
+      </aside>
+      <main class="content">
+        <section class="hero">
+          <h1>Documents</h1>
+          <p class="lead">Track open documents, apply LSP edits, and convert UTF-16 positions safely.</p>
+        </section>
+
+        <h2>Use document.Store</h2>
+        <pre><code class="language-go">type Handler struct {
+    documents *document.Store
+}
+
+func NewHandler() *Handler {
+    return &Handler{documents: document.NewStore()}
+}</code></pre>
+
+        <h2>Forward Sync Notifications</h2>
+        <pre><code class="language-go">func (h *Handler) DidOpen(ctx context.Context, params *lsp.DidOpenTextDocumentParams) error {
+    _, err := h.documents.Open(params)
+    return err
+}
+
+func (h *Handler) DidChange(ctx context.Context, params *lsp.DidChangeTextDocumentParams) error {
+    _, err := h.documents.Change(params)
+    return err
+}
+
+func (h *Handler) DidClose(ctx context.Context, params *lsp.DidCloseTextDocumentParams) error {
+    h.documents.Close(params)
+    return nil
+}</code></pre>
+
+        <h2>Read Text</h2>
+        <pre><code class="language-go">text, ok := h.documents.Text(params.TextDocument.URI)
+if !ok {
+    return nil
+}</code></pre>
+
+        <h2>Positions and Offsets</h2>
+        <p>LSP positions use UTF-16 code units. Go strings use byte offsets. Use <code>OffsetAt</code> and <code>PositionAt</code> at the boundary between LSP and your parser.</p>
+        <pre><code class="language-go">doc, ok := h.documents.Get(uri)
+if !ok {
+    return nil
+}
+
+offset, err := doc.OffsetAt(params.Position)
+position, err := doc.PositionAt(offset)</code></pre>
+
+        <div class="callout">This matters for emoji and other characters represented as UTF-16 surrogate pairs. Do not treat LSP <code>character</code> values as Go byte offsets.</div>
+      </main>
+    </div>
+  </body>
+</html>

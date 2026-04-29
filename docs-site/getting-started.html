@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Getting Started - go-lsp</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <a class="brand" href="index.html">go-lsp</a>
+        <p class="tagline">Build Language Server Protocol servers in Go.</p>
+        <nav class="nav" aria-label="Documentation">
+          <a href="index.html">Home</a>
+          <a href="getting-started.html" aria-current="page">Getting Started</a>
+          <a href="concepts.html">Core Concepts</a>
+          <a href="documents.html">Documents</a>
+          <a href="capabilities.html">Capabilities</a>
+          <a href="testing.html">Testing</a>
+          <a href="debugging.html">Debugging</a>
+          <a href="examples.html">Examples</a>
+        </nav>
+      </aside>
+      <main class="content">
+        <section class="hero">
+          <h1>Getting Started</h1>
+          <p class="lead">Generate a working server, run its tests, and connect it to an editor.</p>
+        </section>
+
+        <h2>Generate a Server</h2>
+        <pre><code>go run github.com/owenrumney/go-lsp/cmd/scaffold@latest \
+  --name mylang \
+  --module github.com/you/mylang-lsp \
+  --lang mylang \
+  --features hover,completion,diagnostics</code></pre>
+        <p>The scaffold creates a server entrypoint, a handler package, starter tests using <code>servertest</code>, and a <code>go.mod</code>.</p>
+
+        <h2>Build and Test</h2>
+        <pre><code>cd mylang-lsp
+go test ./...
+go build -o mylang-lsp .</code></pre>
+
+        <h2>Core Handler Shape</h2>
+        <pre><code class="language-go">type Handler struct {
+    documents *document.Store
+    client    *server.Client
+}
+
+func New() *Handler {
+    return &Handler{documents: document.NewStore()}
+}
+
+func (h *Handler) SetClient(client *server.Client) {
+    h.client = client
+}
+
+func (h *Handler) Initialize(context.Context, *lsp.InitializeParams) (*lsp.InitializeResult, error) {
+    return &lsp.InitializeResult{
+        ServerInfo: &lsp.ServerInfo{Name: "mylang", Version: "0.1.0"},
+    }, nil
+}
+
+func (h *Handler) Shutdown(context.Context) error { return nil }</code></pre>
+
+        <h2>Connect Your Editor</h2>
+        <h3>Neovim</h3>
+        <pre><code class="language-lua">vim.lsp.start({
+  name = "mylang-lsp",
+  cmd = { "./mylang-lsp" },
+})</code></pre>
+
+        <h3>Helix</h3>
+        <pre><code class="language-toml">[[language]]
+name = "my-language"
+language-servers = ["mylang-lsp"]
+
+[language-server.mylang-lsp]
+command = "./mylang-lsp"</code></pre>
+
+        <h2>Next</h2>
+        <p>Read <a href="concepts.html">Core Concepts</a> for handler interfaces and auto-registration, then <a href="documents.html">Documents</a> for maintaining open file state.</p>
+      </main>
+    </div>
+  </body>
+</html>
