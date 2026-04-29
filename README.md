@@ -1,6 +1,6 @@
 # go-lsp
 
-A Go library for building [Language Server Protocol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.16/specification/) servers. It handles JSON-RPC framing, message dispatch, and LSP type definitions so you can focus on your language logic.
+A Go library for building [Language Server Protocol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/) servers. It handles JSON-RPC framing, message dispatch, open document state, and LSP type definitions so you can focus on your language logic.
 
 This library targets **LSP 3.17**. The table below shows which parts of the specification are currently supported.
 
@@ -12,6 +12,7 @@ This library targets **LSP 3.17**. The table below shows which parts of the spec
 	- [Installation](#installation)
 	- [Quick start](#quick-start)
 	- [Transports](#transports)
+	- [Document management](#document-management)
 	- [Handler interfaces](#handler-interfaces)
 		- [Lifecycle (required)](#lifecycle-required)
 		- [Text document sync](#text-document-sync)
@@ -96,6 +97,12 @@ This library targets **LSP 3.17**. The table below shows which parts of the spec
 go get github.com/owenrumney/go-lsp
 ```
 
+## Documentation
+
+The GitHub Pages docs site covers getting started, document management, capabilities, testing, debugging, and examples:
+
+https://owenrumney.github.io/go-lsp/
+
 ## Quick start
 
 Define a handler struct that implements `server.LifecycleHandler` and any optional interfaces you need, then pass it to `NewServer`:
@@ -163,6 +170,84 @@ srv.Run(ctx, websocket.NetConn(ctx, ws, websocket.MessageText))
 ```
 
 The server automatically advertises capabilities based on which interfaces your handler implements. If your handler satisfies `HoverHandler`, the server tells the client it supports hover -- you don't need to wire that up yourself. You can still set capabilities explicitly in `Initialize` if you need finer control; explicit values take precedence.
+
+Some capabilities need extra metadata that cannot be inferred from interfaces alone, such as completion trigger characters, command IDs, semantic token legends, or file operation filters. Configure those with server options:
+
+```go
+srv := server.NewServer(h,
+	server.WithCompletionOptions(lsp.CompletionOptions{
+		TriggerCharacters: []string{".", ":"},
+	}),
+	server.WithExecuteCommandOptions(lsp.ExecuteCommandOptions{
+		Commands: []string{"mylang.generateDebugBundle"},
+	}),
+	server.WithSemanticTokensOptions(lsp.SemanticTokensOptions{
+		Legend: lsp.SemanticTokensLegend{
+			TokenTypes:     []string{"type", "function", "variable"},
+			TokenModifiers: []string{"declaration", "readonly"},
+		},
+	}),
+	server.WithFileOperationFilters([]lsp.FileOperationFilter{
+		{Pattern: lsp.FileOperationPattern{Glob: "**/*.mylang"}},
+	}),
+)
+```
+
+Capability options only advertise features your handler actually implements. Explicit capabilities returned from `Initialize` still take precedence over auto-detected and option-provided capabilities.
+
+LSP defaults to UTF-16 positions. If your server deliberately uses another LSP 3.17 position encoding, advertise it explicitly:
+
+```go
+srv := server.NewServer(h,
+	server.WithPositionEncoding(lsp.PositionEncodingUTF8),
+)
+```
+
+## Document management
+
+Use `document.Store` to track open text documents and apply LSP change events. The store supports full and incremental sync, is safe to use from concurrent handlers, and converts between byte offsets and LSP positions using UTF-16 character offsets. See the [document guide](docs/documents.md) for details.
+
+```go
+type Handler struct {
+	docs *document.Store
+}
+
+func NewHandler() *Handler {
+	return &Handler{docs: document.NewStore()}
+}
+
+func (h *Handler) DidOpen(_ context.Context, params *lsp.DidOpenTextDocumentParams) error {
+	_, err := h.docs.Open(params)
+	return err
+}
+
+func (h *Handler) DidChange(_ context.Context, params *lsp.DidChangeTextDocumentParams) error {
+	_, err := h.docs.Change(params)
+	return err
+}
+
+func (h *Handler) DidClose(_ context.Context, params *lsp.DidCloseTextDocumentParams) error {
+	h.docs.Close(params)
+	return nil
+}
+
+func (h *Handler) Hover(_ context.Context, params *lsp.HoverParams) (*lsp.Hover, error) {
+	doc, ok := h.docs.Get(params.TextDocument.URI)
+	if !ok {
+		return nil, nil
+	}
+
+	offset, err := doc.OffsetAt(params.Position)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = offset // use the byte offset with your parser or index
+	return nil, nil
+}
+```
+
+LSP positions are not Go byte offsets or rune indexes. `Document.OffsetAt` and `Document.PositionAt` handle characters outside the BMP, such as emoji, correctly.
 
 ## Handler interfaces
 
@@ -416,17 +501,33 @@ Runtime metrics updated every 2 seconds: uptime, heap usage, goroutine count, GC
 ### Other features
 
 - **Capabilities panel** -- slide-out panel showing which LSP capabilities the server advertised during initialization
+- **Trace export** -- save a versioned JSON trace from your server with `SaveDebugTrace`
 - **Dark / light theme** -- toggle between Catppuccin Mocha (dark) and Catppuccin Latte (light) themes, persisted in `localStorage`
 
 ![Debug UI](./.github/images/debugui.png)
 
 ![Debug UI Timeline](./.github/images/debugui-timeline.png)
 
+### Saving traces
+
+When the debug UI is enabled, you can save the captured session programmatically:
+
+```go
+err := srv.SaveDebugTrace("/tmp/session.trace.json", server.TraceExportOptions{
+	RedactDocumentText: true,
+	RedactFilePaths:    true,
+	Pretty:             true,
+})
+```
+
+Use `ExportDebugTrace` if you want the JSON bytes instead of writing directly to disk. `SaveDebugTrace` writes files with `0600` permissions because traces may contain source code, local paths, and project details. If the debug UI is not active, these methods return `server.ErrDebugTraceUnavailable`.
+
 ## Project structure
 
-The library is split into four packages:
+The library is split into five packages:
 
 - **`server`** -- The `Server` that ties it together: accepts a handler, registers LSP methods based on the interfaces it implements, and manages the connection lifecycle.
 - **`lsp`** -- Go types for LSP structures (capabilities, params, results, enums). No logic, just data definitions.
+- **`document`** -- Open text document storage, full/incremental change application, and UTF-16 LSP position conversion.
 - **`servertest`** -- Test harness that simulates an LSP client over in-memory pipes for writing unit tests.
 - **`internal/jsonrpc`** -- JSON-RPC 2.0 framing over an `io.ReadWriteCloser`, with method and notification dispatch.

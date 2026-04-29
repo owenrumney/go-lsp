@@ -119,7 +119,9 @@ func TestInitializeParamsMarshal(t *testing.T) {
 
 func TestServerCapabilitiesMarshal(t *testing.T) {
 	tr := true
+	encoding := PositionEncodingUTF8
 	caps := ServerCapabilities{
+		PositionEncoding:   &encoding,
 		HoverProvider:      &tr,
 		DefinitionProvider: &tr,
 		TextDocumentSync: &TextDocumentSyncOptions{
@@ -144,10 +146,43 @@ func TestServerCapabilitiesMarshal(t *testing.T) {
 	if got.HoverProvider == nil || !*got.HoverProvider {
 		t.Error("hoverProvider not preserved")
 	}
+	if got.PositionEncoding == nil || *got.PositionEncoding != PositionEncodingUTF8 {
+		t.Error("positionEncoding not preserved")
+	}
 	if got.CompletionProvider == nil {
 		t.Fatal("completionProvider not preserved")
 	}
 	if len(got.CompletionProvider.TriggerCharacters) != 1 || got.CompletionProvider.TriggerCharacters[0] != "." {
 		t.Error("trigger characters not preserved")
+	}
+}
+
+func TestPositionEncodingCapabilitiesMarshal(t *testing.T) {
+	caps := ClientCapabilities{
+		General: &GeneralClientCapabilities{
+			PositionEncodings: []PositionEncodingKind{
+				PositionEncodingUTF8,
+				PositionEncodingUTF16,
+			},
+		},
+	}
+
+	data, err := json.Marshal(caps)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var got ClientCapabilities
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.General == nil {
+		t.Fatal("general capabilities not preserved")
+	}
+	if len(got.General.PositionEncodings) != 2 {
+		t.Fatalf("positionEncodings = %v", got.General.PositionEncodings)
+	}
+	if got.General.PositionEncodings[0] != PositionEncodingUTF8 {
+		t.Fatalf("first encoding = %q", got.General.PositionEncodings[0])
 	}
 }

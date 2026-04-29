@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Capabilities - go-lsp</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <a class="brand" href="index.html">go-lsp</a>
+        <p class="tagline">Build Language Server Protocol servers in Go.</p>
+        <nav class="nav" aria-label="Documentation">
+          <a href="index.html">Home</a>
+          <a href="getting-started.html">Getting Started</a>
+          <a href="concepts.html">Core Concepts</a>
+          <a href="documents.html">Documents</a>
+          <a href="capabilities.html" aria-current="page">Capabilities</a>
+          <a href="testing.html">Testing</a>
+          <a href="debugging.html">Debugging</a>
+          <a href="examples.html">Examples</a>
+        </nav>
+      </aside>
+      <main class="content">
+        <section class="hero">
+          <h1>Capabilities</h1>
+          <p class="lead">go-lsp auto-detects feature support and lets you enrich capabilities with option metadata.</p>
+        </section>
+
+        <h2>Auto Detection</h2>
+        <p>If your handler implements <code>HoverHandler</code>, go-lsp advertises hover support. If it implements <code>CompletionResolveHandler</code>, completion resolve support is included.</p>
+
+        <h2>Capability Options</h2>
+        <p>Use server options when editors need more detail than an interface can express.</p>
+        <pre><code class="language-go">srv := server.NewServer(h,
+    server.WithCompletionOptions(lsp.CompletionOptions{
+        TriggerCharacters: []string{".", ":"},
+    }),
+    server.WithSignatureHelpOptions(lsp.SignatureHelpOptions{
+        TriggerCharacters:   []string{"("},
+        RetriggerCharacters: []string{","},
+    }),
+    server.WithCodeActionOptions(lsp.CodeActionOptions{
+        CodeActionKinds: []lsp.CodeActionKind{lsp.CodeActionQuickFix},
+    }),
+)</code></pre>
+
+        <h2>Commands</h2>
+        <p>Advertise command IDs for <code>workspace/executeCommand</code>. This pairs well with extension actions such as generating a debug bundle.</p>
+        <pre><code class="language-go">srv := server.NewServer(h,
+    server.WithExecuteCommandOptions(lsp.ExecuteCommandOptions{
+        Commands: []string{"mylang.generateDebugBundle"},
+    }),
+)</code></pre>
+
+        <h2>Semantic Tokens</h2>
+        <p>Semantic tokens need a legend so clients can decode token type and modifier indexes.</p>
+        <pre><code class="language-go">srv := server.NewServer(h,
+    server.WithSemanticTokensOptions(lsp.SemanticTokensOptions{
+        Legend: lsp.SemanticTokensLegend{
+            TokenTypes:     []string{"type", "function", "variable"},
+            TokenModifiers: []string{"declaration", "readonly"},
+        },
+    }),
+)</code></pre>
+
+        <h2>File Operation Filters</h2>
+        <pre><code class="language-go">srv := server.NewServer(h,
+    server.WithFileOperationFilters([]lsp.FileOperationFilter{
+        {Pattern: lsp.FileOperationPattern{Glob: "**/*.mylang"}},
+    }),
+)</code></pre>
+
+        <h2>Position Encoding</h2>
+        <p>LSP defaults to UTF-16 positions. If your server deliberately uses another LSP 3.17 position encoding, advertise it explicitly.</p>
+        <pre><code class="language-go">srv := server.NewServer(h,
+    server.WithPositionEncoding(lsp.PositionEncodingUTF8),
+)</code></pre>
+
+        <div class="callout">Capability options only advertise features your handler implements. Explicit capabilities returned from <code>Initialize</code> still take precedence.</div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/owenrumney/go-lsp/document"
 	"github.com/owenrumney/go-lsp/lsp"
 	"github.com/owenrumney/go-lsp/server"
 )
@@ -19,19 +20,13 @@ type entry struct {
 
 // handler implements a toy language server for .env-style key=value config files.
 type handler struct {
-	srv *server.Server
-	// docs maps document URI to its current text content.
-	docs map[lsp.DocumentURI]string
+	docs   *document.Store
+	client *server.Client
 }
 
 func (h *handler) Initialize(_ context.Context, _ *lsp.InitializeParams) (*lsp.InitializeResult, error) {
 	return &lsp.InitializeResult{
 		Capabilities: lsp.ServerCapabilities{
-			TextDocumentSync: &lsp.TextDocumentSyncOptions{
-				OpenClose: boolPtr(true),
-				Change:    lsp.SyncFull,
-				Save:      &lsp.SaveOptions{IncludeText: boolPtr(true)},
-			},
 			HoverProvider:      boolPtr(true),
 			DefinitionProvider: boolPtr(true),
 			CompletionProvider: &lsp.CompletionOptions{},
@@ -42,35 +37,33 @@ func (h *handler) Initialize(_ context.Context, _ *lsp.InitializeParams) (*lsp.I
 
 func (h *handler) Shutdown(_ context.Context) error { return nil }
 
+func (h *handler) SetClient(client *server.Client) {
+	h.client = client
+}
+
 func (h *handler) DidOpen(_ context.Context, params *lsp.DidOpenTextDocumentParams) error {
-	h.docs[params.TextDocument.URI] = params.TextDocument.Text
-	return nil
+	_, err := h.docs.Open(params)
+	return err
 }
 
 func (h *handler) DidChange(_ context.Context, params *lsp.DidChangeTextDocumentParams) error {
-	if len(params.ContentChanges) > 0 {
-		h.docs[params.TextDocument.URI] = params.ContentChanges[len(params.ContentChanges)-1].Text
-	}
-	return nil
+	_, err := h.docs.Change(params)
+	return err
 }
 
 func (h *handler) DidClose(_ context.Context, params *lsp.DidCloseTextDocumentParams) error {
-	delete(h.docs, params.TextDocument.URI)
+	h.docs.Close(params)
 	return nil
 }
 
 func (h *handler) DidSave(ctx context.Context, params *lsp.DidSaveTextDocumentParams) error {
-	if params.Text != nil {
-		h.docs[params.TextDocument.URI] = *params.Text
-	}
-
-	text, ok := h.docs[params.TextDocument.URI]
+	text, ok := h.docs.Text(params.TextDocument.URI)
 	if !ok {
 		return nil
 	}
 
 	diags := h.findDuplicates(text)
-	return h.srv.Client.PublishDiagnostics(ctx, &lsp.PublishDiagnosticsParams{
+	return h.client.PublishDiagnostics(ctx, &lsp.PublishDiagnosticsParams{
 		URI:         params.TextDocument.URI,
 		Diagnostics: diags,
 	})
@@ -78,7 +71,7 @@ func (h *handler) DidSave(ctx context.Context, params *lsp.DidSaveTextDocumentPa
 
 // Hover returns the value of the key under the cursor.
 func (h *handler) Hover(_ context.Context, params *lsp.HoverParams) (*lsp.Hover, error) {
-	text, ok := h.docs[params.TextDocument.URI]
+	text, ok := h.docs.Text(params.TextDocument.URI)
 	if !ok {
 		return nil, nil
 	}
@@ -99,7 +92,8 @@ func (h *handler) Hover(_ context.Context, params *lsp.HoverParams) (*lsp.Hover,
 // Completion suggests known keys from all open documents.
 func (h *handler) Completion(_ context.Context, _ *lsp.CompletionParams) (*lsp.CompletionList, error) {
 	seen := map[string]string{}
-	for _, text := range h.docs {
+	for _, uri := range h.docs.URIs() {
+		text, _ := h.docs.Text(uri)
 		for _, e := range h.parseEntries(text) {
 			if _, exists := seen[e.key]; !exists {
 				seen[e.key] = e.value
@@ -121,7 +115,7 @@ func (h *handler) Completion(_ context.Context, _ *lsp.CompletionParams) (*lsp.C
 
 // Definition jumps to where a key is defined across all open files.
 func (h *handler) Definition(_ context.Context, params *lsp.DefinitionParams) ([]lsp.Location, error) {
-	text, ok := h.docs[params.TextDocument.URI]
+	text, ok := h.docs.Text(params.TextDocument.URI)
 	if !ok {
 		return nil, nil
 	}
@@ -132,7 +126,8 @@ func (h *handler) Definition(_ context.Context, params *lsp.DefinitionParams) ([
 	}
 
 	var locations []lsp.Location
-	for uri, docText := range h.docs {
+	for _, uri := range h.docs.URIs() {
+		docText, _ := h.docs.Text(uri)
 		for _, e := range h.parseEntries(docText) {
 			if e.key == entry.key {
 				locations = append(locations, lsp.Location{
@@ -213,9 +208,8 @@ func (h *handler) findDuplicates(text string) []lsp.Diagnostic {
 func boolPtr(b bool) *bool { return &b }
 
 func main() {
-	h := &handler{docs: map[lsp.DocumentURI]string{}}
+	h := &handler{docs: document.NewStore()}
 	srv := server.NewServer(h)
-	h.srv = srv
 	if err := srv.Run(context.Background(), server.RunStdio()); err != nil {
 		log.Fatal(err)
 	}

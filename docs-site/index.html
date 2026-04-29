@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>go-lsp documentation</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <a class="brand" href="index.html">go-lsp</a>
+        <p class="tagline">Build Language Server Protocol servers in Go.</p>
+        <nav class="nav" aria-label="Documentation">
+          <a href="index.html" aria-current="page">Home</a>
+          <a href="getting-started.html">Getting Started</a>
+          <a href="concepts.html">Core Concepts</a>
+          <a href="documents.html">Documents</a>
+          <a href="capabilities.html">Capabilities</a>
+          <a href="testing.html">Testing</a>
+          <a href="debugging.html">Debugging</a>
+          <a href="examples.html">Examples</a>
+        </nav>
+      </aside>
+      <main class="content">
+        <section class="hero">
+          <h1>Go primitives for practical LSP servers</h1>
+          <p class="lead">go-lsp handles JSON-RPC framing, method dispatch, LSP protocol types, document state, testing, and debugging tools so your server code can focus on language behavior.</p>
+          <div class="actions">
+            <a class="button" href="getting-started.html">Start Building</a>
+            <a class="button secondary" href="https://pkg.go.dev/github.com/owenrumney/go-lsp">API Reference</a>
+          </div>
+        </section>
+
+        <h2>Install</h2>
+        <pre><code>go get github.com/owenrumney/go-lsp</code></pre>
+
+        <h2>Quick Server</h2>
+        <pre><code class="language-go">type Handler struct{}
+
+func (h *Handler) Initialize(context.Context, *lsp.InitializeParams) (*lsp.InitializeResult, error) {
+    return &lsp.InitializeResult{
+        ServerInfo: &lsp.ServerInfo{Name: "mylang", Version: "0.1.0"},
+    }, nil
+}
+
+func (h *Handler) Shutdown(context.Context) error { return nil }
+
+func main() {
+    srv := server.NewServer(&Handler{})
+    log.Fatal(srv.Run(context.Background(), server.RunStdio()))
+}</code></pre>
+
+        <h2>What You Get</h2>
+        <div class="grid">
+          <article class="card">
+            <h3>Interface-based handlers</h3>
+            <p>Implement only the LSP features you need. The server registers methods and advertises capabilities automatically.</p>
+          </article>
+          <article class="card">
+            <h3>Document storage</h3>
+            <p><code>document.Store</code> applies full or incremental sync and handles UTF-16 LSP positions.</p>
+          </article>
+          <article class="card">
+            <h3>Test harness</h3>
+            <p><code>servertest</code> simulates an LSP client over in-memory pipes for focused handler tests.</p>
+          </article>
+          <article class="card">
+            <h3>Debug traces</h3>
+            <p>The debug UI captures live traffic, logs, timelines, and exportable traces for bug reports.</p>
+          </article>
+        </div>
+
+        <p class="footer">LSP 3.17 targeted. See the repository README for the current feature support table.</p>
+      </main>
+    </div>
+  </body>
+</html>

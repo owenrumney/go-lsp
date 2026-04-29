@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Debugging - go-lsp</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <a class="brand" href="index.html">go-lsp</a>
+        <p class="tagline">Build Language Server Protocol servers in Go.</p>
+        <nav class="nav" aria-label="Documentation">
+          <a href="index.html">Home</a>
+          <a href="getting-started.html">Getting Started</a>
+          <a href="concepts.html">Core Concepts</a>
+          <a href="documents.html">Documents</a>
+          <a href="capabilities.html">Capabilities</a>
+          <a href="testing.html">Testing</a>
+          <a href="debugging.html" aria-current="page">Debugging</a>
+          <a href="examples.html">Examples</a>
+        </nav>
+      </aside>
+      <main class="content">
+        <section class="hero">
+          <h1>Debugging</h1>
+          <p class="lead">Inspect live LSP traffic, logs, timelines, advertised capabilities, and export traces.</p>
+        </section>
+
+        <h2>Enable the Debug UI</h2>
+        <pre><code class="language-go">srv := server.NewServer(h, server.WithDebugUI(":7100"))
+srv.Run(ctx, server.RunStdio())</code></pre>
+        <p>Open <code>http://localhost:7100</code> while the server is running.</p>
+
+        <h2>What It Shows</h2>
+        <div class="grid">
+          <article class="card">
+            <h3>Messages</h3>
+            <p>Requests, responses, notifications, JSON payloads, search, filters, and request/response pairing.</p>
+          </article>
+          <article class="card">
+            <h3>Timeline</h3>
+            <p>Waterfall view of request latency with slow request highlighting and method-level timing.</p>
+          </article>
+          <article class="card">
+            <h3>Logs</h3>
+            <p>Structured logs and <code>window/logMessage</code> notifications in one view.</p>
+          </article>
+        </div>
+
+        <img src="assets/debugui.png" alt="Debug UI messages view">
+
+        <h2>Save a Trace</h2>
+        <p><code>SaveDebugTrace</code> writes a snapshot of the captured session. Call it from a custom LSP command, signal handler, or debug endpoint after reproducing an issue.</p>
+        <pre><code class="language-go">err := srv.SaveDebugTrace("/tmp/mylang.trace.json", server.TraceExportOptions{
+    RedactDocumentText: true,
+    RedactFilePaths:    true,
+    Pretty:             true,
+})</code></pre>
+        <p>Use <code>ExportDebugTrace</code> to get JSON bytes instead. If debug UI is not active, both methods return <code>server.ErrDebugTraceUnavailable</code>.</p>
+
+        <h2>Debug Bundle Command</h2>
+        <pre><code class="language-go">func (h *Handler) ExecuteCommand(ctx context.Context, params *lsp.ExecuteCommandParams) (any, error) {
+    if params.Command != "mylang.generateDebugBundle" {
+        return nil, nil
+    }
+
+    path := filepath.Join(os.TempDir(), "mylang.trace.json")
+    err := h.srv.SaveDebugTrace(path, server.TraceExportOptions{
+        RedactDocumentText: true,
+        RedactFilePaths:    true,
+        Pretty:             true,
+    })
+    return map[string]string{"path": path}, err
+}</code></pre>
+
+        <img src="assets/debugui-timeline.png" alt="Debug UI timeline view">
+      </main>
+    </div>
+  </body>
+</html>
