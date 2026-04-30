@@ -49,12 +49,50 @@ a:hover {
   overflow: auto;
 }
 
+.sidebar-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
 .brand {
   color: white;
   display: block;
   font-size: 1.35rem;
   font-weight: 750;
-  margin-bottom: 4px;
+}
+
+.menu-toggle {
+  background: transparent;
+  border: 0;
+  color: white;
+  cursor: pointer;
+  display: none;
+  padding: 6px;
+}
+
+.menu-toggle span {
+  background: white;
+  border-radius: 1px;
+  display: block;
+  height: 2px;
+  margin: 4px 0;
+  transition: transform 0.2s, opacity 0.2s;
+  width: 22px;
+}
+
+.menu-toggle[aria-expanded="true"] span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.menu-toggle[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+
+.menu-toggle[aria-expanded="true"] span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
 }
 
 .tagline {
@@ -79,6 +117,22 @@ a:hover {
   background: rgba(255, 255, 255, 0.1);
   color: white;
   text-decoration: none;
+}
+
+.nav-github {
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 18px;
+}
+
+.nav-github svg {
+  fill: currentColor;
+  flex-shrink: 0;
+  height: 18px;
+  width: 18px;
 }
 
 .content {
@@ -204,12 +258,75 @@ pre {
   margin: 16px 0 22px;
   overflow: auto;
   padding: 18px;
+  position: relative;
 }
 
 pre code {
   background: transparent;
   color: inherit;
+  display: block;
   padding: 0;
+}
+
+pre.code-block {
+  padding-top: 52px;
+}
+
+pre.code-block[data-language]::before {
+  color: #94a3b8;
+  content: attr(data-language);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.76rem;
+  font-weight: 700;
+  left: 18px;
+  letter-spacing: 0.08em;
+  position: absolute;
+  text-transform: uppercase;
+  top: 16px;
+}
+
+.code-copy {
+  background: rgba(148, 163, 184, 0.18);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  color: var(--code-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  padding: 6px 10px;
+  position: absolute;
+  right: 18px;
+  top: 14px;
+}
+
+.code-copy:hover {
+  background: rgba(148, 163, 184, 0.28);
+}
+
+.code-copy.copied {
+  border-color: rgba(45, 212, 191, 0.5);
+  color: #99f6e4;
+}
+
+.token.comment {
+  color: #6b7280;
+}
+
+.token.keyword {
+  color: #f472b6;
+}
+
+.token.string {
+  color: #fbbf24;
+}
+
+.token.number {
+  color: #38bdf8;
+}
+
+.token.builtin {
+  color: #86efac;
 }
 
 table {
@@ -276,6 +393,19 @@ img {
     border-color: #0f766e;
     color: #ccfbf1;
   }
+
+  .code-copy {
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.24);
+  }
+
+  .code-copy:hover {
+    background: rgba(148, 163, 184, 0.22);
+  }
+
+  .token.comment {
+    color: #94a3b8;
+  }
 }
 
 @media (max-width: 840px) {
@@ -285,11 +415,31 @@ img {
 
   .sidebar {
     height: auto;
-    position: relative;
+    padding: 14px 18px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .menu-toggle {
+    display: block;
+  }
+
+  .tagline {
+    display: none;
   }
 
   .nav {
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    display: none;
+    margin-top: 14px;
+  }
+
+  .sidebar.nav-open .nav {
+    display: grid;
+  }
+
+  .nav-github {
+    margin-top: 6px;
   }
 
   .content {

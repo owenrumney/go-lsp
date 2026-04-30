@@ -69,6 +69,37 @@ func TestSaveDebugTrace(t *testing.T) {
 	}
 }
 
+func TestSaveDebugTraceRejectsSymlinkTarget(t *testing.T) {
+	s := NewServer(&mockHandler{})
+	s.recorder = debugui.NewRecorder()
+
+	dir := t.TempDir()
+	target := filepath.Join(dir, "target.json")
+	if err := os.WriteFile(target, []byte("existing"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	link := filepath.Join(dir, "trace.json")
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+
+	err := s.SaveDebugTrace(link, TraceExportOptions{})
+	if !errors.Is(err, ErrInvalidDebugTracePath) {
+		t.Fatalf("error = %v, want ErrInvalidDebugTracePath", err)
+	}
+}
+
+func TestSaveDebugTraceRejectsDirectoryTarget(t *testing.T) {
+	s := NewServer(&mockHandler{})
+	s.recorder = debugui.NewRecorder()
+
+	err := s.SaveDebugTrace(t.TempDir(), TraceExportOptions{})
+	if !errors.Is(err, ErrInvalidDebugTracePath) {
+		t.Fatalf("error = %v, want ErrInvalidDebugTracePath", err)
+	}
+}
+
 // signalingPipe is an io.ReadWriteCloser that closes started on the first Read
 // (so the test knows Run has reached its serve loop) and blocks Read until
 // Close.
