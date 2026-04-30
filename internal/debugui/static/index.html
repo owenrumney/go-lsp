@@ -365,7 +365,7 @@ function renderList() {
       <span class="col-type"><span class="badge ${e.msgType}">${e.msgType}</span></span>
       <span class="col-dir ${isIn ? 'in' : 'out'}">${isIn ? '\u2192' : '\u2190'}</span>
       <span class="col-latency">${latencyHtml}</span>
-      <span class="col-method">${e.method}</span>
+      <span class="col-method">${escapeHtml(String(e.method || ''))}</span>
     </div>`;
   }).join('');
 }
@@ -378,7 +378,7 @@ function renderDetail() {
   const e = entryById[selectedId];
   if (!e) return;
 
-  let html = `<div class="meta">#${e.id} \u00b7 ${formatTime(e.timestamp)} \u00b7 ${e.direction} \u00b7 ${e.msgType}${e.rpcId ? ' \u00b7 id: ' + e.rpcId : ''}</div>`;
+  let html = `<div class="meta">#${e.id} \u00b7 ${escapeHtml(formatTime(e.timestamp))} \u00b7 ${escapeHtml(String(e.direction || ''))} \u00b7 ${escapeHtml(String(e.msgType || ''))}${e.rpcId ? ' \u00b7 id: ' + escapeHtml(String(e.rpcId)) : ''}</div>`;
 
   if (e.msgType === 'request') {
     html += '<h3>Request</h3>';
@@ -412,7 +412,12 @@ function prettyJson(obj) {
 }
 
 function escapeHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function addEntry(e) {
@@ -607,11 +612,11 @@ function renderTimeline() {
   tlContainer.innerHTML = methodOrder.map(method => {
     const entries = methodEntries[method];
     const bars = entries.map(e => {
-      const b = computeBarInfo(e, now, windowStart, pxPerMs);
-      return `<span class="tl-bar ${b.barClass}" data-id="${e.id}" style="left:${b.left}px;width:${b.width}px"></span>`;
-    }).join('');
+    const b = computeBarInfo(e, now, windowStart, pxPerMs);
+    return `<span class="tl-bar ${b.barClass}" data-id="${e.id}" style="left:${b.left}px;width:${b.width}px"></span>`;
+  }).join('');
     return `<div class="tl-row">
-      <span class="tl-label" title="${escapeHtml(method)}">${escapeHtml(method)}</span>
+      <span class="tl-label" title="${escapeHtml(String(method || ''))}">${escapeHtml(String(method || ''))}</span>
       <span class="tl-track" style="width:${trackWidth}px">${bars}</span>
     </div>`;
   }).join('');
@@ -740,7 +745,7 @@ function renderSparklines(sparklines) {
     const polyPts = pts.map((v, i) => `${(i * step).toFixed(1)},${(h - (v / maxVal) * (h - 2) - 1).toFixed(1)}`).join(' ');
     const shortMethod = sp.method.split('/').pop() || sp.method;
     return `<span class="spark-item">
-      <span class="spark-method" title="${escapeHtml(sp.method)}">${escapeHtml(shortMethod)}</span>
+      <span class="spark-method" title="${escapeHtml(String(sp.method || ''))}">${escapeHtml(String(shortMethod || ''))}</span>
       <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polyline points="${polyPts}" fill="none" stroke="var(--blue)" stroke-width="1.5"/></svg>
       <span class="spark-avg">${sp.avgMs.toFixed(0)}ms</span>
     </span>`;

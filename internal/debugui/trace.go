@@ -27,33 +27,6 @@ type Trace struct {
 	Capabilities json.RawMessage `json:"capabilities,omitempty"`
 }
 
-// ExportTrace returns a JSON trace of the current debug UI state.
-func (d *DebugUI) ExportTrace(opts TraceExportOptions) ([]byte, error) {
-	trace := Trace{
-		Version:      TraceVersion,
-		CreatedAt:    time.Now().UTC(),
-		Messages:     d.store.All(),
-		Logs:         d.logStore.All(),
-		Capabilities: d.capabilitiesSnapshot(),
-	}
-
-	redactTrace(&trace, opts)
-
-	if opts.Pretty {
-		return json.MarshalIndent(trace, "", "  ")
-	}
-	return json.Marshal(trace)
-}
-
-func (d *DebugUI) capabilitiesSnapshot() json.RawMessage {
-	d.capsMu.RLock()
-	defer d.capsMu.RUnlock()
-	if d.capabilities == nil {
-		return nil
-	}
-	return append(json.RawMessage(nil), d.capabilities...)
-}
-
 func redactTrace(trace *Trace, opts TraceExportOptions) {
 	if opts.RedactLogs {
 		trace.Logs = nil

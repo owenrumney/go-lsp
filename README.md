@@ -469,6 +469,18 @@ srv.Run(ctx, server.RunStdio())
 
 Then open `http://localhost:7100` in a browser. The tap is transparent -- it intercepts LSP frames for display without modifying them.
 
+If the HTTP listener cannot bind (port in use, locked-down environment), the server logs a warning and continues with capture-only mode. `WithDebugUI` therefore never prevents the LSP from starting; trace export still works against the in-memory recorder.
+
+### Capture-only mode
+
+If you want trace capture for support bundles or debugging exports but do not want to bind an HTTP port, use `WithDebugCapture`:
+
+```go
+srv := server.NewServer(&Handler{}, server.WithDebugCapture())
+```
+
+`WithDebugUI` implies `WithDebugCapture`, so you only need one or the other. Both feed the same recorder, which powers `SaveDebugTrace` / `ExportDebugTrace`.
+
 ### Messages tab
 
 Real-time view of all JSON-RPC traffic between client and server:
@@ -510,7 +522,7 @@ Runtime metrics updated every 2 seconds: uptime, heap usage, goroutine count, GC
 
 ### Saving traces
 
-When the debug UI is enabled, you can save the captured session programmatically:
+When `WithDebugCapture` or `WithDebugUI` is set, you can save the captured session programmatically:
 
 ```go
 err := srv.SaveDebugTrace("/tmp/session.trace.json", server.TraceExportOptions{
@@ -520,7 +532,7 @@ err := srv.SaveDebugTrace("/tmp/session.trace.json", server.TraceExportOptions{
 })
 ```
 
-Use `ExportDebugTrace` if you want the JSON bytes instead of writing directly to disk. `SaveDebugTrace` writes files with `0600` permissions because traces may contain source code, local paths, and project details. If the debug UI is not active, these methods return `server.ErrDebugTraceUnavailable`.
+Use `ExportDebugTrace` if you want the JSON bytes instead of writing directly to disk. `SaveDebugTrace` writes files with `0600` permissions because traces may contain source code, local paths, and project details. If neither capture nor UI is enabled, these methods return `server.ErrDebugTraceUnavailable`.
 
 ## Project structure
 

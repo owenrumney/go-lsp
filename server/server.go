@@ -23,6 +23,8 @@ type Server struct {
 	customMethods       map[string]jsonrpc.MethodHandler
 	customNotifications map[string]jsonrpc.NotificationHandler
 	debugAddr           string
+	debugCapture        bool
+	recorder            *debugui.Recorder
 	debugUI             *debugui.DebugUI
 	logger              *slog.Logger
 	requestTimeout      time.Duration
@@ -43,15 +45,17 @@ func NewServer(handler LifecycleHandler, opts ...Option) *Server {
 	return s
 }
 
-// DebugHandler returns a slog.Handler that sends log records to the debug UI's log tab.
-// Returns nil if the debug UI is not enabled. Must be called after Run has started.
+// DebugHandler returns a slog.Handler that records log entries into the debug
+// trace (and surfaces them in the debug UI when enabled). Returns nil if
+// neither WithDebugCapture nor WithDebugUI was set. Must be called after Run
+// has started.
 //
 // Usage: logger := slog.New(srv.DebugHandler())
 func (s *Server) DebugHandler() slog.Handler {
-	if s.debugUI == nil {
+	if s.recorder == nil {
 		return nil
 	}
-	return s.debugUI.SlogHandler()
+	return s.recorder.SlogHandler()
 }
 
 // HandleMethod registers a custom JSON-RPC method handler.
@@ -68,14 +72,19 @@ func (s *Server) HandleNotification(method string, handler jsonrpc.NotificationH
 
 // Run starts the server, reading from and writing to rw.
 func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
+	if s.debugCapture || s.debugAddr != "" {
+		s.recorder = debugui.NewRecorder()
+		rw = s.recorder.Tap(rw)
+	}
 	if s.debugAddr != "" {
-		logStore := debugui.NewLogStore()
-		store := debugui.NewStore(logStore)
-		s.debugUI = debugui.New(s.debugAddr, store, logStore)
+		s.debugUI = debugui.New(s.debugAddr, s.recorder)
 		if err := s.debugUI.ListenAndServe(ctx); err != nil {
-			return fmt.Errorf("debugui: %w", err)
+			if s.logger != nil {
+				s.logger.Warn("debugui: HTTP UI unavailable, continuing with capture only",
+					"addr", s.debugAddr, "err", err)
+			}
+			s.debugUI = nil
 		}
-		rw = debugui.NewTap(rw, store)
 	}
 
 	dispatcher := jsonrpc.NewDispatcher()
@@ -231,8 +240,8 @@ func (s *Server) handleInitialize(ctx context.Context, params json.RawMessage) (
 	applyCapabilityOptions(&autoCaps, s.handler, s.capabilityOptions)
 	mergeCapabilities(&result.Capabilities, &autoCaps)
 
-	if s.debugUI != nil {
-		s.debugUI.SetCapabilities(result.Capabilities)
+	if s.recorder != nil {
+		s.recorder.SetCapabilities(result.Capabilities)
 	}
 
 	s.initialized = true

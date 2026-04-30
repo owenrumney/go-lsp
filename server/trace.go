@@ -2,14 +2,21 @@ package server
 
 import (
 	"errors"
+	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
 
 	"github.com/owenrumney/go-lsp/internal/debugui"
 )
 
 // ErrDebugTraceUnavailable is returned when trace export is requested without
-// an active debug UI.
+// either WithDebugCapture or WithDebugUI being enabled.
 var ErrDebugTraceUnavailable = errors.New("debug trace unavailable")
+
+// ErrInvalidDebugTracePath is returned when the trace destination is not a
+// writable regular file path.
+var ErrInvalidDebugTracePath = errors.New("invalid debug trace path")
 
 // TraceExportOptions controls how a debug trace is exported.
 type TraceExportOptions struct {
@@ -28,14 +35,15 @@ type TraceExportOptions struct {
 	Pretty bool
 }
 
-// ExportDebugTrace returns a JSON snapshot of the active debug UI session.
+// ExportDebugTrace returns a JSON snapshot of the captured debug session.
 //
-// The debug UI must be enabled with WithDebugUI and Run must have started.
+// Capture must be enabled with WithDebugCapture or WithDebugUI, and Run must
+// have started.
 func (s *Server) ExportDebugTrace(opts TraceExportOptions) ([]byte, error) {
-	if s.debugUI == nil {
+	if s.recorder == nil {
 		return nil, ErrDebugTraceUnavailable
 	}
-	return s.debugUI.ExportTrace(debugui.TraceExportOptions{
+	return s.recorder.ExportTrace(debugui.TraceExportOptions{
 		RedactDocumentText: opts.RedactDocumentText,
 		RedactFilePaths:    opts.RedactFilePaths,
 		RedactLogs:         opts.RedactLogs,
@@ -52,5 +60,50 @@ func (s *Server) SaveDebugTrace(path string, opts TraceExportOptions) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0o600)
+	return writeDebugTraceFile(path, data)
+}
+
+func writeDebugTraceFile(path string, data []byte) (err error) {
+	cleanPath := filepath.Clean(path)
+	dir, name := filepath.Split(cleanPath)
+	if name == "" || name == "." || name == string(filepath.Separator) {
+		return fmt.Errorf("%w: missing file name", ErrInvalidDebugTracePath)
+	}
+	if dir == "" {
+		dir = "."
+	}
+
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if cerr := root.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
+
+	if info, statErr := root.Lstat(name); statErr == nil {
+		mode := info.Mode()
+		if mode&fs.ModeSymlink != 0 || !mode.IsRegular() {
+			return fmt.Errorf("%w: %s", ErrInvalidDebugTracePath, cleanPath)
+		}
+	} else if !errors.Is(statErr, fs.ErrNotExist) {
+		return statErr
+	}
+
+	f, err := root.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if cerr := f.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
+
+	if _, err := f.Write(data); err != nil {
+		return err
+	}
+	return nil
 }
