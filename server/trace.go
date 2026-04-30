@@ -8,7 +8,7 @@ import (
 )
 
 // ErrDebugTraceUnavailable is returned when trace export is requested without
-// an active debug UI.
+// either WithDebugCapture or WithDebugUI being enabled.
 var ErrDebugTraceUnavailable = errors.New("debug trace unavailable")
 
 // TraceExportOptions controls how a debug trace is exported.
@@ -28,14 +28,15 @@ type TraceExportOptions struct {
 	Pretty bool
 }
 
-// ExportDebugTrace returns a JSON snapshot of the active debug UI session.
+// ExportDebugTrace returns a JSON snapshot of the captured debug session.
 //
-// The debug UI must be enabled with WithDebugUI and Run must have started.
+// Capture must be enabled with WithDebugCapture or WithDebugUI, and Run must
+// have started.
 func (s *Server) ExportDebugTrace(opts TraceExportOptions) ([]byte, error) {
-	if s.debugUI == nil {
+	if s.recorder == nil {
 		return nil, ErrDebugTraceUnavailable
 	}
-	return s.debugUI.ExportTrace(debugui.TraceExportOptions{
+	return s.recorder.ExportTrace(debugui.TraceExportOptions{
 		RedactDocumentText: opts.RedactDocumentText,
 		RedactFilePaths:    opts.RedactFilePaths,
 		RedactLogs:         opts.RedactLogs,

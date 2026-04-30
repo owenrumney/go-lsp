@@ -11,9 +11,25 @@ import (
 type Option func(*Server)
 
 // WithDebugUI enables the debug web UI on the given address (e.g. ":7100").
+//
+// This implies WithDebugCapture: even if the HTTP listener fails to bind (for
+// example on a locked-down corporate machine), capture remains active so trace
+// export still works. Bind failures are logged via the configured WithLogger
+// and the server continues without the HTTP UI.
 func WithDebugUI(addr string) Option {
 	return func(s *Server) {
 		s.debugAddr = addr
+		s.debugCapture = true
+	}
+}
+
+// WithDebugCapture enables in-memory capture of LSP traffic and logs without
+// starting the HTTP debug UI. Capture has no port to bind, so it is safe to
+// enable by default in production builds. The captured data feeds
+// SaveDebugTrace and ExportDebugTrace.
+func WithDebugCapture() Option {
+	return func(s *Server) {
+		s.debugCapture = true
 	}
 }
 

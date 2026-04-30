@@ -67,31 +67,27 @@ type wsMessage struct {
 	Data any    `json:"data"`
 }
 
-// DebugUI is an HTTP server that serves the debug web interface and websocket.
+// DebugUI is an HTTP server that serves the debug web interface and websocket
+// over a Recorder's captured data.
 type DebugUI struct {
-	store    *Store
-	logStore *LogStore
+	recorder *Recorder
 	hub      *Hub
 	stats    *Stats
 	srv      *http.Server
-
-	capsMu       sync.RWMutex
-	capabilities json.RawMessage
 }
 
-// New creates a DebugUI bound to the given address.
-func New(addr string, store *Store, logStore *LogStore) *DebugUI {
+// New creates a DebugUI bound to addr that exposes recorder's captured data.
+func New(addr string, recorder *Recorder) *DebugUI {
 	d := &DebugUI{
-		store:    store,
-		logStore: logStore,
+		recorder: recorder,
 		hub:      newHub(),
-		stats:    NewStats(store),
+		stats:    NewStats(recorder.Store()),
 	}
 
-	store.Subscribe(func(e Entry) {
+	recorder.Store().Subscribe(func(e Entry) {
 		d.hub.Broadcast(wsMessage{Kind: "message", Data: e})
 	})
-	logStore.Subscribe(func(e LogEntry) {
+	recorder.LogStore().Subscribe(func(e LogEntry) {
 		d.hub.Broadcast(wsMessage{Kind: "log", Data: e})
 	})
 
@@ -114,22 +110,6 @@ func New(addr string, store *Store, logStore *LogStore) *DebugUI {
 	}
 
 	return d
-}
-
-// SlogHandler returns a slog.Handler that sends log records to the debug UI's log tab.
-func (d *DebugUI) SlogHandler() *SlogHandler {
-	return NewSlogHandler(d.logStore)
-}
-
-// SetCapabilities stores the server's advertised capabilities for the debug UI.
-func (d *DebugUI) SetCapabilities(caps any) {
-	data, err := json.Marshal(caps)
-	if err != nil {
-		return
-	}
-	d.capsMu.Lock()
-	d.capabilities = data
-	d.capsMu.Unlock()
 }
 
 // ListenAndServe binds the port synchronously, then serves in the background.
@@ -200,7 +180,7 @@ func (d *DebugUI) handleMessages(w http.ResponseWriter, r *http.Request) {
 		limit = 1000
 	}
 
-	entries := d.store.Entries(offset, limit)
+	entries := d.recorder.store.Entries(offset, limit)
 	if entries == nil {
 		entries = []Entry{}
 	}
@@ -217,7 +197,7 @@ func (d *DebugUI) handleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entries := d.store.Search(q)
+	entries := d.recorder.store.Search(q)
 	if entries == nil {
 		entries = []Entry{}
 	}
@@ -236,7 +216,7 @@ func (d *DebugUI) handleLogs(w http.ResponseWriter, r *http.Request) {
 		limit = 1000
 	}
 
-	entries := d.logStore.Entries(offset, limit)
+	entries := d.recorder.logStore.Entries(offset, limit)
 	if entries == nil {
 		entries = []LogEntry{}
 	}
@@ -246,13 +226,13 @@ func (d *DebugUI) handleLogs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d *DebugUI) handleMessagesClear(w http.ResponseWriter, _ *http.Request) {
-	d.store.Clear()
+	d.recorder.store.Clear()
 	d.hub.Broadcast(wsMessage{Kind: "clear-messages"})
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (d *DebugUI) handleLogsClear(w http.ResponseWriter, _ *http.Request) {
-	d.logStore.Clear()
+	d.recorder.logStore.Clear()
 	d.hub.Broadcast(wsMessage{Kind: "clear-logs"})
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -265,7 +245,7 @@ func (d *DebugUI) handleLogSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entries := d.logStore.Search(q)
+	entries := d.recorder.logStore.Search(q)
 	if entries == nil {
 		entries = []LogEntry{}
 	}
@@ -280,9 +260,7 @@ func (d *DebugUI) handleStats(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (d *DebugUI) handleCapabilities(w http.ResponseWriter, _ *http.Request) {
-	d.capsMu.RLock()
-	data := d.capabilities
-	d.capsMu.RUnlock()
+	data := d.recorder.capabilitiesSnapshot()
 
 	w.Header().Set("Content-Type", "application/json")
 	if data == nil {

@@ -7,15 +7,13 @@ import (
 )
 
 func TestExportTrace(t *testing.T) {
-	logStore := NewLogStore()
-	store := NewStore(logStore)
-	ui := New(":0", store, logStore)
-	ui.SetCapabilities(map[string]any{"hoverProvider": true})
+	rec := NewRecorder()
+	rec.SetCapabilities(map[string]any{"hoverProvider": true})
 
-	store.Add("client→server", []byte(`{"jsonrpc":"2.0","id":1,"method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///Users/owen/project/main.go","text":"secret source"}}}`))
-	logStore.Add("info", "opened /Users/owen/project/main.go")
+	rec.Store().Add("client→server", []byte(`{"jsonrpc":"2.0","id":1,"method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///Users/owen/project/main.go","text":"secret source"}}}`))
+	rec.LogStore().Add("info", "opened /Users/owen/project/main.go")
 
-	data, err := ui.ExportTrace(TraceExportOptions{Pretty: true})
+	data, err := rec.ExportTrace(TraceExportOptions{Pretty: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,16 +37,14 @@ func TestExportTrace(t *testing.T) {
 }
 
 func TestExportTraceRedaction(t *testing.T) {
-	logStore := NewLogStore()
-	store := NewStore(logStore)
-	ui := New(":0", store, logStore)
-	ui.SetCapabilities(map[string]any{"root": "file:///Users/owen/project"})
+	rec := NewRecorder()
+	rec.SetCapabilities(map[string]any{"root": "file:///Users/owen/project"})
 
-	store.Add("client→server", []byte(`{"jsonrpc":"2.0","id":1,"method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///Users/owen/project/main.go"},"contentChanges":[{"text":"secret source","range":{"start":{"line":0,"character":0},"end":{"line":0,"character":4}}}]}}`))
-	store.Add("server→client", []byte(`{"jsonrpc":"2.0","method":"workspace/applyEdit","params":{"edit":{"changes":{"file:///Users/owen/project/main.go":[{"newText":"secret edit"}]}}}}`))
-	logStore.Add("info", "opened /Users/owen/project/main.go")
+	rec.Store().Add("client→server", []byte(`{"jsonrpc":"2.0","id":1,"method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///Users/owen/project/main.go"},"contentChanges":[{"text":"secret source","range":{"start":{"line":0,"character":0},"end":{"line":0,"character":4}}}]}}`))
+	rec.Store().Add("server→client", []byte(`{"jsonrpc":"2.0","method":"workspace/applyEdit","params":{"edit":{"changes":{"file:///Users/owen/project/main.go":[{"newText":"secret edit"}]}}}}`))
+	rec.LogStore().Add("info", "opened /Users/owen/project/main.go")
 
-	data, err := ui.ExportTrace(TraceExportOptions{
+	data, err := rec.ExportTrace(TraceExportOptions{
 		RedactDocumentText: true,
 		RedactFilePaths:    true,
 		RedactLogs:         true,
