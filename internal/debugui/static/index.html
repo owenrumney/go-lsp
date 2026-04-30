@@ -421,9 +421,9 @@ function escapeHtml(s) {
 }
 
 function addEntry(e) {
-  entryById[e.id] = e;
+  entryById.set(e.id, e);
   if (e.pairedWith >= 0) {
-    const req = entryById[e.pairedWith];
+    const req = entryById.get(e.pairedWith);
     if (req && req.pairedWith < 0) req.pairedWith = e.id;
   }
   allEntries.push(e);
