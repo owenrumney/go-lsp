@@ -1,0 +1,37 @@
+{
+  "title": "Remove unused value",
+  "kind": "quickfix",
+  "isPreferred": true,
+  "diagnostics": [
+    {
+      "range": {
+        "start": { "line": 3, "character": 1 },
+        "end": { "line": 3, "character": 12 }
+      },
+      "severity": 2,
+      "source": "go-lsp-test",
+      "message": "unused value"
+    }
+  ],
+  "edit": {
+    "changes": {
+      "file:///workspace/main.go": [
+        {
+          "range": {
+            "start": { "line": 3, "character": 0 },
+            "end": { "line": 4, "character": 0 }
+          },
+          "newText": ""
+        }
+      ]
+    }
+  },
+  "command": {
+    "title": "Run tests",
+    "command": "go.test",
+    "arguments": ["./..."]
+  },
+  "data": {
+    "id": "quickfix-unused"
+  }
+}

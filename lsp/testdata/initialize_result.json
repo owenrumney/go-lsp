@@ -1,0 +1,21 @@
+{
+  "capabilities": {
+    "positionEncoding": "utf-16",
+    "textDocumentSync": {
+      "openClose": true,
+      "change": 2,
+      "save": {
+        "includeText": true
+      }
+    },
+    "hoverProvider": true,
+    "completionProvider": {
+      "triggerCharacters": ["."],
+      "resolveProvider": true
+    }
+  },
+  "serverInfo": {
+    "name": "go-lsp-test",
+    "version": "0.1.0"
+  }
+}

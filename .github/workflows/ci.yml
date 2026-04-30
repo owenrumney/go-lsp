@@ -40,13 +40,24 @@ jobs:
       - name: Run linter
         run: golangci-lint run ./...
 
-  test:
-    name: Test
+  test-race:
+    name: Test Race
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Run tests
-        run: go test -race ./...
+      - name: Run race tests
+        run: make test-race
+
+  fuzz-document:
+    name: Fuzz Document
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Run document fuzz tests
+        run: make test-fuzz-document

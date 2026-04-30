@@ -68,6 +68,17 @@ defer cancel()
 
 diags, err := h.WaitForDiagnostics(ctx, "file:///test.txt")</code></pre>
 
+        <h2>More Helpers</h2>
+        <p>The harness includes typed helpers for common LSP requests including completion resolve, signature help, declaration, definition, references, document highlights, code actions, code lenses, document links, colors, formatting, rename, folding ranges, selection ranges, linked editing, monikers, inlay hints, pull diagnostics, semantic tokens, call/type hierarchy, file operations, and execute command.</p>
+        <p>Use <code>CallAsync</code> and <code>CancelRequest</code> to test cancellation. Use <code>SetClientResponse</code>, <code>SetClientError</code>, <code>ClientRequests</code>, and <code>WaitForClientRequest</code> to test handlers that make server-to-client requests through <code>server.Client</code>.</p>
+
+        <h2>Repository Test Commands</h2>
+        <pre><code>make test               # go test -v ./...
+make test-race          # go test -race ./...
+make test-cover         # go test -cover ./...
+make test-fuzz-document # short document fuzz run</code></pre>
+        <p>Fuzz tests live in normal package test files. Ordinary <code>go test ./...</code> runs only their seed cases; use the fuzz target for active document fuzzing.</p>
+
         <h2>Options</h2>
         <pre><code class="language-go">h := servertest.New(t, handler.New(),
     servertest.WithInitializeParams(&lsp.InitializeParams{

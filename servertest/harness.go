@@ -13,11 +13,12 @@ import (
 
 // Harness provides a test harness that simulates an LSP client over in-memory pipes.
 type Harness struct {
-	t      testing.TB
-	conn   *rpcConn
-	notifs *notifStore
-	cancel context.CancelFunc
-	ctx    context.Context
+	t              testing.TB
+	conn           *rpcConn
+	notifs         *notifStore
+	clientRequests *clientRequestStore
+	cancel         context.CancelFunc
+	ctx            context.Context
 
 	// InitResult holds the result from the initialize request.
 	InitResult *lsp.InitializeResult
@@ -52,6 +53,7 @@ func New(t testing.TB, handler server.LifecycleHandler, opts ...Option) *Harness
 	rpc := newRPCConn(clientConn)
 
 	notifs := newNotifStore()
+	clientRequests := newClientRequestStore()
 	rpc.notifHandler = func(method string, params json.RawMessage) {
 		switch method {
 		case "textDocument/publishDiagnostics":
@@ -73,20 +75,19 @@ func New(t testing.TB, handler server.LifecycleHandler, opts ...Option) *Harness
 	}
 
 	// Handle server-to-client requests with default success responses.
-	rpc.requestHandler = func(_ string, _ json.RawMessage) (any, error) {
-		return nil, nil
-	}
+	rpc.requestHandler = clientRequests.handle
 
 	// Start the read loop.
 	go rpc.readLoop()
 
 	h := &Harness{
-		t:        t,
-		conn:     rpc,
-		notifs:   notifs,
-		cancel:   cancel,
-		ctx:      ctx,
-		versions: make(map[lsp.DocumentURI]int),
+		t:              t,
+		conn:           rpc,
+		notifs:         notifs,
+		clientRequests: clientRequests,
+		cancel:         cancel,
+		ctx:            ctx,
+		versions:       make(map[lsp.DocumentURI]int),
 	}
 
 	// Send initialize request.
