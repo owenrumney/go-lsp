@@ -57,12 +57,30 @@ Typed methods for common LSP requests. These construct the params structs for yo
 ```go
 hover, err := h.Hover(uri, line, char)
 list, err := h.Completion(uri, line, char)
+item, err := h.ResolveCompletionItem(item)
+sig, err := h.SignatureHelp(uri, line, char)
+decls, err := h.Declaration(uri, line, char)
 locs, err := h.Definition(uri, line, char)
+types, err := h.TypeDefinition(uri, line, char)
+impls, err := h.Implementation(uri, line, char)
 locs, err := h.References(uri, line, char, includeDeclaration)
+highlights, err := h.DocumentHighlight(uri, line, char)
 syms, err := h.DocumentSymbol(uri)
 syms, err := h.WorkspaceSymbol("query")
+lenses, err := h.CodeLens(uri)
+links, err := h.DocumentLink(uri)
+colors, err := h.DocumentColor(uri)
 edits, err := h.Formatting(uri)
+edits, err := h.RangeFormatting(uri, theRange)
+edits, err := h.OnTypeFormatting(uri, line, char, "}")
 edit, err := h.Rename(uri, line, char, "newName")
+prepare, err := h.PrepareRename(uri, line, char)
+folds, err := h.FoldingRange(uri)
+selection, err := h.SelectionRange(uri, positions)
+linked, err := h.LinkedEditingRange(uri, line, char)
+monikers, err := h.Moniker(uri, line, char)
+hints, err := h.InlayHint(uri, theRange)
+tokens, err := h.SemanticTokensFull(uri)
 ```
 
 For code actions (which need richer params), pass the full struct:
@@ -75,11 +93,24 @@ actions, err := h.CodeAction(&lsp.CodeActionParams{
 })
 ```
 
+The harness also has typed helpers for code action, code lens, document link, and inlay hint resolve requests; pull diagnostics; semantic token delta/range requests; call/type hierarchy; file operation requests; and `workspace/executeCommand`.
+
 For anything not covered by a typed method, use the escape hatch:
 
 ```go
 result, err := h.Call("textDocument/someMethod", params)
 err := h.Notify("custom/notification", params)
+```
+
+Use `CallAsync` and `CancelRequest` when testing cancellation behavior:
+
+```go
+call, err := h.CallAsync("textDocument/hover", params)
+if err != nil {
+    t.Fatal(err)
+}
+_ = h.CancelRequest(call.ID())
+_, err = call.Wait(ctx)
 ```
 
 ## Testing Diagnostics
@@ -122,6 +153,47 @@ The harness also collects `window/showMessage` and `window/logMessage` notificat
 msgs := h.Messages()      // []lsp.ShowMessageParams
 logs := h.LogMessages()   // []lsp.LogMessageParams
 ```
+
+When the notification is asynchronous, wait for it:
+
+```go
+msg, err := h.WaitForMessage(ctx)
+log, err := h.WaitForLogMessage(ctx)
+```
+
+## Testing Server-to-Client Requests
+
+Handlers that call methods on `server.Client` can be tested without a real editor. Configure the client response, trigger the server behavior, then inspect the captured request:
+
+```go
+h.SetClientResponse("window/showMessageRequest", lsp.MessageActionItem{Title: "OK"})
+
+_, err := h.ExecuteCommand("ask-user", nil)
+if err != nil {
+    t.Fatal(err)
+}
+
+req, err := h.WaitForClientRequest(ctx, "window/showMessageRequest")
+if err != nil {
+    t.Fatal(err)
+}
+// assert on req.Method or req.Params
+```
+
+Use `SetClientError` to force an error response, or `ClientRequests` to inspect everything captured so far.
+
+## Repository Test Commands
+
+The repository Makefile exposes the usual local verification commands:
+
+```bash
+make test               # go test -v ./...
+make test-race          # go test -race ./...
+make test-cover         # go test -cover ./...
+make test-fuzz-document # short document fuzz run
+```
+
+Fuzz tests live in normal package test files. Ordinary `go test ./...` runs only their seed cases, while `make test-fuzz-document` actively fuzzes document position and edit invariants.
 
 ## Checking Capabilities
 

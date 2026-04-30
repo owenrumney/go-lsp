@@ -32,12 +32,14 @@ func (s *notifStore) addMessage(params lsp.ShowMessageParams) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.messages = append(s.messages, params)
+	s.cond.Broadcast()
 }
 
 func (s *notifStore) addLogMessage(params lsp.LogMessageParams) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.logMessages = append(s.logMessages, params)
+	s.cond.Broadcast()
 }
 
 // Diagnostics returns the most recent diagnostics for the given URI.
@@ -80,6 +82,36 @@ func (h *Harness) LogMessages() []lsp.LogMessageParams {
 	return result
 }
 
+// WaitForMessage waits until a window/showMessage notification is received.
+func (h *Harness) WaitForMessage(ctx context.Context) (lsp.ShowMessageParams, error) {
+	h.notifs.mu.Lock()
+	defer h.notifs.mu.Unlock()
+
+	for {
+		if len(h.notifs.messages) > 0 {
+			return h.notifs.messages[len(h.notifs.messages)-1], nil
+		}
+		if err := waitCond(ctx, h.notifs.cond); err != nil {
+			return lsp.ShowMessageParams{}, err
+		}
+	}
+}
+
+// WaitForLogMessage waits until a window/logMessage notification is received.
+func (h *Harness) WaitForLogMessage(ctx context.Context) (lsp.LogMessageParams, error) {
+	h.notifs.mu.Lock()
+	defer h.notifs.mu.Unlock()
+
+	for {
+		if len(h.notifs.logMessages) > 0 {
+			return h.notifs.logMessages[len(h.notifs.logMessages)-1], nil
+		}
+		if err := waitCond(ctx, h.notifs.cond); err != nil {
+			return lsp.LogMessageParams{}, err
+		}
+	}
+}
+
 // WaitForDiagnostics waits until diagnostics are published for the given URI.
 // If diagnostics already exist, they are returned immediately.
 func (h *Harness) WaitForDiagnostics(ctx context.Context, uri lsp.DocumentURI) ([]lsp.Diagnostic, error) {
@@ -93,27 +125,8 @@ func (h *Harness) WaitForDiagnostics(ctx context.Context, uri lsp.DocumentURI) (
 				return h.notifs.diagnostics[i].Diagnostics, nil
 			}
 		}
-
-		// Wait in a goroutine so we can also respect context cancellation.
-		waitDone := make(chan struct{})
-		go func() {
-			h.notifs.mu.Lock()
-			h.notifs.cond.Wait()
-			h.notifs.mu.Unlock()
-			close(waitDone)
-		}()
-
-		h.notifs.mu.Unlock()
-		select {
-		case <-waitDone:
-			h.notifs.mu.Lock()
-			continue
-		case <-ctx.Done():
-			// Wake up the waiting goroutine so it doesn't leak.
-			h.notifs.cond.Broadcast()
-			<-waitDone
-			h.notifs.mu.Lock()
-			return nil, ctx.Err()
+		if err := waitCond(ctx, h.notifs.cond); err != nil {
+			return nil, err
 		}
 	}
 }
@@ -123,4 +136,19 @@ func (h *Harness) ClearDiagnostics() {
 	h.notifs.mu.Lock()
 	defer h.notifs.mu.Unlock()
 	h.notifs.diagnostics = nil
+}
+
+func waitCond(ctx context.Context, cond *sync.Cond) error {
+	stop := context.AfterFunc(ctx, func() {
+		cond.L.Lock()
+		cond.Broadcast()
+		cond.L.Unlock()
+	})
+	defer stop()
+
+	cond.Wait()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return nil
 }

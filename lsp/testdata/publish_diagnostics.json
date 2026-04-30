@@ -1,0 +1,32 @@
+{
+  "uri": "file:///workspace/main.go",
+  "version": 7,
+  "diagnostics": [
+    {
+      "range": {
+        "start": { "line": 3, "character": 1 },
+        "end": { "line": 3, "character": 12 }
+      },
+      "severity": 2,
+      "code": "unused",
+      "codeDescription": {
+        "href": "https://example.com/diagnostics/unused"
+      },
+      "source": "go-lsp-test",
+      "message": "unused value",
+      "tags": [1],
+      "relatedInformation": [
+        {
+          "location": {
+            "uri": "file:///workspace/main.go",
+            "range": {
+              "start": { "line": 1, "character": 4 },
+              "end": { "line": 1, "character": 9 }
+            }
+          },
+          "message": "declared here"
+        }
+      ]
+    }
+  ]
+}

@@ -454,6 +454,19 @@ defer cancel()
 diags, err := h.WaitForDiagnostics(ctx, "file:///test.txt")
 ```
 
+It also includes typed helpers for common LSP requests, cancellation testing with `CallAsync` / `CancelRequest`, and server-to-client request capture for handlers that call methods on `server.Client`.
+
+For this repository, the common test targets are:
+
+```bash
+make test               # go test -v ./...
+make test-race          # go test -race ./...
+make test-cover         # go test -cover ./...
+make test-fuzz-document # short document fuzz run
+```
+
+Fuzz tests live in normal package test files, so `go test ./...` only runs their seed cases. Run the fuzz target when you want active fuzzing of document position/edit invariants.
+
 See the [testing guide](docs/testing.md) for the full API.
 
 ## Debug UI
