@@ -1,0 +1,19 @@
+{
+  "isIncomplete": false,
+  "items": [
+    {
+      "label": "Println",
+      "kind": 3,
+      "detail": "func Println(a ...any) (n int, err error)",
+      "documentation": {
+        "kind": "markdown",
+        "value": "Println formats using the default formats."
+      },
+      "insertText": "Println($0)",
+      "commitCharacters": ["(", "."],
+      "data": {
+        "package": "fmt"
+      }
+    }
+  ]
+}

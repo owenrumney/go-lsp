@@ -1,0 +1,37 @@
+{
+  "changes": {
+    "file:///workspace/main.go": [
+      {
+        "range": {
+          "start": { "line": 0, "character": 0 },
+          "end": { "line": 0, "character": 7 }
+        },
+        "newText": "package main"
+      }
+    ]
+  },
+  "documentChanges": [
+    {
+      "textDocument": {
+        "uri": "file:///workspace/other.go",
+        "version": 4
+      },
+      "edits": [
+        {
+          "range": {
+            "start": { "line": 1, "character": 0 },
+            "end": { "line": 1, "character": 0 }
+          },
+          "newText": "// generated\n"
+        }
+      ]
+    }
+  ],
+  "changeAnnotations": {
+    "rename-package": {
+      "label": "Rename package",
+      "needsConfirmation": false,
+      "description": "Updates the package declaration"
+    }
+  }
+}

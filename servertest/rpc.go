@@ -58,6 +58,36 @@ func (e *rpcError) Error() string {
 	return fmt.Sprintf("jsonrpc error %d: %s", e.Code, e.Message)
 }
 
+// PendingCall is an in-flight JSON-RPC request sent by a harness.
+type PendingCall struct {
+	conn  *rpcConn
+	id    int64
+	idStr string
+	ch    chan *rpcResponse
+}
+
+// ID returns the JSON-RPC request ID.
+func (c *PendingCall) ID() int64 {
+	return c.id
+}
+
+// Wait waits for the response to this request.
+func (c *PendingCall) Wait(ctx context.Context) (json.RawMessage, error) {
+	defer c.conn.pending.Delete(c.idStr)
+
+	select {
+	case resp := <-c.ch:
+		if resp.Error != nil {
+			return nil, resp.Error
+		}
+		return resp.Result, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-c.conn.done:
+		return nil, fmt.Errorf("connection closed")
+	}
+}
+
 // rawMsg is used for initial JSON parsing to determine message type.
 type rawMsg struct {
 	ID     *json.RawMessage `json:"id,omitempty"`
@@ -210,6 +240,14 @@ func (c *rpcConn) writeJSON(v any) error {
 
 // call sends a JSON-RPC request and waits for the response.
 func (c *rpcConn) call(ctx context.Context, method string, params any) (json.RawMessage, error) {
+	call, err := c.startCall(method, params)
+	if err != nil {
+		return nil, err
+	}
+	return call.Wait(ctx)
+}
+
+func (c *rpcConn) startCall(method string, params any) (*PendingCall, error) {
 	id := c.nextID.Add(1)
 	idStr := fmt.Sprintf("%d", id)
 
@@ -224,7 +262,6 @@ func (c *rpcConn) call(ctx context.Context, method string, params any) (json.Raw
 
 	ch := make(chan *rpcResponse, 1)
 	c.pending.Store(idStr, ch)
-	defer c.pending.Delete(idStr)
 
 	req := rpcRequest{
 		JSONRPC: "2.0",
@@ -233,20 +270,11 @@ func (c *rpcConn) call(ctx context.Context, method string, params any) (json.Raw
 		Params:  raw,
 	}
 	if err := c.writeJSON(req); err != nil {
+		c.pending.Delete(idStr)
 		return nil, err
 	}
 
-	select {
-	case resp := <-ch:
-		if resp.Error != nil {
-			return nil, resp.Error
-		}
-		return resp.Result, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-c.done:
-		return nil, fmt.Errorf("connection closed")
-	}
+	return &PendingCall{conn: c, id: id, idStr: idStr, ch: ch}, nil
 }
 
 // notify sends a JSON-RPC notification (no ID, no response expected).
