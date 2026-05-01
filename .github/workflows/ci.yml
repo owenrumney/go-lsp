@@ -10,6 +10,21 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect changed files
+    runs-on: ubuntu-latest
+    outputs:
+      go_files_changed: ${{ steps.filter.outputs.go_files }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect Go file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            go_files:
+              - '**/*.go'
+
   fmt:
     name: Format
     runs-on: ubuntu-latest
@@ -42,6 +57,8 @@ jobs:
 
   test-race:
     name: Test Race
+    needs: changes
+    if: needs.changes.outputs.go_files_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,6 +70,8 @@ jobs:
 
   fuzz-document:
     name: Fuzz Document
+    needs: changes
+    if: needs.changes.outputs.go_files_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
