@@ -157,6 +157,86 @@ func TestServerCapabilitiesMarshal(t *testing.T) {
 	}
 }
 
+func TestSemanticTokensRequestsUnmarshal(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		check   func(t *testing.T, r SemanticTokensRequestsCapabilities)
+		wantErr bool
+	}{
+		{
+			name:  "full as true",
+			input: `{"requests":{"full":true}}`,
+			check: func(t *testing.T, r SemanticTokensRequestsCapabilities) {
+				if r.Full == nil {
+					t.Fatal("full should be non-nil for boolean true")
+				}
+				if r.Full.Delta != nil {
+					t.Errorf("delta should be nil, got %v", *r.Full.Delta)
+				}
+			},
+		},
+		{
+			name:  "full as false",
+			input: `{"requests":{"full":false}}`,
+			check: func(t *testing.T, r SemanticTokensRequestsCapabilities) {
+				if r.Full != nil {
+					t.Errorf("full should be nil for boolean false, got %+v", r.Full)
+				}
+			},
+		},
+		{
+			name:  "full as object with delta",
+			input: `{"requests":{"full":{"delta":true}}}`,
+			check: func(t *testing.T, r SemanticTokensRequestsCapabilities) {
+				if r.Full == nil || r.Full.Delta == nil || !*r.Full.Delta {
+					t.Fatalf("delta not preserved, got %+v", r.Full)
+				}
+			},
+		},
+		{
+			name:  "range as boolean",
+			input: `{"requests":{"range":true}}`,
+			check: func(t *testing.T, r SemanticTokensRequestsCapabilities) {
+				if r.Range == nil || !*r.Range {
+					t.Fatalf("range not preserved, got %+v", r.Range)
+				}
+			},
+		},
+		{
+			name:  "range as empty object",
+			input: `{"requests":{"range":{}}}`,
+			check: func(t *testing.T, r SemanticTokensRequestsCapabilities) {
+				if r.Range == nil || !*r.Range {
+					t.Fatalf("range {} should mean supported, got %+v", r.Range)
+				}
+			},
+		},
+		{
+			name:    "full as invalid",
+			input:   `{"requests":{"full":"nonsense"}}`,
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var caps SemanticTokensClientCapabilities
+			err := json.Unmarshal([]byte(tc.input), &caps)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unmarshal: %v", err)
+			}
+			tc.check(t, caps.Requests)
+		})
+	}
+}
+
 func TestPositionEncodingCapabilitiesMarshal(t *testing.T) {
 	caps := ClientCapabilities{
 		General: &GeneralClientCapabilities{
