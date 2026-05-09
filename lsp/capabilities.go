@@ -264,16 +264,61 @@ type FoldingRangeClientCapabilities struct {
 
 // SemanticTokensClientCapabilities declares which semantic token types, modifiers, and request styles (full, delta, range) the editor supports.
 type SemanticTokensClientCapabilities struct {
-	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
-	Requests            struct {
-		Range *bool               `json:"range,omitempty"`
-		Full  *SemanticTokensFull `json:"full,omitempty"`
-	} `json:"requests"`
-	TokenTypes              []string      `json:"tokenTypes"`
-	TokenModifiers          []string      `json:"tokenModifiers"`
-	Formats                 []TokenFormat `json:"formats"`
-	OverlappingTokenSupport *bool         `json:"overlappingTokenSupport,omitempty"`
-	MultilineTokenSupport   *bool         `json:"multilineTokenSupport,omitempty"`
+	DynamicRegistration     *bool                              `json:"dynamicRegistration,omitempty"`
+	Requests                SemanticTokensRequestsCapabilities `json:"requests"`
+	TokenTypes              []string                           `json:"tokenTypes"`
+	TokenModifiers          []string                           `json:"tokenModifiers"`
+	Formats                 []TokenFormat                      `json:"formats"`
+	OverlappingTokenSupport *bool                              `json:"overlappingTokenSupport,omitempty"`
+	MultilineTokenSupport   *bool                              `json:"multilineTokenSupport,omitempty"`
+}
+
+// SemanticTokensRequestsCapabilities describes the semantic token request styles the client supports.
+// Per the LSP spec, "range" is `boolean | {}` and "full" is `boolean | { delta?: boolean }`;
+// UnmarshalJSON accepts either form.
+type SemanticTokensRequestsCapabilities struct {
+	Range *bool               `json:"range,omitempty"`
+	Full  *SemanticTokensFull `json:"full,omitempty"`
+}
+
+// UnmarshalJSON accepts both the boolean and object forms for "range" and "full" per the LSP spec.
+func (s *SemanticTokensRequestsCapabilities) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		Range json.RawMessage `json:"range"`
+		Full  json.RawMessage `json:"full"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	if len(raw.Range) > 0 && string(raw.Range) != "null" {
+		var b bool
+		if err := json.Unmarshal(raw.Range, &b); err == nil {
+			s.Range = &b
+		} else {
+			// Empty object form ({}) — presence indicates support.
+			t := true
+			s.Range = &t
+		}
+	}
+
+	if len(raw.Full) > 0 && string(raw.Full) != "null" {
+		var b bool
+		if err := json.Unmarshal(raw.Full, &b); err == nil {
+			if b {
+				s.Full = &SemanticTokensFull{}
+			}
+			// false → leave Full nil to signal unsupported.
+		} else {
+			var f SemanticTokensFull
+			if err := json.Unmarshal(raw.Full, &f); err != nil {
+				return err
+			}
+			s.Full = &f
+		}
+	}
+
+	return nil
 }
 
 // WindowClientCapabilities declares editor support for window features like work-done progress, show-message requests, and show-document.
