@@ -241,7 +241,7 @@ const counterEl = document.getElementById('counter');
 const indicatorEl = document.getElementById('new-indicator');
 
 let allEntries = [];
-let entryById = {};
+let entryById = new Map();
 let selectedId = null;
 let autoScroll = true;
 
@@ -329,7 +329,7 @@ function matchesFilter(e) {
   if (q) {
     let matchText = e.method.toLowerCase() + JSON.stringify(e.body).toLowerCase();
     if (e.pairedWith >= 0) {
-      const resp = entryById[e.pairedWith];
+      const resp = entryById.get(e.pairedWith);
       if (resp) matchText += JSON.stringify(resp.body).toLowerCase();
     }
     if (!matchText.includes(q)) return false;
@@ -349,7 +349,7 @@ function renderList() {
     let latencyHtml = '';
     if (e.msgType === 'request') {
       if (e.pairedWith >= 0) {
-        const resp = entryById[e.pairedWith];
+        const resp = entryById.get(e.pairedWith);
         if (resp) {
           const ms = new Date(resp.timestamp) - new Date(e.timestamp);
           const hasError = resp.body && JSON.stringify(resp.body).includes('"error"');
@@ -375,7 +375,7 @@ function renderDetail() {
     detailEl.innerHTML = '<div class="empty">Select a message to view details</div>';
     return;
   }
-  const e = entryById[selectedId];
+  const e = entryById.get(selectedId);
   if (!e) return;
 
   let html = `<div class="meta">#${e.id} \u00b7 ${escapeHtml(formatTime(e.timestamp))} \u00b7 ${escapeHtml(String(e.direction || ''))} \u00b7 ${escapeHtml(String(e.msgType || ''))}${e.rpcId ? ' \u00b7 id: ' + escapeHtml(String(e.rpcId)) : ''}</div>`;
@@ -384,7 +384,7 @@ function renderDetail() {
     html += '<h3>Request</h3>';
     html += '<pre>' + escapeHtml(prettyJson(e.body)) + '</pre>';
     if (e.pairedWith >= 0) {
-      const resp = entryById[e.pairedWith];
+      const resp = entryById.get(e.pairedWith);
       if (resp) {
         const ms = new Date(resp.timestamp) - new Date(e.timestamp);
         html += `<h3>Response <span class="latency ${latencyClass(ms)}">(${formatLatency(ms)})</span></h3>`;
@@ -447,7 +447,7 @@ typeFilter.addEventListener('change', renderList);
 document.getElementById('msg-clear').addEventListener('click', () => {
   fetch('/api/messages', { method: 'DELETE' }).then(() => {
     allEntries.length = 0;
-    entryById = {};
+    entryById = new Map();
     selectedId = null;
     renderList();
     renderTimeline();
@@ -554,7 +554,7 @@ function computeBarInfo(e, now, windowStart, pxPerMs) {
   const t0 = new Date(e.timestamp).getTime();
   let t1, barClass;
   if (e.pairedWith >= 0) {
-    const resp = entryById[e.pairedWith];
+    const resp = entryById.get(e.pairedWith);
     if (resp) {
       t1 = new Date(resp.timestamp).getTime();
       const ms = t1 - t0;
