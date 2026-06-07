@@ -1,56 +1,87 @@
 package lsp
 
-// TextDocumentIdentifier identifies a text document using a URI.
+// TextDocumentIdentifier is a literal to identify a text document in the client.
 type TextDocumentIdentifier struct {
+	// The text document's uri.
 	URI DocumentURI `json:"uri"`
 }
 
-// VersionedTextDocumentIdentifier extends TextDocumentIdentifier with a version.
+// VersionedTextDocumentIdentifier is a text document identifier to denote a specific version of a text document.
 type VersionedTextDocumentIdentifier struct {
 	TextDocumentIdentifier
+	// The version number of this document.
 	Version int `json:"version"`
 }
 
-// OptionalVersionedTextDocumentIdentifier allows a null version.
+// OptionalVersionedTextDocumentIdentifier is a text document identifier to optionally denote a specific version of a text document.
 type OptionalVersionedTextDocumentIdentifier struct {
 	TextDocumentIdentifier
+	// The version number of this document. If a versioned text document identifier
+	// is sent from the server to the client and the file is not open in the editor
+	// (the server has not received an open notification before) the server can send
+	// null to indicate that the version is unknown and the content on disk is the
+	// truth (as specified with document content ownership).
 	Version *int `json:"version"`
 }
 
-// TextDocumentItem carries the full content of a newly opened document along with its URI, language, and version.
+// TextDocumentItem is an item to transfer a text document from the client to the
+// server.
 type TextDocumentItem struct {
-	URI        DocumentURI `json:"uri"`
-	LanguageID string      `json:"languageId"`
-	Version    int         `json:"version"`
-	Text       string      `json:"text"`
+	// The text document's uri.
+	URI DocumentURI `json:"uri"`
+	// The text document's language identifier.
+	LanguageID string `json:"languageId"`
+	// The version number of this document (it will increase after each
+	// change, including undo/redo).
+	Version int `json:"version"`
+	// The content of the opened text document.
+	Text string `json:"text"`
 }
 
-// TextDocumentPositionParams identifies a specific cursor position in a document, used as the base for hover, completion, go-to-definition, etc.
+// TextDocumentPositionParams is a parameter literal used in requests to pass a text document and a position inside that
+// document.
 type TextDocumentPositionParams struct {
+	// The text document.
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Position     Position               `json:"position"`
+	// The position inside the text document.
+	Position Position `json:"position"`
 }
 
-// TextEdit replaces a range in a document with new text (or inserts if the range is empty).
+// TextEdit is an edit applicable to a text document.
 type TextEdit struct {
-	Range   Range  `json:"range"`
+	// The range of the text document to be manipulated. To insert
+	// text into a document create a range where start == end.
+	Range Range `json:"range"`
+	// The string to be inserted. For delete operations use an
+	// empty string.
 	NewText string `json:"newText"`
 }
 
-// AnnotatedTextEdit extends TextEdit with a change annotation.
+// AnnotatedTextEdit is a special text edit with an additional change annotation.
+//
+// Since 3.16.0.
 type AnnotatedTextEdit struct {
 	TextEdit
+	// The actual identifier of the change annotation
 	AnnotationID ChangeAnnotationIdentifier `json:"annotationId"`
 }
 
 // ChangeAnnotationIdentifier is an identifier for a change annotation.
 type ChangeAnnotationIdentifier string
 
-// ChangeAnnotation describes additional metadata for a change.
+// ChangeAnnotation is the additional information that describes document changes.
+//
+// Since 3.16.0.
 type ChangeAnnotation struct {
-	Label             string `json:"label"`
-	NeedsConfirmation *bool  `json:"needsConfirmation,omitempty"`
-	Description       string `json:"description,omitempty"`
+	// A human-readable string describing the actual change. The string
+	// is rendered prominent in the user interface.
+	Label string `json:"label"`
+	// A flag which indicates that user confirmation is needed
+	// before applying the change.
+	NeedsConfirmation *bool `json:"needsConfirmation,omitempty"`
+	// A human-readable string which is rendered less prominent in
+	// the user interface.
+	Description string `json:"description,omitempty"`
 }
 
 // TextDocumentContentChangeEvent describes a content change event.
@@ -60,39 +91,64 @@ type TextDocumentContentChangeEvent struct {
 	Text        string `json:"text"`
 }
 
-// DidOpenTextDocumentParams notifies the server that a document was opened in the editor, carrying its full content.
+// DidOpenTextDocumentParams is the parameters sent in an open text document notification.
 type DidOpenTextDocumentParams struct {
+	// The document that was opened.
 	TextDocument TextDocumentItem `json:"textDocument"`
 }
 
-// DidChangeTextDocumentParams notifies the server of edits made to an open document.
+// DidChangeTextDocumentParams is the change text document notification's parameters.
 type DidChangeTextDocumentParams struct {
-	TextDocument   VersionedTextDocumentIdentifier  `json:"textDocument"`
+	// The document that did change. The version number points
+	// to the version after all provided content changes have
+	// been applied.
+	TextDocument VersionedTextDocumentIdentifier `json:"textDocument"`
+	// The actual content changes. The content changes describe single state changes
+	// to the document. So if there are two content changes c1 (at array index 0) and
+	// c2 (at array index 1) for a document in state S then c1 moves the document from
+	// S to S' and c2 from S' to S''. So c1 is computed on the state S and c2 is computed
+	// on the state S'.
+	//
+	// To mirror the content of a document using change events use the following approach:
+	// - start with the same initial content
+	// - apply the 'textDocument/didChange' notifications in the order you receive them.
+	// - apply the TextDocumentContentChangeEvents in a single notification in the order
+	//   you receive them.
 	ContentChanges []TextDocumentContentChangeEvent `json:"contentChanges"`
 }
 
-// DidCloseTextDocumentParams notifies the server that a document is no longer open in the editor.
+// DidCloseTextDocumentParams is the parameters sent in a close text document notification.
 type DidCloseTextDocumentParams struct {
+	// The document that was closed.
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 }
 
-// DidSaveTextDocumentParams notifies the server that a document was saved, optionally including its text.
+// DidSaveTextDocumentParams is the parameters sent in a save text document notification.
 type DidSaveTextDocumentParams struct {
+	// The document that was saved.
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Text         *string                `json:"text,omitempty"`
+	// Optional the content when saved. Depends on the includeText value
+	// when the save notification was requested.
+	Text *string `json:"text,omitempty"`
 }
 
-// WillSaveTextDocumentParams notifies the server that a document is about to be saved, allowing it to compute pre-save edits.
+// WillSaveTextDocumentParams is the parameters sent in a will save text document notification.
 type WillSaveTextDocumentParams struct {
+	// The document that will be saved.
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Reason       TextDocumentSaveReason `json:"reason"`
+	// The 'TextDocumentSaveReason'.
+	Reason TextDocumentSaveReason `json:"reason"`
 }
 
 // TextDocumentSaveReason is an int enum indicating why a save occurred (manual, afterDelay, or focusOut).
 type TextDocumentSaveReason int
 
 const (
-	SaveManual     TextDocumentSaveReason = 1
+	// Manually triggered, e.g. by the user pressing save, by starting debugging,
+	// or by an API call.
+	SaveManual TextDocumentSaveReason = 1
+	// Automatic after a delay.
 	SaveAfterDelay TextDocumentSaveReason = 2
-	SaveFocusOut   TextDocumentSaveReason = 3
+	// When the editor lost focus.
+	SaveFocusOut TextDocumentSaveReason = 3
 )

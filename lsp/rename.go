@@ -1,9 +1,12 @@
 package lsp
 
-// RenameParams is sent to rename a symbol across the workspace.
+// RenameParams is the parameters of a [RenameRequest].
 type RenameParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
+	// The new name of the symbol. If the given name is not valid the
+	// request must return a [ResponseError] with an
+	// appropriate message set.
 	NewName string `json:"newName"`
 }
 

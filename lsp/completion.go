@@ -35,46 +35,145 @@ const (
 type CompletionItemTag int
 
 const (
+	// Render a completion as obsolete, usually using a strike-out.
 	CompletionItemTagDeprecated CompletionItemTag = 1
 )
 
-// CompletionContext contains additional information about the completion request.
+// CompletionContext is the contains additional information about the context in which a completion request is triggered.
 type CompletionContext struct {
-	TriggerKind      CompletionTriggerKind `json:"triggerKind"`
-	TriggerCharacter string                `json:"triggerCharacter,omitempty"`
+	// How the completion was triggered.
+	TriggerKind CompletionTriggerKind `json:"triggerKind"`
+	// The trigger character (a single character) that has trigger code complete.
+	// Is empty if `triggerKind !== [CompletionTriggerCharacter]`
+	TriggerCharacter string `json:"triggerCharacter,omitempty"`
 }
 
-// CompletionParams is sent to request completions at a cursor position.
+// CompletionParams is the parameters.
 type CompletionParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
 	PartialResultParams
+	// The completion context. This is only available if the client specifies
+	// to send this using the client capability `textDocument.completion.contextSupport === true`
 	Context *CompletionContext `json:"context,omitempty"`
 }
 
-// CompletionItem is a single completion entry with label, kind, documentation, and the text edit to apply on acceptance.
+// CompletionItem represents a text snippet that is
+// proposed to complete text that is being typed.
 type CompletionItem struct {
-	Label               string              `json:"label"`
-	Kind                *CompletionItemKind `json:"kind,omitempty"`
-	Tags                []CompletionItemTag `json:"tags,omitempty"`
-	Detail              string              `json:"detail,omitempty"`
-	Documentation       *MarkupContent      `json:"documentation,omitempty"`
-	Deprecated          *bool               `json:"deprecated,omitempty"`
-	Preselect           *bool               `json:"preselect,omitempty"`
-	SortText            string              `json:"sortText,omitempty"`
-	FilterText          string              `json:"filterText,omitempty"`
-	InsertText          string              `json:"insertText,omitempty"`
-	InsertTextFormat    *InsertTextFormat   `json:"insertTextFormat,omitempty"`
-	InsertTextMode      *InsertTextMode     `json:"insertTextMode,omitempty"`
-	TextEdit            *TextEdit           `json:"textEdit,omitempty"`
-	AdditionalTextEdits []TextEdit          `json:"additionalTextEdits,omitempty"`
-	CommitCharacters    []string            `json:"commitCharacters,omitempty"`
-	Command             *Command            `json:"command,omitempty"`
-	Data                any                 `json:"data,omitempty"`
+	// The label of this completion item.
+	//
+	// The label property is also by default the text that
+	// is inserted when selecting this completion.
+	//
+	// If label details are provided the label itself should
+	// be an unqualified name of the completion item.
+	Label string `json:"label"`
+	// The kind of this completion item. Based of the kind
+	// an icon is chosen by the editor.
+	Kind *CompletionItemKind `json:"kind,omitempty"`
+	// Tags for this completion item.
+	//
+	// Since 3.15.0
+	Tags []CompletionItemTag `json:"tags,omitempty"`
+	// A human-readable string with additional information
+	// about this item, like type or symbol information.
+	Detail string `json:"detail,omitempty"`
+	// A human-readable string that represents a doc-comment.
+	Documentation *MarkupContent `json:"documentation,omitempty"`
+	// Indicates if this item is deprecated.
+	//
+	// Deprecated: Use tags instead.
+	Deprecated *bool `json:"deprecated,omitempty"`
+	// Select this item when showing.
+	//
+	// *Note* that only one completion item can be selected and that the
+	// tool / client decides which item that is. The rule is that the *first*
+	// item of those that match best is selected.
+	Preselect *bool `json:"preselect,omitempty"`
+	// A string that should be used when comparing this item
+	// with other items. When empty the [CompletionItem.Label]
+	// is used.
+	SortText string `json:"sortText,omitempty"`
+	// A string that should be used when filtering a set of
+	// completion items. When empty the [CompletionItem.Label]
+	// is used.
+	FilterText string `json:"filterText,omitempty"`
+	// A string that should be inserted into a document when selecting
+	// this completion. When empty the [CompletionItem.Label]
+	// is used.
+	//
+	// The insertText is subject to interpretation by the client side.
+	// Some tools might not take the string literally. For example
+	// VS Code when code complete is requested in this example
+	// `con<cursor position>` and a completion item with an insertText of
+	// console is provided it will only insert sole. Therefore it is
+	// recommended to use textEdit instead since it avoids additional client
+	// side interpretation.
+	InsertText string `json:"insertText,omitempty"`
+	// The format of the insert text. The format applies to both the
+	// insertText property and the newText property of a provided
+	// textEdit. If omitted defaults to `[InsertTextFormatPlainText]`.
+	//
+	// Please note that the insertTextFormat doesn't apply to
+	// additionalTextEdits.
+	InsertTextFormat *InsertTextFormat `json:"insertTextFormat,omitempty"`
+	// How whitespace and indentation is handled during completion
+	// item insertion. If not provided the clients default value depends on
+	// the `textDocument.completion.insertTextMode` client capability.
+	//
+	// Since 3.16.0
+	InsertTextMode *InsertTextMode `json:"insertTextMode,omitempty"`
+	// An [TextEdit] which is applied to a document when selecting
+	// this completion. When an edit is provided the value of
+	// [CompletionItem.InsertText] is ignored.
+	//
+	// Most editors support two different operations when accepting a completion
+	// item. One is to insert a completion text and the other is to replace an
+	// existing text with a completion text. Since this can usually not be
+	// predetermined by a server it can report both ranges. Clients need to
+	// signal support for InsertReplaceEdits via the
+	// `textDocument.completion.insertReplaceSupport` client capability
+	// property.
+	//
+	// *Note 1:* The text edit's range as well as both ranges from an insert
+	// replace edit must be a [single line] and they must contain the position
+	// at which completion has been requested.
+	// *Note 2:* If an InsertReplaceEdit is returned the edit's insert range
+	// must be a prefix of the edit's replace range, that means it must be
+	// contained and starting at the same position.
+	//
+	// Since 3.16.0 additional type InsertReplaceEdit
+	TextEdit *TextEdit `json:"textEdit,omitempty"`
+	// An optional array of additional [TextEdit] that are applied when
+	// selecting this completion. Edits must not overlap (including the same insert position)
+	// with the main [CompletionItem.TextEdit] nor with themselves.
+	//
+	// Additional text edits should be used to change text unrelated to the current cursor position
+	// (for example adding an import statement at the top of the file if the completion item will
+	// insert an unqualified type).
+	AdditionalTextEdits []TextEdit `json:"additionalTextEdits,omitempty"`
+	// An optional set of characters that when pressed while this completion is active will accept it first and
+	// then type that character. *Note* that all commit characters should have `length=1` and that superfluous
+	// characters will be ignored.
+	CommitCharacters []string `json:"commitCharacters,omitempty"`
+	// An optional [Command] that is executed *after* inserting this completion. *Note* that
+	// additional modifications to the current document should be described with the
+	// [CompletionItem.AdditionalTextEdits]-property.
+	Command *Command `json:"command,omitempty"`
+	// A data entry field that is preserved on a completion item between a
+	// [CompletionRequest] and a [CompletionResolveRequest].
+	Data any `json:"data,omitempty"`
 }
 
-// CompletionList wraps a list of completion items, indicating whether the list is incomplete and further typing should re-query.
+// CompletionList represents a collection of [CompletionItem] to be presented
+// in the editor.
 type CompletionList struct {
-	IsIncomplete bool             `json:"isIncomplete"`
-	Items        []CompletionItem `json:"items"`
+	// This list it not complete. Further typing results in recomputing this list.
+	//
+	// Recomputed lists have all their items replaced (not appended) in the
+	// incomplete completion sessions.
+	IsIncomplete bool `json:"isIncomplete"`
+	// The completion items.
+	Items []CompletionItem `json:"items"`
 }

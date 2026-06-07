@@ -1,32 +1,53 @@
 package lsp
 
-// FormattingOptions describes options to be used during formatting.
+// FormattingOptions is the value-object describing what options formatting should use.
 type FormattingOptions struct {
-	TabSize                int   `json:"tabSize"`
-	InsertSpaces           bool  `json:"insertSpaces"`
+	// Size of a tab in spaces.
+	TabSize int `json:"tabSize"`
+	// Prefer spaces over tabs.
+	InsertSpaces bool `json:"insertSpaces"`
+	// Trim trailing whitespace on a line.
+	//
+	// Since 3.15.0
 	TrimTrailingWhitespace *bool `json:"trimTrailingWhitespace,omitempty"`
-	InsertFinalNewline     *bool `json:"insertFinalNewline,omitempty"`
-	TrimFinalNewlines      *bool `json:"trimFinalNewlines,omitempty"`
+	// Insert a newline character at the end of the file if one does not exist.
+	//
+	// Since 3.15.0
+	InsertFinalNewline *bool `json:"insertFinalNewline,omitempty"`
+	// Trim all newlines after the final newline at the end of the file.
+	//
+	// Since 3.15.0
+	TrimFinalNewlines *bool `json:"trimFinalNewlines,omitempty"`
 }
 
-// DocumentFormattingParams is sent to request formatting of an entire document.
+// DocumentFormattingParams is the parameters of a [DocumentFormattingRequest].
 type DocumentFormattingParams struct {
 	WorkDoneProgressParams
+	// The document to format.
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Options      FormattingOptions      `json:"options"`
+	// The format options.
+	Options FormattingOptions `json:"options"`
 }
 
-// DocumentRangeFormattingParams is sent to request formatting of a selected range within a document.
+// DocumentRangeFormattingParams is the parameters of a [DocumentRangeFormattingRequest].
 type DocumentRangeFormattingParams struct {
 	WorkDoneProgressParams
+	// The document to format.
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Range        Range                  `json:"range"`
-	Options      FormattingOptions      `json:"options"`
+	// The range to format
+	Range Range `json:"range"`
+	// The format options
+	Options FormattingOptions `json:"options"`
 }
 
-// DocumentOnTypeFormattingParams is sent to request formatting triggered by typing a character (e.g. closing brace or semicolon).
+// DocumentOnTypeFormattingParams is the parameters of a [DocumentOnTypeFormattingRequest].
 type DocumentOnTypeFormattingParams struct {
 	TextDocumentPositionParams
-	Character string            `json:"ch"`
-	Options   FormattingOptions `json:"options"`
+	// The character that has been typed that triggered the formatting
+	// on type request. That is not necessarily the last character that
+	// got inserted into the document since the client could auto insert
+	// characters as well (e.g. like automatic brace completion).
+	Character string `json:"ch"`
+	// The formatting options.
+	Options FormattingOptions `json:"options"`
 }
