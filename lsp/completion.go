@@ -39,7 +39,7 @@ const (
 	CompletionItemTagDeprecated CompletionItemTag = 1
 )
 
-// CompletionContext is the contains additional information about the context in which a completion request is triggered.
+// CompletionContext contains the additional information about the context in which a completion request is triggered.
 type CompletionContext struct {
 	// How the completion was triggered.
 	TriggerKind CompletionTriggerKind `json:"triggerKind"`
