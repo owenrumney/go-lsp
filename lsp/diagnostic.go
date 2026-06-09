@@ -32,7 +32,7 @@ const (
 )
 
 // DiagnosticRelatedInformation represents a related message and source code location for a diagnostic. This should be
-// used to point to code locations that cause or related to a diagnostic, e.g when duplicating
+// used to point to code locations that cause or are related to a diagnostic, e.g. when duplicating
 // a symbol in a scope.
 type DiagnosticRelatedInformation struct {
 	// The location of this related diagnostic information.
@@ -75,7 +75,7 @@ type Diagnostic struct {
 	// Since 3.15.0
 	Tags []DiagnosticTag `json:"tags,omitempty"`
 	// An array of related diagnostic information, e.g. when symbol-names within
-	// a scope collide all definitions can be marked via this property.
+	// a scope collide, all definitions can be marked via this property.
 	RelatedInformation []DiagnosticRelatedInformation `json:"relatedInformation,omitempty"`
 	// A data entry field that is preserved between a `textDocument/publishDiagnostics`
 	// notification and `textDocument/codeAction` request.

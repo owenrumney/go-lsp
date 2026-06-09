@@ -138,7 +138,7 @@ type PrepareSupportDefaultBehavior int
 
 const (
 	// The client's default behavior is to select the identifier
-	// according the to language's syntax rule.
+	// according to the language's syntax rule.
 	PrepareSupportDefaultBehaviorIdentifier PrepareSupportDefaultBehavior = 1
 )
 

@@ -33,7 +33,7 @@ type FoldingRange struct {
 	EndLine int `json:"endLine"`
 	// The zero-based character offset before the folded range ends. If not defined, defaults to the length of the end line.
 	EndCharacter *int `json:"endCharacter,omitempty"`
-	// Describes the kind of the folding range such as `comment' or 'region'. The kind
+	// Describes the kind of the folding range such as `comment` or `region`. The kind
 	// is used to categorize folding ranges and used by commands like 'Fold all comments'.
 	// See [FoldingRangeKind] for an enumeration of standardized kinds.
 	Kind *FoldingRangeKind `json:"kind,omitempty"`

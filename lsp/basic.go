@@ -1,6 +1,6 @@
 package lsp
 
-// DocumentURI is a URI identifying a text document, typically using the file:// scheme but other schemes are permitted.
+// DocumentURI is a URI identifying a text document, typically using the file:// scheme, but other schemes are permitted.
 type DocumentURI string
 
 // URI is a string-encoded URI as defined by RFC 3986.

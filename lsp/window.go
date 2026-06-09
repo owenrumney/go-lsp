@@ -38,7 +38,7 @@ type MessageActionItem struct {
 	Title string `json:"title"`
 }
 
-// LogMessageParams is the log message parameters.
+// LogMessageParams holds the log message parameters.
 type LogMessageParams struct {
 	// The message type. See [MessageType]
 	Type MessageType `json:"type"`

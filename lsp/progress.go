@@ -71,7 +71,7 @@ type WorkDoneProgressReport struct {
 // WorkDoneProgressEnd is sent to end a work done progress.
 type WorkDoneProgressEnd struct {
 	Kind string `json:"kind"` // "end"
-	// Optional, a final message indicating to for example indicate the outcome
+	// Optional, a final message indicating, for example, the outcome
 	// of the operation.
 	Message string `json:"message,omitempty"`
 }

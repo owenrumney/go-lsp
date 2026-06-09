@@ -18,7 +18,7 @@ type WorkspaceFolder struct {
 // Since version 3.13.0 a workspace edit can contain resource operations as well. If resource
 // operations are present clients need to execute the operations in the order in which they
 // are provided. So a workspace edit for example can consist of the following two changes:
-// (1) a create file a.txt and (2) a text document edit which insert text into file a.txt.
+// (1) a create file a.txt and (2) a text document edit which inserts text into file a.txt.
 //
 // An invalid sequence (e.g. (1) delete file a.txt and (2) insert text into file a.txt) will
 // cause failure of the operation. How the client recovers from the failure is described by
@@ -47,7 +47,7 @@ type WorkspaceEdit struct {
 }
 
 // TextDocumentEdit describes textual changes on a text document. A TextDocumentEdit describes all changes
-// on a document version Si and after they are applied move the document to version Si+1.
+// on a document version Si and after they are applied, move the document to version Si+1.
 // So the creator of a TextDocumentEdit doesn't need to sort the array of edits or do any
 // kind of ordering. However the edits must be non overlapping.
 type TextDocumentEdit struct {

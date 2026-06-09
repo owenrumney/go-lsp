@@ -34,7 +34,7 @@ type SignatureHelpContext struct {
 }
 
 // SignatureHelp represents the signature of something
-// callable. There can be multiple signature but only one
+// callable. There can be multiple signatures but only one
 // active and only one active parameter.
 type SignatureHelp struct {
 	// One or more signatures.

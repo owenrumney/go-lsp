@@ -69,7 +69,7 @@ type CompletionItem struct {
 	// If label details are provided the label itself should
 	// be an unqualified name of the completion item.
 	Label string `json:"label"`
-	// The kind of this completion item. Based of the kind
+	// The kind of this completion item. Based on the kind
 	// an icon is chosen by the editor.
 	Kind *CompletionItemKind `json:"kind,omitempty"`
 	// Tags for this completion item.

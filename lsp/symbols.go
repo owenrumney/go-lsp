@@ -80,7 +80,7 @@ type DocumentSymbol struct {
 	// The name of this symbol. Will be displayed in the user interface and therefore must not be
 	// an empty string or a string only consisting of white spaces.
 	Name string `json:"name"`
-	// More detail for this symbol, e.g the signature of a function.
+	// More detail for this symbol, e.g. the signature of a function.
 	Detail string `json:"detail,omitempty"`
 	// The kind of this symbol.
 	Kind SymbolKind `json:"kind"`

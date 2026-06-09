@@ -20,7 +20,7 @@ const (
 type MonikerKind string
 
 const (
-	// The moniker represent a symbol that is imported into a project.
+	// The moniker represents a symbol that is imported into a project.
 	MonikerKindImport MonikerKind = "import"
 	// The moniker represents a symbol that is exported from a project.
 	MonikerKindExport MonikerKind = "export"

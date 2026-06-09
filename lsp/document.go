@@ -74,12 +74,12 @@ type ChangeAnnotationIdentifier string
 // Since 3.16.0.
 type ChangeAnnotation struct {
 	// A human-readable string describing the actual change. The string
-	// is rendered prominent in the user interface.
+	// is rendered prominently in the user interface.
 	Label string `json:"label"`
 	// A flag which indicates that user confirmation is needed
 	// before applying the change.
 	NeedsConfirmation *bool `json:"needsConfirmation,omitempty"`
-	// A human-readable string which is rendered less prominent in
+	// A human-readable string which is rendered less prominently in
 	// the user interface.
 	Description string `json:"description,omitempty"`
 }
@@ -97,7 +97,7 @@ type DidOpenTextDocumentParams struct {
 	TextDocument TextDocumentItem `json:"textDocument"`
 }
 
-// DidChangeTextDocumentParams holds the change text document notification's parameters.
+// DidChangeTextDocumentParams holds the parameters of a text document change notification.
 type DidChangeTextDocumentParams struct {
 	// The document that did change. The version number points
 	// to the version after all provided content changes have
@@ -127,7 +127,7 @@ type DidCloseTextDocumentParams struct {
 type DidSaveTextDocumentParams struct {
 	// The document that was saved.
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	// Optional the content when saved. Depends on the includeText value
+	// Optionally, the content when saved. Depends on the includeText value
 	// when the save notification was requested.
 	Text *string `json:"text,omitempty"`
 }
