@@ -19,7 +19,7 @@ const (
 // Here is an example how such a string can be constructed using JavaScript / TypeScript:
 //
 //	let markdown: MarkdownContent = {
-//	 kind: [Markdown],
+//	 kind: "markdown",
 //	 value: [
 //	   '# Header',
 //	   'Some text',
