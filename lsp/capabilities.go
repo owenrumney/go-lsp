@@ -21,7 +21,7 @@ const (
 	PositionEncodingUTF32 PositionEncodingKind = "utf-32"
 )
 
-// ClientCapabilities is the defines the capabilities provided by the client.
+// ClientCapabilities defines the capabilities provided by the client.
 type ClientCapabilities struct {
 	// Workspace specific client capabilities.
 	Workspace *WorkspaceClientCapabilities `json:"workspace,omitempty"`
@@ -168,12 +168,12 @@ type CodeLensWorkspaceClientCapabilities struct {
 	//
 	// Note that this event is global and will force the client to refresh all
 	// code lenses currently shown. It should be used with absolute care and is
-	// useful for situation where a server for example detect a project wide
+	// useful for situation where a server for example detects a project wide
 	// change that requires such a calculation.
 	RefreshSupport *bool `json:"refreshSupport,omitempty"`
 }
 
-// FileOperationClientCapabilities is relating to events from file operations by the user in the client.
+// FileOperationClientCapabilities relates to events from file operations by the user in the client.
 //
 // These events do not come from the file system, they come from user operations
 // like renaming a file in the UI.
@@ -441,7 +441,7 @@ type DocumentSymbolClientCapabilities struct {
 	LabelSupport *bool `json:"labelSupport,omitempty"`
 }
 
-// CodeActionClientCapabilities is the Client Capabilities of a [CodeActionRequest].
+// CodeActionClientCapabilities defines the client capabilities of a [CodeActionRequest].
 type CodeActionClientCapabilities struct {
 	// Whether code action supports dynamic registration.
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
@@ -486,7 +486,7 @@ type CodeActionClientCapabilities struct {
 	HonorsChangeAnnotations *bool `json:"honorsChangeAnnotations,omitempty"`
 }
 
-// DocumentLinkClientCapabilities is the client capabilities of a [DocumentLinkRequest].
+// DocumentLinkClientCapabilities defines the client capabilities of a [DocumentLinkRequest].
 type DocumentLinkClientCapabilities struct {
 	// Whether document link supports dynamic registration.
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
@@ -588,7 +588,7 @@ type SemanticTokensClientCapabilities struct {
 	TokenTypes []string `json:"tokenTypes"`
 	// The token modifiers that the client supports.
 	TokenModifiers []string `json:"tokenModifiers"`
-	// The token formats the clients supports.
+	// The token formats the client supports.
 	Formats []TokenFormat `json:"formats"`
 	// Whether the client supports tokens that can overlap each other.
 	OverlappingTokenSupport *bool `json:"overlappingTokenSupport,omitempty"`
@@ -712,7 +712,7 @@ type GeneralClientCapabilities struct {
 	} `json:"markdown,omitempty"`
 }
 
-// ServerCapabilities is the defines the capabilities provided by a language
+// ServerCapabilities defines the capabilities provided by a language
 // server.
 type ServerCapabilities struct {
 	// The position encoding the server picked from the encodings offered

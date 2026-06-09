@@ -6,7 +6,7 @@ import "encoding/json"
 type InlayHintKind int
 
 const (
-	// An inlay hint that for a type annotation.
+	// An inlay hint that is for a type annotation.
 	InlayHintKindType InlayHintKind = 1
 	// An inlay hint that is for a parameter.
 	InlayHintKindParameter InlayHintKind = 2
@@ -53,7 +53,7 @@ type InlayHintLabelPart struct {
 	Command *Command `json:"command,omitempty"`
 }
 
-// InlayHint is the information.
+// InlayHint represents inlay hint information.
 //
 // Since 3.17.0.
 type InlayHint struct {

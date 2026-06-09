@@ -1,6 +1,6 @@
 package lsp
 
-// HoverParams is the parameters for a [HoverRequest].
+// HoverParams holds the parameters for a [HoverRequest].
 type HoverParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams

@@ -14,7 +14,7 @@ const (
 	DiagnosticReportUnchanged DocumentDiagnosticReportKind = "unchanged"
 )
 
-// DocumentDiagnosticParams is the parameters of the document diagnostic request.
+// DocumentDiagnosticParams holds the parameters of the document diagnostic request.
 //
 // Since 3.17.0.
 type DocumentDiagnosticParams struct {
@@ -93,7 +93,7 @@ type PreviousResultID struct {
 	Value string      `json:"value"`
 }
 
-// WorkspaceDiagnosticParams is the parameters of the workspace diagnostic request.
+// WorkspaceDiagnosticParams holds the parameters of the workspace diagnostic request.
 //
 // Since 3.17.0.
 type WorkspaceDiagnosticParams struct {
@@ -169,7 +169,7 @@ type DiagnosticClientCapabilities struct {
 	// the client supports the new `(TextDocumentRegistrationOptions & StaticRegistrationOptions)`
 	// return value for the corresponding server capability as well.
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
-	// Whether the clients supports related documents for document diagnostic pulls.
+	// Whether the client supports related documents for document diagnostic pulls.
 	RelatedDocumentSupport *bool `json:"relatedDocumentSupport,omitempty"`
 }
 

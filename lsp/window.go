@@ -14,7 +14,7 @@ const (
 	MessageTypeLog MessageType = 4
 )
 
-// ShowMessageParams is the parameters of a notification message.
+// ShowMessageParams holds the parameters of a notification message.
 type ShowMessageParams struct {
 	// The message type. See [MessageType]
 	Type MessageType `json:"type"`

@@ -76,7 +76,7 @@ type ServerInfo struct {
 // InitializedParams is sent after the client receives the initialize result; the struct is intentionally empty.
 type InitializedParams struct{}
 
-// ReferenceParams is the parameters for a [ReferencesRequest].
+// ReferenceParams holds the parameters for a [ReferencesRequest].
 type ReferenceParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
@@ -98,7 +98,7 @@ type DeclarationParams struct {
 	PartialResultParams
 }
 
-// DefinitionParams is the parameters for a [DefinitionRequest].
+// DefinitionParams holds the parameters for a [DefinitionRequest].
 type DefinitionParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
@@ -124,7 +124,7 @@ type SetTraceParams struct {
 	Value TraceValue `json:"value"`
 }
 
-// DocumentHighlightParams is the parameters for a [DocumentHighlightRequest].
+// DocumentHighlightParams holds the parameters for a [DocumentHighlightRequest].
 type DocumentHighlightParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
@@ -137,7 +137,7 @@ type DocumentHighlightParams struct {
 type DocumentHighlight struct {
 	// The range this highlight applies to.
 	Range Range `json:"range"`
-	// The highlight kind, default is [[DocumentHighlightKindText]].
+	// The highlight kind, default is [DocumentHighlightKindText].
 	Kind *DocumentHighlightKind `json:"kind,omitempty"`
 }
 

@@ -1,6 +1,6 @@
 package lsp
 
-// SignatureHelpParams is the parameters for a [SignatureHelpRequest].
+// SignatureHelpParams holds the parameters for a [SignatureHelpRequest].
 type SignatureHelpParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams

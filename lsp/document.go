@@ -91,13 +91,13 @@ type TextDocumentContentChangeEvent struct {
 	Text        string `json:"text"`
 }
 
-// DidOpenTextDocumentParams is the parameters sent in an open text document notification.
+// DidOpenTextDocumentParams holds the parameters sent in an open text document notification.
 type DidOpenTextDocumentParams struct {
 	// The document that was opened.
 	TextDocument TextDocumentItem `json:"textDocument"`
 }
 
-// DidChangeTextDocumentParams is the change text document notification's parameters.
+// DidChangeTextDocumentParams holds the change text document notification's parameters.
 type DidChangeTextDocumentParams struct {
 	// The document that did change. The version number points
 	// to the version after all provided content changes have
@@ -117,13 +117,13 @@ type DidChangeTextDocumentParams struct {
 	ContentChanges []TextDocumentContentChangeEvent `json:"contentChanges"`
 }
 
-// DidCloseTextDocumentParams is the parameters sent in a close text document notification.
+// DidCloseTextDocumentParams holds the parameters sent in a close text document notification.
 type DidCloseTextDocumentParams struct {
 	// The document that was closed.
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 }
 
-// DidSaveTextDocumentParams is the parameters sent in a save text document notification.
+// DidSaveTextDocumentParams holds the parameters sent in a save text document notification.
 type DidSaveTextDocumentParams struct {
 	// The document that was saved.
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
@@ -132,7 +132,7 @@ type DidSaveTextDocumentParams struct {
 	Text *string `json:"text,omitempty"`
 }
 
-// WillSaveTextDocumentParams is the parameters sent in a will save text document notification.
+// WillSaveTextDocumentParams holds the parameters sent in a will save text document notification.
 type WillSaveTextDocumentParams struct {
 	// The document that will be saved.
 	TextDocument TextDocumentIdentifier `json:"textDocument"`

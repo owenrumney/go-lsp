@@ -49,7 +49,7 @@ type DocumentFilter struct {
 	Pattern  string `json:"pattern,omitempty"`
 }
 
-// TextDocumentChangeRegistrationOptions is the describe options to be used when registered for text document change events.
+// TextDocumentChangeRegistrationOptions describes the options to be used when registered for text document change events.
 type TextDocumentChangeRegistrationOptions struct {
 	TextDocumentRegistrationOptions
 	// How documents are synced to the server.
@@ -63,7 +63,7 @@ type TextDocumentSaveRegistrationOptions struct {
 	IncludeText *bool `json:"includeText,omitempty"`
 }
 
-// DidChangeWatchedFilesRegistrationOptions is the describe options to be used when registered for text document change events.
+// DidChangeWatchedFilesRegistrationOptions describes the options to be used when registered for text document change events.
 type DidChangeWatchedFilesRegistrationOptions struct {
 	// The watchers to register.
 	Watchers []FileSystemWatcher `json:"watchers"`

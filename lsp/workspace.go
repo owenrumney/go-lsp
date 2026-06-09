@@ -70,7 +70,7 @@ type CreateFileOptions struct {
 
 // CreateFile is an operation.
 type CreateFile struct {
-	// A create
+	// A create operation.
 	Kind string `json:"kind"` // "create"
 	// The resource to create.
 	URI DocumentURI `json:"uri"`
@@ -88,7 +88,7 @@ type RenameFileOptions struct {
 
 // RenameFile is an operation.
 type RenameFile struct {
-	// A rename
+	// A rename operation.
 	Kind string `json:"kind"` // "rename"
 	// The old (existing) location.
 	OldURI DocumentURI `json:"oldUri"`
@@ -108,7 +108,7 @@ type DeleteFileOptions struct {
 
 // DeleteFile is an operation.
 type DeleteFile struct {
-	// A delete
+	// A delete operation.
 	Kind string `json:"kind"` // "delete"
 	// The file to delete.
 	URI DocumentURI `json:"uri"`
@@ -124,7 +124,7 @@ type FileEvent struct {
 	Type FileChangeType `json:"type"`
 }
 
-// DidChangeWatchedFilesParams is the watched files change notification's parameters.
+// DidChangeWatchedFilesParams holds the watched files change notification's parameters.
 type DidChangeWatchedFilesParams struct {
 	// The actual file events.
 	Changes []FileEvent `json:"changes"`
@@ -142,13 +142,13 @@ type FileSystemWatcher struct {
 	Kind *WatchKind `json:"kind,omitempty"`
 }
 
-// DidChangeConfigurationParams is the parameters of a change configuration notification.
+// DidChangeConfigurationParams holds the parameters of a change configuration notification.
 type DidChangeConfigurationParams struct {
 	// The actual changed settings
 	Settings any `json:"settings"`
 }
 
-// ConfigurationParams is the parameters of a configuration request.
+// ConfigurationParams holds the parameters of a configuration request.
 type ConfigurationParams struct {
 	Items []ConfigurationItem `json:"items"`
 }
@@ -161,7 +161,7 @@ type ConfigurationItem struct {
 	Section string `json:"section,omitempty"`
 }
 
-// DidChangeWorkspaceFoldersParams is the parameters of a `workspace/didChangeWorkspaceFolders` notification.
+// DidChangeWorkspaceFoldersParams holds the parameters of a `workspace/didChangeWorkspaceFolders` notification.
 type DidChangeWorkspaceFoldersParams struct {
 	// The actual workspace folder change event.
 	Event WorkspaceFoldersChangeEvent `json:"event"`
@@ -175,7 +175,7 @@ type WorkspaceFoldersChangeEvent struct {
 	Removed []WorkspaceFolder `json:"removed"`
 }
 
-// ExecuteCommandParams is the parameters of a [ExecuteCommandRequest].
+// ExecuteCommandParams holds the parameters of a [ExecuteCommandRequest].
 type ExecuteCommandParams struct {
 	WorkDoneProgressParams
 	// The identifier of the actual command handler.
@@ -184,7 +184,7 @@ type ExecuteCommandParams struct {
 	Arguments []json.RawMessage `json:"arguments,omitempty"`
 }
 
-// FileCreate is the represents information on a file/folder create.
+// FileCreate represents information on a file/folder create.
 //
 // Since 3.16.0.
 type FileCreate struct {
@@ -192,7 +192,7 @@ type FileCreate struct {
 	URI string `json:"uri"`
 }
 
-// CreateFilesParams is the parameters sent in notifications/requests for user-initiated creation of
+// CreateFilesParams holds the parameters sent in notifications/requests for user-initiated creation of
 // files.
 //
 // Since 3.16.0.
@@ -201,7 +201,7 @@ type CreateFilesParams struct {
 	Files []FileCreate `json:"files"`
 }
 
-// FileRename is the represents information on a file/folder rename.
+// FileRename represents information on a file/folder rename.
 //
 // Since 3.16.0.
 type FileRename struct {
@@ -211,7 +211,7 @@ type FileRename struct {
 	NewURI string `json:"newUri"`
 }
 
-// RenameFilesParams is the parameters sent in notifications/requests for user-initiated renames of
+// RenameFilesParams holds the parameters sent in notifications/requests for user-initiated renames of
 // files.
 //
 // Since 3.16.0.
@@ -221,7 +221,7 @@ type RenameFilesParams struct {
 	Files []FileRename `json:"files"`
 }
 
-// FileDelete is the represents information on a file/folder delete.
+// FileDelete represents information on a file/folder delete.
 //
 // Since 3.16.0.
 type FileDelete struct {
@@ -229,7 +229,7 @@ type FileDelete struct {
 	URI string `json:"uri"`
 }
 
-// DeleteFilesParams is the parameters sent in notifications/requests for user-initiated deletes of
+// DeleteFilesParams holds the parameters sent in notifications/requests for user-initiated deletes of
 // files.
 //
 // Since 3.16.0.
@@ -238,7 +238,7 @@ type DeleteFilesParams struct {
 	Files []FileDelete `json:"files"`
 }
 
-// ApplyWorkspaceEditParams is the parameters passed via an apply workspace edit request.
+// ApplyWorkspaceEditParams holds the parameters passed via an apply workspace edit request.
 type ApplyWorkspaceEditParams struct {
 	// An optional label of the workspace edit. This label is
 	// presented in the user interface for example on an undo

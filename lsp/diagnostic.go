@@ -10,7 +10,7 @@ const (
 	SeverityError DiagnosticSeverity = 1
 	// Reports a warning.
 	SeverityWarning DiagnosticSeverity = 2
-	// Reports an information.
+	// Reports information.
 	SeverityInformation DiagnosticSeverity = 3
 	// Reports a hint.
 	SeverityHint DiagnosticSeverity = 4
@@ -27,12 +27,12 @@ const (
 	TagUnnecessary DiagnosticTag = 1
 	// Deprecated or obsolete code.
 	//
-	// Clients are allowed to rendered diagnostics with this tag strike through.
+	// Clients are allowed to render diagnostics with this tag struck through.
 	TagDeprecated DiagnosticTag = 2
 )
 
 // DiagnosticRelatedInformation represents a related message and source code location for a diagnostic. This should be
-// used to point to code locations that cause or related to a diagnostics, e.g when duplicating
+// used to point to code locations that cause or related to a diagnostic, e.g when duplicating
 // a symbol in a scope.
 type DiagnosticRelatedInformation struct {
 	// The location of this related diagnostic information.
@@ -84,7 +84,7 @@ type Diagnostic struct {
 	Data json.RawMessage `json:"data,omitempty"`
 }
 
-// PublishDiagnosticsParams is the publish diagnostic notification's parameters.
+// PublishDiagnosticsParams holds the publish diagnostic notification's parameters.
 type PublishDiagnosticsParams struct {
 	// The URI for which diagnostic information is reported.
 	URI DocumentURI `json:"uri"`

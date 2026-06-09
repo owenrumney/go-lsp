@@ -20,7 +20,7 @@ type ColorInformation struct {
 	Color Color `json:"color"`
 }
 
-// DocumentColorParams is the parameters for a [DocumentColorRequest].
+// DocumentColorParams holds the parameters for a [DocumentColorRequest].
 type DocumentColorParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
@@ -28,7 +28,7 @@ type DocumentColorParams struct {
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 }
 
-// ColorPresentationParams is the parameters for a [ColorPresentationRequest].
+// ColorPresentationParams holds the parameters for a [ColorPresentationRequest].
 type ColorPresentationParams struct {
 	WorkDoneProgressParams
 	PartialResultParams

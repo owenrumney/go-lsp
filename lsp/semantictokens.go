@@ -29,7 +29,7 @@ type SemanticTokensFull struct {
 	Delta *bool `json:"delta,omitempty"`
 }
 
-// SemanticTokensParams is the parameters of a textDocument/semanticTokens/full request.
+// SemanticTokensParams holds the parameters of a textDocument/semanticTokens/full request.
 //
 // Since 3.16.0.
 type SemanticTokensParams struct {
@@ -39,7 +39,7 @@ type SemanticTokensParams struct {
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 }
 
-// SemanticTokensDeltaParams is the parameters of a textDocument/semanticTokens/full/delta request.
+// SemanticTokensDeltaParams holds the parameters of a textDocument/semanticTokens/full/delta request.
 //
 // Since 3.16.0.
 type SemanticTokensDeltaParams struct {
@@ -52,7 +52,7 @@ type SemanticTokensDeltaParams struct {
 	PreviousResultID string `json:"previousResultId"`
 }
 
-// SemanticTokensRangeParams is the parameters of a textDocument/semanticTokens/range request.
+// SemanticTokensRangeParams holds the parameters of a textDocument/semanticTokens/range request.
 //
 // Since 3.16.0.
 type SemanticTokensRangeParams struct {

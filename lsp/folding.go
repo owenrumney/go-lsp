@@ -12,7 +12,7 @@ const (
 	FoldingRangeKindRegion FoldingRangeKind = "region"
 )
 
-// FoldingRangeParams is the parameters for a [FoldingRangeRequest].
+// FoldingRangeParams holds the parameters for a [FoldingRangeRequest].
 type FoldingRangeParams struct {
 	WorkDoneProgressParams
 	PartialResultParams

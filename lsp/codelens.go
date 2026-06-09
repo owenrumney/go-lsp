@@ -2,7 +2,7 @@ package lsp
 
 import "encoding/json"
 
-// CodeLensParams is the parameters of a [CodeLensRequest].
+// CodeLensParams holds the parameters of a [CodeLensRequest].
 type CodeLensParams struct {
 	WorkDoneProgressParams
 	PartialResultParams

@@ -20,7 +20,7 @@ type FormattingOptions struct {
 	TrimFinalNewlines *bool `json:"trimFinalNewlines,omitempty"`
 }
 
-// DocumentFormattingParams is the parameters of a [DocumentFormattingRequest].
+// DocumentFormattingParams holds the parameters of a [DocumentFormattingRequest].
 type DocumentFormattingParams struct {
 	WorkDoneProgressParams
 	// The document to format.
@@ -29,7 +29,7 @@ type DocumentFormattingParams struct {
 	Options FormattingOptions `json:"options"`
 }
 
-// DocumentRangeFormattingParams is the parameters of a [DocumentRangeFormattingRequest].
+// DocumentRangeFormattingParams holds the parameters of a [DocumentRangeFormattingRequest].
 type DocumentRangeFormattingParams struct {
 	WorkDoneProgressParams
 	// The document to format.
@@ -40,7 +40,7 @@ type DocumentRangeFormattingParams struct {
 	Options FormattingOptions `json:"options"`
 }
 
-// DocumentOnTypeFormattingParams is the parameters of a [DocumentOnTypeFormattingRequest].
+// DocumentOnTypeFormattingParams holds the parameters of a [DocumentOnTypeFormattingRequest].
 type DocumentOnTypeFormattingParams struct {
 	TextDocumentPositionParams
 	// The character that has been typed that triggered the formatting

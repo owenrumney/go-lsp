@@ -46,7 +46,7 @@ const (
 	CodeActionSourceOrganizeImports CodeActionKind = "source.organizeImports"
 )
 
-// CodeActionContext is the contains additional diagnostic information about the context in which
+// CodeActionContext contains additional diagnostic information about the context in which
 // a [CodeActionProvider.ProvideCodeActions] is run.
 type CodeActionContext struct {
 	// An array of diagnostics known on the client side overlapping the range provided to the
@@ -62,7 +62,7 @@ type CodeActionContext struct {
 	Only []CodeActionKind `json:"only,omitempty"`
 }
 
-// CodeActionParams is the parameters of a [CodeActionRequest].
+// CodeActionParams holds the parameters of a [CodeActionRequest].
 type CodeActionParams struct {
 	WorkDoneProgressParams
 	PartialResultParams

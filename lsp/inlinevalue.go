@@ -11,7 +11,7 @@ type InlineValueContext struct {
 	StoppedLocation Range `json:"stoppedLocation"`
 }
 
-// InlineValueText provide inline value as text.
+// InlineValueText provides inline value as text.
 //
 // Since 3.17.0.
 type InlineValueText struct {
@@ -21,7 +21,7 @@ type InlineValueText struct {
 	Text string `json:"text"`
 }
 
-// InlineValueVariableLookup provide inline value through a variable lookup.
+// InlineValueVariableLookup provides inline value through a variable lookup.
 // If only a range is specified, the variable name will be extracted from the underlying document.
 // An optional variable name can be used to override the extracted name.
 //
@@ -36,7 +36,7 @@ type InlineValueVariableLookup struct {
 	CaseSensitiveLookup bool `json:"caseSensitiveLookup"`
 }
 
-// InlineValueEvaluatableExpression provide an inline value through an expression evaluation.
+// InlineValueEvaluatableExpression provides an inline value through an expression evaluation.
 // If only a range is specified, the expression will be extracted from the underlying document.
 // An optional expression can be used to override the extracted expression.
 //

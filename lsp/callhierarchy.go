@@ -2,7 +2,7 @@ package lsp
 
 import "encoding/json"
 
-// CallHierarchyPrepareParams is the parameter of a `textDocument/prepareCallHierarchy` request.
+// CallHierarchyPrepareParams holds the parameters of a `textDocument/prepareCallHierarchy` request.
 //
 // Since 3.16.0.
 type CallHierarchyPrepareParams struct {
@@ -35,7 +35,7 @@ type CallHierarchyItem struct {
 	Data json.RawMessage `json:"data,omitempty"`
 }
 
-// CallHierarchyIncomingCallsParams is the parameter of a `callHierarchy/incomingCalls` request.
+// CallHierarchyIncomingCallsParams holds the parameters of a `callHierarchy/incomingCalls` request.
 //
 // Since 3.16.0.
 type CallHierarchyIncomingCallsParams struct {
@@ -55,7 +55,7 @@ type CallHierarchyIncomingCall struct {
 	FromRanges []Range `json:"fromRanges"`
 }
 
-// CallHierarchyOutgoingCallsParams is the parameter of a `callHierarchy/outgoingCalls` request.
+// CallHierarchyOutgoingCallsParams holds the parameters of a `callHierarchy/outgoingCalls` request.
 //
 // Since 3.16.0.
 type CallHierarchyOutgoingCallsParams struct {

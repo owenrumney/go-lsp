@@ -10,7 +10,7 @@ const (
 	Markdown MarkupKind = "markdown"
 )
 
-// MarkupContent is a MarkupContent literal represents a string value which content is interpreted base on its
+// MarkupContent is a literal that represents a string value whose content is interpreted based on its
 // kind flag. Currently the protocol supports plaintext and markdown as markup kinds.
 //
 // If the kind is markdown then the value can contain fenced code blocks like in GitHub issues.

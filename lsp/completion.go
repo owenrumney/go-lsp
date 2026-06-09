@@ -43,12 +43,12 @@ const (
 type CompletionContext struct {
 	// How the completion was triggered.
 	TriggerKind CompletionTriggerKind `json:"triggerKind"`
-	// The trigger character (a single character) that has trigger code complete.
+	// The trigger character (a single character) that triggered code completion.
 	// Is empty if `triggerKind !== [CompletionTriggerCharacter]`
 	TriggerCharacter string `json:"triggerCharacter,omitempty"`
 }
 
-// CompletionParams is the parameters.
+// CompletionParams holds the parameters.
 type CompletionParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
@@ -169,7 +169,7 @@ type CompletionItem struct {
 // CompletionList represents a collection of [CompletionItem] to be presented
 // in the editor.
 type CompletionList struct {
-	// This list it not complete. Further typing results in recomputing this list.
+	// This list is not complete. Further typing results in recomputing this list.
 	//
 	// Recomputed lists have all their items replaced (not appended) in the
 	// incomplete completion sessions.

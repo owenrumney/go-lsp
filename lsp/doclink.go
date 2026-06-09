@@ -2,7 +2,7 @@ package lsp
 
 import "encoding/json"
 
-// DocumentLinkParams is the parameters of a [DocumentLinkRequest].
+// DocumentLinkParams holds the parameters of a [DocumentLinkRequest].
 type DocumentLinkParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
@@ -19,7 +19,7 @@ type DocumentLink struct {
 	Target *DocumentURI `json:"target,omitempty"`
 	// The tooltip text when you hover over this link.
 	//
-	// If a tooltip is provided, is will be displayed in a string that includes instructions on how to
+	// If a tooltip is provided, it will be displayed in a string that includes instructions on how to
 	// trigger the link, such as `{0} (ctrl + click)`. The specific instructions vary depending on OS,
 	// user settings, and localization.
 	//

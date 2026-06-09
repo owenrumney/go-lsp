@@ -1,6 +1,6 @@
 package lsp
 
-// RenameParams is the parameters of a [RenameRequest].
+// RenameParams holds the parameters of a [RenameRequest].
 type RenameParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams

@@ -2,7 +2,7 @@ package lsp
 
 import "encoding/json"
 
-// TypeHierarchyPrepareParams is the parameter of a `textDocument/prepareTypeHierarchy` request.
+// TypeHierarchyPrepareParams holds the parameters of a `textDocument/prepareTypeHierarchy` request.
 //
 // Since 3.17.0.
 type TypeHierarchyPrepareParams struct {
@@ -39,7 +39,7 @@ type TypeHierarchyItem struct {
 	Data json.RawMessage `json:"data,omitempty"`
 }
 
-// TypeHierarchySupertypesParams is the parameter of a `typeHierarchy/supertypes` request.
+// TypeHierarchySupertypesParams holds the parameters of a `typeHierarchy/supertypes` request.
 //
 // Since 3.17.0.
 type TypeHierarchySupertypesParams struct {
@@ -48,7 +48,7 @@ type TypeHierarchySupertypesParams struct {
 	Item TypeHierarchyItem `json:"item"`
 }
 
-// TypeHierarchySubtypesParams is the parameter of a `typeHierarchy/subtypes` request.
+// TypeHierarchySubtypesParams holds the parameters of a `typeHierarchy/subtypes` request.
 //
 // Since 3.17.0.
 type TypeHierarchySubtypesParams struct {

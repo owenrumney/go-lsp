@@ -40,7 +40,7 @@ const (
 	SymbolTagDeprecated SymbolTag = 1
 )
 
-// SymbolInformation is the represents information about programming constructs like variables, classes,
+// SymbolInformation represents information about programming constructs like variables, classes,
 // interfaces etc.
 type SymbolInformation struct {
 	// The name of this symbol.
@@ -103,7 +103,7 @@ type DocumentSymbol struct {
 	Children []DocumentSymbol `json:"children,omitempty"`
 }
 
-// DocumentSymbolParams is the parameters for a [DocumentSymbolRequest].
+// DocumentSymbolParams holds the parameters for a [DocumentSymbolRequest].
 type DocumentSymbolParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
@@ -111,7 +111,7 @@ type DocumentSymbolParams struct {
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 }
 
-// WorkspaceSymbolParams is the parameters of a [WorkspaceSymbolRequest].
+// WorkspaceSymbolParams holds the parameters of a [WorkspaceSymbolRequest].
 type WorkspaceSymbolParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
