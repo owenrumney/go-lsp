@@ -37,7 +37,7 @@ type ClientCapabilities struct {
 	Experimental json.RawMessage `json:"experimental,omitempty"`
 }
 
-// WorkspaceClientCapabilities is the specific client capabilities.
+// WorkspaceClientCapabilities declares workspace-specific client capabilities.
 type WorkspaceClientCapabilities struct {
 	// The client supports applying batch edits
 	// to the workspace by supporting the request
@@ -128,7 +128,7 @@ type WorkspaceEditClientCapabilities struct {
 	} `json:"changeAnnotationSupport,omitempty"`
 }
 
-// WorkspaceSymbolClientCapabilities is for a [WorkspaceSymbolRequest].
+// WorkspaceSymbolClientCapabilities declares client capabilities for a [WorkspaceSymbolRequest].
 type WorkspaceSymbolClientCapabilities struct {
 	// Symbol request supports dynamic registration.
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
@@ -196,7 +196,7 @@ type FileOperationClientCapabilities struct {
 	WillDelete *bool `json:"willDelete,omitempty"`
 }
 
-// TextDocumentClientCapabilities is the specific client capabilities.
+// TextDocumentClientCapabilities declares text-document-specific client capabilities.
 type TextDocumentClientCapabilities struct {
 	// Defines which synchronization capabilities the client supports.
 	Synchronization *TextDocumentSyncClientCapabilities `json:"synchronization,omitempty"`
@@ -263,7 +263,7 @@ type TextDocumentClientCapabilities struct {
 	//
 	// Since 3.16.0
 	CallHierarchy *DynamicRegistrationCapability `json:"callHierarchy,omitempty"`
-	// Capabilities specific to the various semantic token request.
+	// Capabilities specific to the various semantic token requests.
 	//
 	// Since 3.16.0
 	SemanticTokens *SemanticTokensClientCapabilities `json:"semanticTokens,omitempty"`
@@ -343,7 +343,7 @@ type HoverClientCapabilities struct {
 	ContentFormat []MarkupKind `json:"contentFormat,omitempty"`
 }
 
-// SignatureHelpClientCapabilities is for a [SignatureHelpRequest].
+// SignatureHelpClientCapabilities declares client capabilities for a [SignatureHelpRequest].
 type SignatureHelpClientCapabilities struct {
 	// Whether signature help supports dynamic registration.
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
@@ -377,7 +377,7 @@ type DeclarationClientCapabilities struct {
 	LinkSupport *bool `json:"linkSupport,omitempty"`
 }
 
-// DefinitionClientCapabilities is for a [DefinitionRequest].
+// DefinitionClientCapabilities declares client capabilities for a [DefinitionRequest].
 type DefinitionClientCapabilities struct {
 	// Whether definition supports dynamic registration.
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
@@ -415,7 +415,7 @@ type ImplementationClientCapabilities struct {
 	LinkSupport *bool `json:"linkSupport,omitempty"`
 }
 
-// DocumentSymbolClientCapabilities is for a [DocumentSymbolRequest].
+// DocumentSymbolClientCapabilities declares client capabilities for a [DocumentSymbolRequest].
 type DocumentSymbolClientCapabilities struct {
 	// Whether document symbol supports dynamic registration.
 	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
@@ -522,7 +522,7 @@ type RenameClientCapabilities struct {
 	HonorsChangeAnnotations *bool `json:"honorsChangeAnnotations,omitempty"`
 }
 
-// PublishDiagnosticsClientCapabilities is the publish diagnostic client capabilities.
+// PublishDiagnosticsClientCapabilities declares client capabilities for published diagnostics.
 type PublishDiagnosticsClientCapabilities struct {
 	// Whether the clients accepts diagnostics with related information.
 	RelatedInformation *bool `json:"relatedInformation,omitempty"`
@@ -649,7 +649,7 @@ type WindowClientCapabilities struct {
 	// It indicates whether the client supports server initiated
 	// progress using the `window/workDoneProgress/create` request.
 	//
-	// The capability also controls Whether client supports handling
+	// The capability also controls whether the client supports handling
 	// of progress notifications. If set servers are allowed to report a
 	// workDoneProgress property in the request specific server
 	// capabilities.
@@ -725,7 +725,7 @@ type ServerCapabilities struct {
 	//
 	// Since 3.17.0
 	PositionEncoding *PositionEncodingKind `json:"positionEncoding,omitempty"`
-	// Defines how text documents are synced. Is either a detailed structure
+	// Defines how text documents are synced. It is either a detailed structure
 	// defining each notification or for backwards compatibility the
 	// TextDocumentSyncKind number.
 	TextDocumentSync *TextDocumentSyncOptions `json:"textDocumentSync,omitempty"`
@@ -735,13 +735,13 @@ type ServerCapabilities struct {
 	HoverProvider *bool `json:"hoverProvider,omitempty"`
 	// The server provides signature help support.
 	SignatureHelpProvider *SignatureHelpOptions `json:"signatureHelpProvider,omitempty"`
-	// The server provides Goto Declaration support.
+	// The server provides Goto declaration support.
 	DeclarationProvider *bool `json:"declarationProvider,omitempty"`
 	// The server provides goto definition support.
 	DefinitionProvider *bool `json:"definitionProvider,omitempty"`
-	// The server provides Goto Type Definition support.
+	// The server provides Goto type definition support.
 	TypeDefinitionProvider *bool `json:"typeDefinitionProvider,omitempty"`
-	// The server provides Goto Implementation support.
+	// The server provides Goto implementation support.
 	ImplementationProvider *bool `json:"implementationProvider,omitempty"`
 	// The server provides find references support.
 	ReferencesProvider *bool `json:"referencesProvider,omitempty"`
@@ -847,13 +847,13 @@ type FileOperationOptions struct {
 	DidRename *FileOperationRegistrationOptions `json:"didRename,omitempty"`
 	// The server is interested in receiving willRenameFiles requests.
 	WillRename *FileOperationRegistrationOptions `json:"willRename,omitempty"`
-	// The server is interested in receiving didDeleteFiles file notifications.
+	// The server is interested in receiving didDeleteFiles notifications.
 	DidDelete *FileOperationRegistrationOptions `json:"didDelete,omitempty"`
-	// The server is interested in receiving willDeleteFiles file requests.
+	// The server is interested in receiving willDeleteFiles requests.
 	WillDelete *FileOperationRegistrationOptions `json:"willDelete,omitempty"`
 }
 
-// FileOperationRegistrationOptions is the options to register for file operations.
+// FileOperationRegistrationOptions holds the options to register for file operations.
 //
 // Since 3.16.0.
 type FileOperationRegistrationOptions struct {
@@ -913,19 +913,19 @@ type FileOperationPatternOptions struct {
 
 // TextDocumentSyncOptions configures how the server receives document content: open/close notifications, incremental vs full change events, and save behavior.
 type TextDocumentSyncOptions struct {
-	// Open and close notifications are sent to the server. If omitted open close notification should not
+	// Open and close notifications are sent to the server. If omitted, open and close notifications should not
 	// be sent.
 	OpenClose *bool `json:"openClose,omitempty"`
 	// Change notifications are sent to the server. See [SyncNone], [SyncFull]
 	// and [SyncIncremental]. If omitted it defaults to [SyncNone].
 	Change TextDocumentSyncKind `json:"change,omitempty"`
-	// If present will save notifications are sent to the server. If omitted the notification should not be
+	// If present, will save notifications are sent to the server. If omitted, the notifications should not be
 	// sent.
 	WillSave *bool `json:"willSave,omitempty"`
-	// If present will save wait until requests are sent to the server. If omitted the request should not be
+	// If present, will save wait until requests are sent to the server. If omitted, the requests should not be
 	// sent.
 	WillSaveWaitUntil *bool `json:"willSaveWaitUntil,omitempty"`
-	// If present save notifications are sent to the server. If omitted the notification should not be
+	// If present, save notifications are sent to the server. If omitted, the notifications should not be
 	// sent.
 	Save *SaveOptions `json:"save,omitempty"`
 }
@@ -945,15 +945,15 @@ type CompletionOptions struct {
 	// code complete will automatically pop up present console besides others as a
 	// completion item. Characters that make up identifiers don't need to be listed here.
 	//
-	// If code complete should automatically be trigger on characters not being valid inside
-	// an identifier (for example `.` in JavaScript) list them in triggerCharacters.
+	// If code complete should automatically be triggered on characters not being valid inside
+	// an identifier (for example `.` in JavaScript), list them in triggerCharacters.
 	TriggerCharacters []string `json:"triggerCharacters,omitempty"`
 	// The list of all possible characters that commit a completion. This field can be used
 	// if clients don't support individual commit characters per completion item. See
 	// `ClientCapabilities.textDocument.completion.completionItem.commitCharactersSupport`
 	//
 	// If a server provides both allCommitCharacters and commit characters on an individual
-	// completion item the ones on the completion item win.
+	// completion item, the ones on the completion item win.
 	//
 	// Since 3.2.0
 	AllCommitCharacters []string `json:"allCommitCharacters,omitempty"`
@@ -962,7 +962,7 @@ type CompletionOptions struct {
 	ResolveProvider *bool `json:"resolveProvider,omitempty"`
 }
 
-// SignatureHelpOptions is the server Capabilities for a [SignatureHelpRequest].
+// SignatureHelpOptions holds the server capabilities for a [SignatureHelpRequest].
 type SignatureHelpOptions struct {
 	WorkDoneProgressOptions
 	// List of characters that trigger signature help automatically.
@@ -976,7 +976,7 @@ type SignatureHelpOptions struct {
 	RetriggerCharacters []string `json:"retriggerCharacters,omitempty"`
 }
 
-// CodeActionOptions is the provider options for a [CodeActionRequest].
+// CodeActionOptions holds the provider options for a [CodeActionRequest].
 type CodeActionOptions struct {
 	WorkDoneProgressOptions
 	// CodeActionKinds that this server may return.
@@ -991,21 +991,21 @@ type CodeActionOptions struct {
 	ResolveProvider *bool `json:"resolveProvider,omitempty"`
 }
 
-// CodeLensOptions is the provider options of a [CodeLensRequest].
+// CodeLensOptions holds the provider options of a [CodeLensRequest].
 type CodeLensOptions struct {
 	WorkDoneProgressOptions
 	// Code lens has a resolve provider as well.
 	ResolveProvider *bool `json:"resolveProvider,omitempty"`
 }
 
-// DocumentLinkOptions is the provider options for a [DocumentLinkRequest].
+// DocumentLinkOptions holds the provider options for a [DocumentLinkRequest].
 type DocumentLinkOptions struct {
 	WorkDoneProgressOptions
 	// Document links have a resolve provider as well.
 	ResolveProvider *bool `json:"resolveProvider,omitempty"`
 }
 
-// DocumentOnTypeFormattingOptions is the provider options for a [DocumentOnTypeFormattingRequest].
+// DocumentOnTypeFormattingOptions holds the provider options for a [DocumentOnTypeFormattingRequest].
 type DocumentOnTypeFormattingOptions struct {
 	// A character on which formatting should be triggered, like `{`.
 	FirstTriggerCharacter string `json:"firstTriggerCharacter"`
@@ -1013,7 +1013,7 @@ type DocumentOnTypeFormattingOptions struct {
 	MoreTriggerCharacter []string `json:"moreTriggerCharacter,omitempty"`
 }
 
-// RenameOptions is the provider options for a [RenameRequest].
+// RenameOptions holds the provider options for a [RenameRequest].
 type RenameOptions struct {
 	WorkDoneProgressOptions
 	// Renames should be checked and tested before being executed.
@@ -1022,7 +1022,7 @@ type RenameOptions struct {
 	PrepareProvider *bool `json:"prepareProvider,omitempty"`
 }
 
-// ExecuteCommandOptions is the server capabilities of a [ExecuteCommandRequest].
+// ExecuteCommandOptions holds the server capabilities for a [ExecuteCommandRequest].
 type ExecuteCommandOptions struct {
 	WorkDoneProgressOptions
 	// The commands to be executed on the server
