@@ -23,7 +23,7 @@ type SignatureHelpContext struct {
 	TriggerCharacter string `json:"triggerCharacter,omitempty"`
 	// true if signature help was already showing when it was triggered.
 	//
-	// Retriggers occurs when the signature help is already active and can be caused by actions such as
+	// Retriggers occur when the signature help is already active and can be caused by actions such as
 	// typing a trigger character, a cursor move, or document content changes.
 	IsRetrigger bool `json:"isRetrigger"`
 	// The currently active SignatureHelp.
@@ -46,14 +46,14 @@ type SignatureHelp struct {
 	// Whenever possible implementors should make an active decision about
 	// the active signature and shouldn't rely on a default value.
 	//
-	// In future version of the protocol this property might become
+	// In future versions of the protocol this property might become
 	// mandatory to better express this.
 	ActiveSignature *int `json:"activeSignature,omitempty"`
 	// The active parameter of the active signature. If omitted or the value
 	// lies outside the range of `signatures[activeSignature].parameters`
 	// defaults to 0 if the active signature has parameters. If
 	// the active signature has no parameters it is ignored.
-	// In future version of the protocol this property might become
+	// In future versions of the protocol this property might become
 	// mandatory to better express the active parameter if the
 	// active signature does have any.
 	ActiveParameter *int `json:"activeParameter,omitempty"`
@@ -86,7 +86,7 @@ type ParameterInformation struct {
 	//
 	// Either a string or an inclusive start and exclusive end offsets within its containing
 	// signature label. (see SignatureInformation.label). The offsets are based on a UTF-16
-	// string representation as Position and Range does.
+	// string representation as Position and Range do.
 	//
 	// *Note*: a label of type string should be a substring of its containing signature label.
 	// Its intended use case is to highlight the parameter label part in the `SignatureInformation.label`.

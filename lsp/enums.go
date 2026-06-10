@@ -11,7 +11,7 @@ const (
 	SyncFull TextDocumentSyncKind = 1
 	// Documents are synced by sending the full content on open.
 	// After that only incremental updates to the document are
-	// send.
+	// sent.
 	SyncIncremental TextDocumentSyncKind = 2
 )
 
@@ -44,7 +44,7 @@ type CompletionTriggerKind int
 
 const (
 	// Completion was triggered by typing an identifier (24x7 code
-	// complete), manual invocation (e.g Ctrl+Space) or via API.
+	// complete), manual invocation (e.g. Ctrl+Space) or via API.
 	CompletionTriggerInvoked CompletionTriggerKind = 1
 	// Completion was triggered by a trigger character specified by
 	// the triggerCharacters properties of the CompletionRegistrationOptions.
@@ -74,7 +74,7 @@ const (
 	// The primary text to be inserted is treated as a snippet.
 	//
 	// A snippet can define tab stops and placeholders with `$1`, `$2`
-	// and `${3:foo}`. `$0` defines the final tab stop, it defaults to
+	// and `${3:foo}`. `$0` defines the final tab stop; it defaults to
 	// the end of the snippet. Placeholders with equal identifiers are linked,
 	// that is typing in one will update others too.
 	//
@@ -86,7 +86,7 @@ const (
 type InsertTextMode int
 
 const (
-	// The insertion or replace strings is taken as it is. If the
+	// The insertion or replace string is taken as it is. If the
 	// value is multi line the lines below the cursor will be
 	// inserted using the indentation defined in the string value.
 	// The client will not apply any kind of adjustments to the

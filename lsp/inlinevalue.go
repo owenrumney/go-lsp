@@ -79,7 +79,7 @@ type InlineValueWorkspaceClientCapabilities struct {
 	//
 	// Note that this event is global and will force the client to refresh all
 	// inline values currently shown. It should be used with absolute care and is
-	// useful for situation where a server for example detects a project wide
+	// useful for situations where a server, for example, detects a project-wide
 	// change that requires such a calculation.
 	RefreshSupport *bool `json:"refreshSupport,omitempty"`
 }

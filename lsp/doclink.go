@@ -15,7 +15,7 @@ type DocumentLinkParams struct {
 type DocumentLink struct {
 	// The range this link applies to.
 	Range Range `json:"range"`
-	// The uri this link points to. If missing a resolve request is sent later.
+	// The uri this link points to. If missing, a resolve request is sent later.
 	Target *DocumentURI `json:"target,omitempty"`
 	// The tooltip text when you hover over this link.
 	//

@@ -70,7 +70,7 @@ type CallHierarchyOutgoingCallsParams struct {
 type CallHierarchyOutgoingCall struct {
 	// The item that is called.
 	To CallHierarchyItem `json:"to"`
-	// The range at which this item is called. This is the range relative to the caller, e.g the item
+	// The range at which this item is called. This is the range relative to the caller, e.g. the item
 	// passed to [CallHierarchyItemProvider.ProvideCallHierarchyOutgoingCalls]
 	// and not [CallHierarchyOutgoingCall.To].
 	FromRanges []Range `json:"fromRanges"`

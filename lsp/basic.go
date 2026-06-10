@@ -8,11 +8,11 @@ type URI string
 
 // Position is a zero-based line and character offset in a text document.
 // Prior to 3.17 the offsets were always based on a UTF-16 string
-// representation. So a string of the form `a𐐀b` the character offset of the
+// representation. So for a string of the form `a𐐀b`, the character offset of the
 // character a is 0, the character offset of `𐐀` is 1 and the character
 // offset of b is 3 since `𐐀` is represented using two code units in UTF-16.
 // Since 3.17 clients and servers can agree on a different string encoding
-// representation (e.g. UTF-8). The client announces it's supported encoding
+// representation (e.g. UTF-8). The client announces its supported encoding
 // via the client capability [general.positionEncodings].
 // The value is an array of position encodings the client supports, with
 // decreasing preference (e.g. the encoding at index `0` is the most preferred
@@ -90,7 +90,7 @@ type LocationLink struct {
 	// range enclosing this symbol not including leading/trailing whitespace but everything else
 	// like comments. This information is typically used to highlight the range in the editor.
 	TargetRange Range `json:"targetRange"`
-	// The range that should be selected and revealed when this link is being followed, e.g the name of a function.
+	// The range that should be selected and revealed when this link is being followed, e.g. the name of a function.
 	// Must be contained by the targetRange. See also `DocumentSymbol#range`
 	TargetSelectionRange Range `json:"targetSelectionRange"`
 }

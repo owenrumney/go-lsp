@@ -93,10 +93,10 @@ type DocumentSymbol struct {
 	// Deprecated: Use tags instead
 	Deprecated *bool `json:"deprecated,omitempty"`
 	// The range enclosing this symbol not including leading/trailing whitespace but everything else
-	// like comments. This information is typically used to determine if the clients cursor is
-	// inside the symbol to reveal in the symbol in the UI.
+	// like comments. This information is typically used to determine if the client's cursor is
+	// inside the symbol to reveal the symbol in the UI.
 	Range Range `json:"range"`
-	// The range that should be selected and revealed when this symbol is being picked, e.g the name of a function.
+	// The range that should be selected and revealed when this symbol is being picked, e.g. the name of a function.
 	// Must be contained by the range.
 	SelectionRange Range `json:"selectionRange"`
 	// Children of this symbol, e.g. properties of a class.

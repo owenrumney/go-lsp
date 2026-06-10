@@ -154,8 +154,8 @@ type SemanticTokensWorkspaceClientCapabilities struct {
 	//
 	// Note that this event is global and will force the client to refresh all
 	// semantic tokens currently shown. It should be used with absolute care
-	// and is useful for situation where a server for example detects a project
-	// wide change that requires such a calculation.
+	// and is useful for situations where a server, for example, detects a
+	// project-wide change that requires such a calculation.
 	RefreshSupport *bool `json:"refreshSupport,omitempty"`
 }
 
@@ -168,7 +168,7 @@ type CodeLensWorkspaceClientCapabilities struct {
 	//
 	// Note that this event is global and will force the client to refresh all
 	// code lenses currently shown. It should be used with absolute care and is
-	// useful for situation where a server for example detects a project wide
+	// useful for situations where a server, for example, detects a project-wide
 	// change that requires such a calculation.
 	RefreshSupport *bool `json:"refreshSupport,omitempty"`
 }
@@ -524,7 +524,7 @@ type RenameClientCapabilities struct {
 
 // PublishDiagnosticsClientCapabilities declares client capabilities for published diagnostics.
 type PublishDiagnosticsClientCapabilities struct {
-	// Whether the clients accepts diagnostics with related information.
+	// Whether the client accepts diagnostics with related information.
 	RelatedInformation *bool `json:"relatedInformation,omitempty"`
 	// Client supports the tag property to provide meta data about a diagnostic.
 	// Clients supporting tags have to handle unknown tags gracefully.

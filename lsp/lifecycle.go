@@ -39,7 +39,7 @@ type InitializeParams struct {
 	InitializationOptions json.RawMessage `json:"initializationOptions,omitempty"`
 	// The capabilities provided by the client (editor or tool)
 	Capabilities ClientCapabilities `json:"capabilities"`
-	// The initial trace setting. If omitted trace is disabled ('off').
+	// The initial trace setting. If omitted, trace is disabled ('off').
 	Trace string `json:"trace,omitempty"`
 	// The workspace folders configured in the client when the server starts.
 	//

@@ -66,7 +66,7 @@ type RelatedFullDocumentDiagnosticReport struct {
 	// in programming languages where code in a file A can generate
 	// diagnostics in a file B which A depends on. An example of
 	// such a language is C/C++ where macro definitions in a file
-	// a.cpp and result in errors in a header file b.hpp.
+	// a.cpp can result in errors in a header file b.hpp.
 	//
 	// Since 3.17.0
 	RelatedDocuments map[DocumentURI]json.RawMessage `json:"relatedDocuments,omitempty"`
@@ -81,7 +81,7 @@ type RelatedUnchangedDocumentDiagnosticReport struct {
 	// in programming languages where code in a file A can generate
 	// diagnostics in a file B which A depends on. An example of
 	// such a language is C/C++ where macro definitions in a file
-	// a.cpp and result in errors in a header file b.hpp.
+	// a.cpp can result in errors in a header file b.hpp.
 	//
 	// Since 3.17.0
 	RelatedDocuments map[DocumentURI]json.RawMessage `json:"relatedDocuments,omitempty"`
@@ -182,7 +182,7 @@ type DiagnosticWorkspaceClientCapabilities struct {
 	//
 	// Note that this event is global and will force the client to refresh all
 	// pulled diagnostics currently shown. It should be used with absolute care and
-	// is useful for situation where a server for example detects a project wide
+	// is useful for situations where a server, for example, detects a project-wide
 	// change that requires such a calculation.
 	RefreshSupport *bool `json:"refreshSupport,omitempty"`
 }

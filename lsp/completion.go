@@ -39,7 +39,7 @@ const (
 	CompletionItemTagDeprecated CompletionItemTag = 1
 )
 
-// CompletionContext contains the additional information about the context in which a completion request is triggered.
+// CompletionContext contains additional information about the context in which a completion request is triggered.
 type CompletionContext struct {
 	// How the completion was triggered.
 	TriggerKind CompletionTriggerKind `json:"triggerKind"`
@@ -119,7 +119,7 @@ type CompletionItem struct {
 	// additionalTextEdits.
 	InsertTextFormat *InsertTextFormat `json:"insertTextFormat,omitempty"`
 	// How whitespace and indentation is handled during completion
-	// item insertion. If not provided the clients default value depends on
+	// item insertion. If not provided, the client's default value depends on
 	// the `textDocument.completion.insertTextMode` client capability.
 	//
 	// Since 3.16.0
@@ -153,7 +153,7 @@ type CompletionItem struct {
 	// (for example adding an import statement at the top of the file if the completion item will
 	// insert an unqualified type).
 	AdditionalTextEdits []TextEdit `json:"additionalTextEdits,omitempty"`
-	// An optional set of characters that when pressed while this completion is active will accept it first and
+	// An optional set of characters that, when pressed while this completion is active, will accept it first and
 	// then type that character. *Note* that all commit characters should have `length=1` and that superfluous
 	// characters will be ignored.
 	CommitCharacters []string `json:"commitCharacters,omitempty"`
