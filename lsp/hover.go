@@ -1,13 +1,16 @@
 package lsp
 
-// HoverParams is sent to request hover information (docs, type info) at a cursor position.
+// HoverParams holds the parameters for a [HoverRequest].
 type HoverParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
 }
 
-// Hover contains the content (typically documentation or type info) and optional range to display in a hover tooltip.
+// Hover is the result of a hover request.
 type Hover struct {
+	// The hover's content
 	Contents MarkupContent `json:"contents"`
-	Range    *Range        `json:"range,omitempty"`
+	// An optional range inside the text document that is used to
+	// visualize the hover, e.g. by changing the background color.
+	Range *Range `json:"range,omitempty"`
 }

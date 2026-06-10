@@ -2,46 +2,76 @@ package lsp
 
 import "encoding/json"
 
-// CallHierarchyPrepareParams is sent to resolve the call hierarchy item at a given cursor position before navigating callers/callees.
+// CallHierarchyPrepareParams holds the parameters of a `textDocument/prepareCallHierarchy` request.
+//
+// Since 3.16.0.
 type CallHierarchyPrepareParams struct {
 	TextDocumentPositionParams
 	WorkDoneProgressParams
 }
 
-// CallHierarchyItem represents a function or method that can be navigated to in a call hierarchy view.
+// CallHierarchyItem represents programming constructs like functions or constructors in the context
+// of call hierarchy.
+//
+// Since 3.16.0.
 type CallHierarchyItem struct {
-	Name           string          `json:"name"`
-	Kind           SymbolKind      `json:"kind"`
-	Tags           []SymbolTag     `json:"tags,omitempty"`
-	Detail         string          `json:"detail,omitempty"`
-	URI            DocumentURI     `json:"uri"`
-	Range          Range           `json:"range"`
-	SelectionRange Range           `json:"selectionRange"`
-	Data           json.RawMessage `json:"data,omitempty"`
+	// The name of this item.
+	Name string `json:"name"`
+	// The kind of this item.
+	Kind SymbolKind `json:"kind"`
+	// Tags for this item.
+	Tags []SymbolTag `json:"tags,omitempty"`
+	// More detail for this item, e.g. the signature of a function.
+	Detail string `json:"detail,omitempty"`
+	// The resource identifier of this item.
+	URI DocumentURI `json:"uri"`
+	// The range enclosing this symbol not including leading/trailing whitespace but everything else, e.g. comments and code.
+	Range Range `json:"range"`
+	// The range that should be selected and revealed when this symbol is being picked, e.g. the name of a function.
+	// Must be contained by the [CallHierarchyItem.Range].
+	SelectionRange Range `json:"selectionRange"`
+	// A data entry field that is preserved between a call hierarchy prepare and
+	// incoming calls or outgoing calls requests.
+	Data json.RawMessage `json:"data,omitempty"`
 }
 
-// CallHierarchyIncomingCallsParams is sent to find all callers of a given call hierarchy item.
+// CallHierarchyIncomingCallsParams holds the parameters of a `callHierarchy/incomingCalls` request.
+//
+// Since 3.16.0.
 type CallHierarchyIncomingCallsParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
 	Item CallHierarchyItem `json:"item"`
 }
 
-// CallHierarchyIncomingCall identifies a caller of a call hierarchy item, including the ranges where the call occurs.
+// CallHierarchyIncomingCall represents an incoming call, e.g. a caller of a method or constructor.
+//
+// Since 3.16.0.
 type CallHierarchyIncomingCall struct {
-	From       CallHierarchyItem `json:"from"`
-	FromRanges []Range           `json:"fromRanges"`
+	// The item that makes the call.
+	From CallHierarchyItem `json:"from"`
+	// The ranges at which the calls appear. This is relative to the caller
+	// denoted by [CallHierarchyIncomingCall.From].
+	FromRanges []Range `json:"fromRanges"`
 }
 
-// CallHierarchyOutgoingCallsParams is sent to find all functions/methods called from a given call hierarchy item.
+// CallHierarchyOutgoingCallsParams holds the parameters of a `callHierarchy/outgoingCalls` request.
+//
+// Since 3.16.0.
 type CallHierarchyOutgoingCallsParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
 	Item CallHierarchyItem `json:"item"`
 }
 
-// CallHierarchyOutgoingCall identifies a function/method called from a call hierarchy item, including the call-site ranges.
+// CallHierarchyOutgoingCall represents an outgoing call, e.g. calling a getter from a method or a method from a constructor etc.
+//
+// Since 3.16.0.
 type CallHierarchyOutgoingCall struct {
-	To         CallHierarchyItem `json:"to"`
-	FromRanges []Range           `json:"fromRanges"`
+	// The item that is called.
+	To CallHierarchyItem `json:"to"`
+	// The range at which this item is called. This is the range relative to the caller, e.g. the item
+	// passed to [CallHierarchyItemProvider.ProvideCallHierarchyOutgoingCalls]
+	// and not [CallHierarchyOutgoingCall.To].
+	FromRanges []Range `json:"fromRanges"`
 }

@@ -4,46 +4,75 @@ package lsp
 type MessageType int
 
 const (
-	MessageTypeError   MessageType = 1
+	// An error message.
+	MessageTypeError MessageType = 1
+	// A warning message.
 	MessageTypeWarning MessageType = 2
-	MessageTypeInfo    MessageType = 3
-	MessageTypeLog     MessageType = 4
+	// An information message.
+	MessageTypeInfo MessageType = 3
+	// A log message.
+	MessageTypeLog MessageType = 4
 )
 
-// ShowMessageParams is sent from server to client to display a notification message in the editor.
+// ShowMessageParams holds the parameters of a notification message.
 type ShowMessageParams struct {
-	Type    MessageType `json:"type"`
-	Message string      `json:"message"`
+	// The message type. See [MessageType]
+	Type MessageType `json:"type"`
+	// The actual message.
+	Message string `json:"message"`
 }
 
 // ShowMessageRequestParams is sent from server to client to show a message with clickable action buttons.
 type ShowMessageRequestParams struct {
-	Type    MessageType         `json:"type"`
-	Message string              `json:"message"`
+	// The message type. See [MessageType]
+	Type MessageType `json:"type"`
+	// The actual message.
+	Message string `json:"message"`
+	// The message action items to present.
 	Actions []MessageActionItem `json:"actions,omitempty"`
 }
 
 // MessageActionItem is a button label offered in a showMessageRequest that the user can click.
 type MessageActionItem struct {
+	// A short title like 'Retry', 'Open Log' etc.
 	Title string `json:"title"`
 }
 
-// LogMessageParams is sent from server to client to log a message to the editor's output channel.
+// LogMessageParams holds the log message parameters.
 type LogMessageParams struct {
-	Type    MessageType `json:"type"`
-	Message string      `json:"message"`
+	// The message type. See [MessageType]
+	Type MessageType `json:"type"`
+	// The actual message.
+	Message string `json:"message"`
 }
 
-// ShowDocumentParams is sent from server to client to open a URI (file, URL) in the editor or external browser.
+// ShowDocumentParams is used to show a resource in the UI.
+//
+// Since 3.16.0.
 type ShowDocumentParams struct {
-	URI       URI    `json:"uri"`
-	External  *bool  `json:"external,omitempty"`
-	TakeFocus *bool  `json:"takeFocus,omitempty"`
+	// The uri to show.
+	URI URI `json:"uri"`
+	// Indicates to show the resource in an external program.
+	// To show, for example, `https://code.visualstudio.com/`
+	// in the default WEB browser set external to true.
+	External *bool `json:"external,omitempty"`
+	// An optional property to indicate whether the editor
+	// showing the document should take focus or not.
+	// Clients might ignore this property if an external
+	// program is started.
+	TakeFocus *bool `json:"takeFocus,omitempty"`
+	// An optional selection range if the document is a text
+	// document. Clients might ignore the property if an
+	// external program is started or the file is not a text
+	// file.
 	Selection *Range `json:"selection,omitempty"`
 }
 
-// ShowDocumentResult indicates whether the editor successfully showed the requested document.
+// ShowDocumentResult is the result of a showDocument request.
+//
+// Since 3.16.0.
 type ShowDocumentResult struct {
+	// A boolean indicating if the show was successful.
 	Success bool `json:"success"`
 }
 

@@ -6,41 +6,84 @@ import "encoding/json"
 type DocumentDiagnosticReportKind string
 
 const (
-	DiagnosticReportFull      DocumentDiagnosticReportKind = "full"
+	// A diagnostic report with a full
+	// set of problems.
+	DiagnosticReportFull DocumentDiagnosticReportKind = "full"
+	// A report indicating that the last
+	// returned report is still accurate.
 	DiagnosticReportUnchanged DocumentDiagnosticReportKind = "unchanged"
 )
 
-// DocumentDiagnosticParams is sent to pull diagnostics for a document (as opposed to the server pushing them).
+// DocumentDiagnosticParams holds the parameters of the document diagnostic request.
+//
+// Since 3.17.0.
 type DocumentDiagnosticParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
-	TextDocument     TextDocumentIdentifier `json:"textDocument"`
-	Identifier       string                 `json:"identifier,omitempty"`
-	PreviousResultID *string                `json:"previousResultId,omitempty"`
+	// The text document.
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	// The additional identifier  provided during registration.
+	Identifier string `json:"identifier,omitempty"`
+	// The result id of a previous response if provided.
+	PreviousResultID *string `json:"previousResultId,omitempty"`
 }
 
-// FullDocumentDiagnosticReport contains the complete set of current diagnostics for a document.
+// FullDocumentDiagnosticReport is a diagnostic report with a full set of problems.
+//
+// Since 3.17.0.
 type FullDocumentDiagnosticReport struct {
-	Kind     string       `json:"kind"` // always "full"
-	ResultID *string      `json:"resultId,omitempty"`
-	Items    []Diagnostic `json:"items"`
+	// A full document diagnostic report.
+	Kind string `json:"kind"` // always "full"
+	// An optional result id. If provided it will
+	// be sent on the next diagnostic request for the
+	// same document.
+	ResultID *string `json:"resultId,omitempty"`
+	// The actual items.
+	Items []Diagnostic `json:"items"`
 }
 
-// UnchangedDocumentDiagnosticReport indicates diagnostics have not changed since the previous request, identified by a result ID.
+// UnchangedDocumentDiagnosticReport is a diagnostic report indicating that the last returned
+// report is still accurate.
+//
+// Since 3.17.0.
 type UnchangedDocumentDiagnosticReport struct {
-	Kind     string `json:"kind"` // always "unchanged"
+	// A document diagnostic report indicating
+	// no changes to the last result. A server can
+	// only return unchanged if result ids are
+	// provided.
+	Kind string `json:"kind"` // always "unchanged"
+	// A result id which will be sent on the next
+	// diagnostic request for the same document.
 	ResultID string `json:"resultId"`
 }
 
-// RelatedFullDocumentDiagnosticReport extends FullDocumentDiagnosticReport with related documents.
+// RelatedFullDocumentDiagnosticReport is a full diagnostic report with a set of related documents.
+//
+// Since 3.17.0.
 type RelatedFullDocumentDiagnosticReport struct {
 	FullDocumentDiagnosticReport
+	// Diagnostics of related documents. This information is useful
+	// in programming languages where code in a file A can generate
+	// diagnostics in a file B which A depends on. An example of
+	// such a language is C/C++ where macro definitions in a file
+	// a.cpp can result in errors in a header file b.hpp.
+	//
+	// Since 3.17.0
 	RelatedDocuments map[DocumentURI]json.RawMessage `json:"relatedDocuments,omitempty"`
 }
 
-// RelatedUnchangedDocumentDiagnosticReport extends UnchangedDocumentDiagnosticReport with related documents.
+// RelatedUnchangedDocumentDiagnosticReport is an unchanged diagnostic report with a set of related documents.
+//
+// Since 3.17.0.
 type RelatedUnchangedDocumentDiagnosticReport struct {
 	UnchangedDocumentDiagnosticReport
+	// Diagnostics of related documents. This information is useful
+	// in programming languages where code in a file A can generate
+	// diagnostics in a file B which A depends on. An example of
+	// such a language is C/C++ where macro definitions in a file
+	// a.cpp can result in errors in a header file b.hpp.
+	//
+	// Since 3.17.0
 	RelatedDocuments map[DocumentURI]json.RawMessage `json:"relatedDocuments,omitempty"`
 }
 
@@ -50,53 +93,96 @@ type PreviousResultID struct {
 	Value string      `json:"value"`
 }
 
-// WorkspaceDiagnosticParams is sent to pull diagnostics across the entire workspace.
+// WorkspaceDiagnosticParams holds the parameters of the workspace diagnostic request.
+//
+// Since 3.17.0.
 type WorkspaceDiagnosticParams struct {
 	WorkDoneProgressParams
 	PartialResultParams
-	Identifier        string             `json:"identifier,omitempty"`
+	// The additional identifier provided during registration.
+	Identifier string `json:"identifier,omitempty"`
+	// The currently known diagnostic reports with their
+	// previous result ids.
 	PreviousResultIDs []PreviousResultID `json:"previousResultIds"`
 }
 
-// WorkspaceFullDocumentDiagnosticReport extends FullDocumentDiagnosticReport with workspace info.
+// WorkspaceFullDocumentDiagnosticReport is a full document diagnostic report for a workspace diagnostic result.
+//
+// Since 3.17.0.
 type WorkspaceFullDocumentDiagnosticReport struct {
 	FullDocumentDiagnosticReport
-	URI     DocumentURI `json:"uri"`
-	Version *int        `json:"version"`
+	// The URI for which diagnostic information is reported.
+	URI DocumentURI `json:"uri"`
+	// The version number for which the diagnostics are reported.
+	// If the document is not marked as open null can be provided.
+	Version *int `json:"version"`
 }
 
-// WorkspaceUnchangedDocumentDiagnosticReport extends UnchangedDocumentDiagnosticReport with workspace info.
+// WorkspaceUnchangedDocumentDiagnosticReport is an unchanged document diagnostic report for a workspace diagnostic result.
+//
+// Since 3.17.0.
 type WorkspaceUnchangedDocumentDiagnosticReport struct {
 	UnchangedDocumentDiagnosticReport
-	URI     DocumentURI `json:"uri"`
-	Version *int        `json:"version"`
+	// The URI for which diagnostic information is reported.
+	URI DocumentURI `json:"uri"`
+	// The version number for which the diagnostics are reported.
+	// If the document is not marked as open null can be provided.
+	Version *int `json:"version"`
 }
 
-// WorkspaceDiagnosticReport contains the results of a workspace diagnostic request.
+// WorkspaceDiagnosticReport is the result of a workspace/diagnostic request.
+//
+// Since 3.17.0.
 type WorkspaceDiagnosticReport struct {
 	Items []json.RawMessage `json:"items"`
 }
 
-// DiagnosticOptions configures pull-based diagnostics: whether the server supports inter-file dependencies and workspace-wide diagnostics.
+// DiagnosticOptions configures the server's pull-diagnostic provider (textDocument/diagnostic and optionally workspace/diagnostic).
+//
+// Since 3.17.0.
 type DiagnosticOptions struct {
 	WorkDoneProgressOptions
-	Identifier            string `json:"identifier,omitempty"`
-	InterFileDependencies bool   `json:"interFileDependencies"`
-	WorkspaceDiagnostics  bool   `json:"workspaceDiagnostics"`
+	// An optional identifier under which the diagnostics are
+	// managed by the client.
+	Identifier string `json:"identifier,omitempty"`
+	// Whether the language has inter file dependencies meaning that
+	// editing code in one file can result in a different diagnostic
+	// set in another file. Inter file dependencies are common for
+	// most programming languages and typically uncommon for linters.
+	InterFileDependencies bool `json:"interFileDependencies"`
+	// The server provides support for workspace diagnostics as well.
+	WorkspaceDiagnostics bool `json:"workspaceDiagnostics"`
 }
 
-// DiagnosticServerCancellationData is returned when the server cancels a diagnostic request.
+// DiagnosticServerCancellationData is returned from a diagnostic request.
+//
+// Since 3.17.0.
 type DiagnosticServerCancellationData struct {
 	RetriggerRequest bool `json:"retriggerRequest"`
 }
 
-// DiagnosticClientCapabilities declares editor support for pull-based diagnostics (textDocument/diagnostic).
+// DiagnosticClientCapabilities is specific to diagnostic pull requests.
+//
+// Since 3.17.0.
 type DiagnosticClientCapabilities struct {
-	DynamicRegistration    *bool `json:"dynamicRegistration,omitempty"`
+	// Whether implementation supports dynamic registration. If this is set to true
+	// the client supports the new `(TextDocumentRegistrationOptions & StaticRegistrationOptions)`
+	// return value for the corresponding server capability as well.
+	DynamicRegistration *bool `json:"dynamicRegistration,omitempty"`
+	// Whether the client supports related documents for document diagnostic pulls.
 	RelatedDocumentSupport *bool `json:"relatedDocumentSupport,omitempty"`
 }
 
-// DiagnosticWorkspaceClientCapabilities declares whether the editor will refresh diagnostics when the server requests it.
+// DiagnosticWorkspaceClientCapabilities is specific to diagnostic pull requests.
+//
+// Since 3.17.0.
 type DiagnosticWorkspaceClientCapabilities struct {
+	// Whether the client implementation supports a refresh request sent from
+	// the server to the client.
+	//
+	// Note that this event is global and will force the client to refresh all
+	// pulled diagnostics currently shown. It should be used with absolute care and
+	// is useful for situations where a server, for example, detects a project-wide
+	// change that requires such a calculation.
 	RefreshSupport *bool `json:"refreshSupport,omitempty"`
 }

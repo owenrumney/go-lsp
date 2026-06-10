@@ -2,10 +2,14 @@ package lsp
 
 import "encoding/json"
 
-// Registration dynamically registers a server capability at runtime (e.g. adding file watchers after initialization).
+// Registration is the general parameters to register for a notification or to register a provider.
 type Registration struct {
-	ID              string          `json:"id"`
-	Method          string          `json:"method"`
+	// The id used to register the request. The id can be used to deregister
+	// the request again.
+	ID string `json:"id"`
+	// The method / capability to register for.
+	Method string `json:"method"`
+	// Options necessary for the registration.
 	RegisterOptions json.RawMessage `json:"registerOptions,omitempty"`
 }
 
@@ -14,9 +18,12 @@ type RegistrationParams struct {
 	Registrations []Registration `json:"registrations"`
 }
 
-// Unregistration describes a request to unregister a capability.
+// Unregistration is the general parameters to unregister a request or notification.
 type Unregistration struct {
-	ID     string `json:"id"`
+	// The id used to unregister the request or notification. Usually an id
+	// provided during the register request.
+	ID string `json:"id"`
+	// The method to unregister for.
 	Method string `json:"method"`
 }
 
@@ -25,8 +32,10 @@ type UnregistrationParams struct {
 	Unregisterations []Unregistration `json:"unregisterations"`
 }
 
-// TextDocumentRegistrationOptions describes options for text document registration.
+// TextDocumentRegistrationOptions is general text document registration options.
 type TextDocumentRegistrationOptions struct {
+	// A document selector to identify the scope of the registration. If set to null
+	// the document selector provided on the client side will be used.
 	DocumentSelector *DocumentSelector `json:"documentSelector"`
 }
 
@@ -40,19 +49,22 @@ type DocumentFilter struct {
 	Pattern  string `json:"pattern,omitempty"`
 }
 
-// TextDocumentChangeRegistrationOptions describes options for text document change registration.
+// TextDocumentChangeRegistrationOptions describes the options to be used when registered for text document change events.
 type TextDocumentChangeRegistrationOptions struct {
 	TextDocumentRegistrationOptions
+	// How documents are synced to the server.
 	SyncKind TextDocumentSyncKind `json:"syncKind"`
 }
 
-// TextDocumentSaveRegistrationOptions describes options for text document save registration.
+// TextDocumentSaveRegistrationOptions are the registration options for the textDocument/didSave notification.
 type TextDocumentSaveRegistrationOptions struct {
 	TextDocumentRegistrationOptions
+	// The client is supposed to include the content on save.
 	IncludeText *bool `json:"includeText,omitempty"`
 }
 
-// DidChangeWatchedFilesRegistrationOptions describes options for watching file changes.
+// DidChangeWatchedFilesRegistrationOptions describes the options to be used when registered for text document change events.
 type DidChangeWatchedFilesRegistrationOptions struct {
+	// The watchers to register.
 	Watchers []FileSystemWatcher `json:"watchers"`
 }

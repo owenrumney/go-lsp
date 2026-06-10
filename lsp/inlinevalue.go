@@ -1,44 +1,85 @@
 package lsp
 
-// InlineValueContext describes the context for inline values.
+// InlineValueContext is the additional context provided with an inline-value request, including the stack frame ID and stopped location.
+//
+// Since 3.17.0.
 type InlineValueContext struct {
-	FrameID         int   `json:"frameId"`
+	// The stack frame (as a DAP Id) where the execution has stopped.
+	FrameID int `json:"frameId"`
+	// The document range where execution has stopped.
+	// Typically the end position of the range denotes the line where the inline values are shown.
 	StoppedLocation Range `json:"stoppedLocation"`
 }
 
-// InlineValueText displays a static text value inline at a source position during debugging.
+// InlineValueText provides inline value as text.
+//
+// Since 3.17.0.
 type InlineValueText struct {
-	Range Range  `json:"range"`
-	Text  string `json:"text"`
+	// The document range for which the inline value applies.
+	Range Range `json:"range"`
+	// The text of the inline value.
+	Text string `json:"text"`
 }
 
-// InlineValueVariableLookup tells the debugger to look up a variable's value and display it inline at a source position.
+// InlineValueVariableLookup provides inline value through a variable lookup.
+// If only a range is specified, the variable name will be extracted from the underlying document.
+// An optional variable name can be used to override the extracted name.
+//
+// Since 3.17.0.
 type InlineValueVariableLookup struct {
-	Range               Range  `json:"range"`
-	VariableName        string `json:"variableName,omitempty"`
-	CaseSensitiveLookup bool   `json:"caseSensitiveLookup"`
+	// The document range for which the inline value applies.
+	// The range is used to extract the variable name from the underlying document.
+	Range Range `json:"range"`
+	// If specified the name of the variable to look up.
+	VariableName string `json:"variableName,omitempty"`
+	// How to perform the lookup.
+	CaseSensitiveLookup bool `json:"caseSensitiveLookup"`
 }
 
-// InlineValueEvaluatableExpression tells the debugger to evaluate an expression and display the result inline at a source position.
+// InlineValueEvaluatableExpression provides an inline value through an expression evaluation.
+// If only a range is specified, the expression will be extracted from the underlying document.
+// An optional expression can be used to override the extracted expression.
+//
+// Since 3.17.0.
 type InlineValueEvaluatableExpression struct {
-	Range      Range  `json:"range"`
+	// The document range for which the inline value applies.
+	// The range is used to extract the evaluatable expression from the underlying document.
+	Range Range `json:"range"`
+	// If specified the expression overrides the extracted expression.
 	Expression string `json:"expression,omitempty"`
 }
 
-// InlineValueParams is sent to request inline debug values for a document in a stopped debug session.
+// InlineValueParams is a parameter literal used in inline value requests.
+//
+// Since 3.17.0.
 type InlineValueParams struct {
 	WorkDoneProgressParams
+	// The text document.
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
-	Range        Range                  `json:"range"`
-	Context      InlineValueContext     `json:"context"`
+	// The document range for which inline values should be computed.
+	Range Range `json:"range"`
+	// Additional information about the context in which inline values were
+	// requested.
+	Context InlineValueContext `json:"context"`
 }
 
-// InlineValueOptions describes inline value options.
+// InlineValueOptions is used during static registration.
+//
+// Since 3.17.0.
 type InlineValueOptions struct {
 	WorkDoneProgressOptions
 }
 
-// InlineValueWorkspaceClientCapabilities declares whether the editor will refresh inline values when the server requests it.
+// InlineValueWorkspaceClientCapabilities is specific to inline values.
+//
+// Since 3.17.0.
 type InlineValueWorkspaceClientCapabilities struct {
+	// Whether the client implementation supports a refresh request sent from the
+	// server to the client.
+	//
+	// Note that this event is global and will force the client to refresh all
+	// inline values currently shown. It should be used with absolute care and is
+	// useful for situations where a server, for example, detects a project-wide
+	// change that requires such a calculation.
 	RefreshSupport *bool `json:"refreshSupport,omitempty"`
 }

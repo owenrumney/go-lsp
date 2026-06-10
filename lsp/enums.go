@@ -4,8 +4,14 @@ package lsp
 type TextDocumentSyncKind int
 
 const (
-	SyncNone        TextDocumentSyncKind = 0
-	SyncFull        TextDocumentSyncKind = 1
+	// Documents should not be synced at all.
+	SyncNone TextDocumentSyncKind = 0
+	// Documents are synced by always sending the full content
+	// of the document.
+	SyncFull TextDocumentSyncKind = 1
+	// Documents are synced by sending the full content on open.
+	// After that only incremental updates to the document are
+	// sent.
 	SyncIncremental TextDocumentSyncKind = 2
 )
 
@@ -13,8 +19,11 @@ const (
 type FileChangeType int
 
 const (
+	// The file got created.
 	FileCreated FileChangeType = 1
+	// The file got changed.
 	FileChanged FileChangeType = 2
+	// The file got deleted.
 	FileDeleted FileChangeType = 3
 )
 
@@ -22,8 +31,11 @@ const (
 type WatchKind int
 
 const (
+	// Interested in create events.
 	WatchCreate WatchKind = 1
+	// Interested in change events.
 	WatchChange WatchKind = 2
+	// Interested in delete events.
 	WatchDelete WatchKind = 4
 )
 
@@ -31,8 +43,13 @@ const (
 type CompletionTriggerKind int
 
 const (
-	CompletionTriggerInvoked                  CompletionTriggerKind = 1
-	CompletionTriggerCharacter                CompletionTriggerKind = 2
+	// Completion was triggered by typing an identifier (24x7 code
+	// complete), manual invocation (e.g. Ctrl+Space) or via API.
+	CompletionTriggerInvoked CompletionTriggerKind = 1
+	// Completion was triggered by a trigger character specified by
+	// the triggerCharacters properties of the CompletionRegistrationOptions.
+	CompletionTriggerCharacter CompletionTriggerKind = 2
+	// Completion was re-triggered as current completion list is incomplete.
 	CompletionTriggerForIncompleteCompletions CompletionTriggerKind = 3
 )
 
@@ -40,8 +57,11 @@ const (
 type SignatureHelpTriggerKind int
 
 const (
-	SignatureHelpTriggerInvoked       SignatureHelpTriggerKind = 1
-	SignatureHelpTriggerCharacter     SignatureHelpTriggerKind = 2
+	// Signature help was invoked manually by the user or by a command.
+	SignatureHelpTriggerInvoked SignatureHelpTriggerKind = 1
+	// Signature help was triggered by a trigger character.
+	SignatureHelpTriggerCharacter SignatureHelpTriggerKind = 2
+	// Signature help was triggered by the cursor moving or by the document content changing.
 	SignatureHelpTriggerContentChange SignatureHelpTriggerKind = 3
 )
 
@@ -49,15 +69,36 @@ const (
 type InsertTextFormat int
 
 const (
+	// The primary text to be inserted is treated as a plain string.
 	InsertTextFormatPlainText InsertTextFormat = 1
-	InsertTextFormatSnippet   InsertTextFormat = 2
+	// The primary text to be inserted is treated as a snippet.
+	//
+	// A snippet can define tab stops and placeholders with `$1`, `$2`
+	// and `${3:foo}`. `$0` defines the final tab stop; it defaults to
+	// the end of the snippet. Placeholders with equal identifiers are linked,
+	// that is typing in one will update others too.
+	//
+	// See also: https://microsoft.github.io/language-server-protocol/specifications/specification-current/#snippet_syntax
+	InsertTextFormatSnippet InsertTextFormat = 2
 )
 
 // InsertTextMode is an int enum: asIs (1) keeps original whitespace, adjustIndentation (2) adapts leading whitespace to the insertion context.
 type InsertTextMode int
 
 const (
-	InsertTextModeAsIs              InsertTextMode = 1
+	// The insertion or replace string is taken as it is. If the
+	// value is multi line the lines below the cursor will be
+	// inserted using the indentation defined in the string value.
+	// The client will not apply any kind of adjustments to the
+	// string.
+	InsertTextModeAsIs InsertTextMode = 1
+	// The editor adjusts leading whitespace of new lines so that
+	// they match the indentation up to the cursor of the line for
+	// which the item is accepted.
+	//
+	// Consider a line like this: <2tabs><cursor><3tabs>foo. Accepting a
+	// multi line completion item is indented using 2 tabs and all
+	// following lines inserted will be indented using 2 tabs as well.
 	InsertTextModeAdjustIndentation InsertTextMode = 2
 )
 
@@ -65,8 +106,11 @@ const (
 type ResourceOperationKind string
 
 const (
+	// Supports creating new files and folders.
 	ResourceOperationCreate ResourceOperationKind = "create"
+	// Supports renaming existing files and folders.
 	ResourceOperationRename ResourceOperationKind = "rename"
+	// Supports deleting existing files and folders.
 	ResourceOperationDelete ResourceOperationKind = "delete"
 )
 
@@ -74,9 +118,18 @@ const (
 type FailureHandlingKind string
 
 const (
-	FailureHandlingAbort                 FailureHandlingKind = "abort"
-	FailureHandlingTransactional         FailureHandlingKind = "transactional"
-	FailureHandlingUndo                  FailureHandlingKind = "undo"
+	// Applying the workspace change is simply aborted if one of the changes provided
+	// fails. All operations executed before the failing operation stay executed.
+	FailureHandlingAbort FailureHandlingKind = "abort"
+	// All operations are executed transactional. That means they either all
+	// succeed or no changes at all are applied to the workspace.
+	FailureHandlingTransactional FailureHandlingKind = "transactional"
+	// The client tries to undo the operations already executed. But there is no
+	// guarantee that this is succeeding.
+	FailureHandlingUndo FailureHandlingKind = "undo"
+	// If the workspace edit contains only textual file changes they are executed transactional.
+	// If resource changes (create, rename or delete file) are part of the change the failure
+	// handling strategy is abort.
 	FailureHandlingTextOnlyTransactional FailureHandlingKind = "textOnlyTransactional"
 )
 
@@ -84,6 +137,8 @@ const (
 type PrepareSupportDefaultBehavior int
 
 const (
+	// The client's default behavior is to select the identifier
+	// according to the language's syntax rule.
 	PrepareSupportDefaultBehaviorIdentifier PrepareSupportDefaultBehavior = 1
 )
 
