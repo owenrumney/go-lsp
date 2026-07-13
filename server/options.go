@@ -41,6 +41,20 @@ func WithLogger(logger *slog.Logger) Option {
 	}
 }
 
+// WithMethodMiddleware adds inbound JSON-RPC request middleware.
+func WithMethodMiddleware(middleware ...MethodMiddleware) Option {
+	return func(s *Server) {
+		s.methodMiddleware = append(s.methodMiddleware, middleware...)
+	}
+}
+
+// WithNotificationMiddleware adds inbound JSON-RPC notification middleware.
+func WithNotificationMiddleware(middleware ...NotificationMiddleware) Option {
+	return func(s *Server) {
+		s.notificationMiddleware = append(s.notificationMiddleware, middleware...)
+	}
+}
+
 // WithRequestTimeout sets a default timeout for all incoming JSON-RPC requests.
 // If a handler does not respond within the timeout, the request context is
 // cancelled and the client receives a RequestCancelled error. A zero duration
@@ -48,6 +62,14 @@ func WithLogger(logger *slog.Logger) Option {
 func WithRequestTimeout(d time.Duration) Option {
 	return func(s *Server) {
 		s.requestTimeout = d
+	}
+}
+
+// WithMaxConcurrentRequests limits how many inbound JSON-RPC requests may run at once.
+// A value <= 0 keeps the default unlimited behavior. Notifications are unaffected.
+func WithMaxConcurrentRequests(n int) Option {
+	return func(s *Server) {
+		s.maxConcurrentRequests = n
 	}
 }
 

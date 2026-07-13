@@ -64,6 +64,56 @@ func (c *Client) CreateWorkDoneProgress(ctx context.Context, params *lsp.WorkDon
 	return err
 }
 
+// Configuration sends a workspace/configuration request to the client and waits for a response.
+func (c *Client) Configuration(ctx context.Context, params *lsp.ConfigurationParams) ([]json.RawMessage, error) {
+	resp, err := c.conn.Call(ctx, "workspace/configuration", params)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		return nil, fmt.Errorf("configuration: %s", resp.Error.Message)
+	}
+	if resp.Result == nil || string(resp.Result) == "null" {
+		return nil, nil
+	}
+	var result []json.RawMessage
+	if err := json.Unmarshal(resp.Result, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// ApplyEdit sends a workspace/applyEdit request to the client and waits for a response.
+func (c *Client) ApplyEdit(ctx context.Context, params *lsp.ApplyWorkspaceEditParams) (*lsp.ApplyWorkspaceEditResult, error) {
+	resp, err := c.conn.Call(ctx, "workspace/applyEdit", params)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		return nil, fmt.Errorf("applyEdit: %s", resp.Error.Message)
+	}
+	if resp.Result == nil || string(resp.Result) == "null" {
+		return nil, nil
+	}
+	var result lsp.ApplyWorkspaceEditResult
+	if err := json.Unmarshal(resp.Result, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// RegisterCapability sends a client/registerCapability request to the client.
+func (c *Client) RegisterCapability(ctx context.Context, params *lsp.RegistrationParams) error {
+	_, err := c.conn.Call(ctx, "client/registerCapability", params)
+	return err
+}
+
+// UnregisterCapability sends a client/unregisterCapability request to the client.
+func (c *Client) UnregisterCapability(ctx context.Context, params *lsp.UnregistrationParams) error {
+	_, err := c.conn.Call(ctx, "client/unregisterCapability", params)
+	return err
+}
+
 // InlayHintRefresh sends a workspace/inlayHint/refresh request to the client.
 func (c *Client) InlayHintRefresh(ctx context.Context) error {
 	_, err := c.conn.Call(ctx, "workspace/inlayHint/refresh", nil)

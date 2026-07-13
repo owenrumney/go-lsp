@@ -173,7 +173,8 @@ func (h *fullHandler) WorkspaceSymbol(_ context.Context, _ *lsp.WorkspaceSymbolP
 	return []lsp.SymbolInformation{{Name: "Workspace", Kind: lsp.SymbolKindFunction, Location: testLocation("file:///workspace.go")}}, nil
 }
 func (h *fullHandler) ExecuteCommand(ctx context.Context, params *lsp.ExecuteCommandParams) (any, error) {
-	if params.Command == "ask" {
+	switch params.Command {
+	case "ask":
 		item, err := h.client.ShowMessageRequest(ctx, &lsp.ShowMessageRequestParams{
 			Type:    lsp.MessageTypeInfo,
 			Message: "choose",
@@ -185,6 +186,42 @@ func (h *fullHandler) ExecuteCommand(ctx context.Context, params *lsp.ExecuteCom
 			return nil, err
 		}
 		return item.Title, nil
+	case "config":
+		return h.client.Configuration(ctx, &lsp.ConfigurationParams{
+			Items: []lsp.ConfigurationItem{{Section: "goLsp.featureFlags"}},
+		})
+	case "apply-edit":
+		return h.client.ApplyEdit(ctx, &lsp.ApplyWorkspaceEditParams{
+			Label: "test edit",
+			Edit: lsp.WorkspaceEdit{
+				Changes: map[lsp.DocumentURI][]lsp.TextEdit{
+					"file:///test.go": {{Range: testRange(), NewText: "updated"}},
+				},
+			},
+		})
+	case "register":
+		if err := h.client.RegisterCapability(ctx, &lsp.RegistrationParams{
+			Registrations: []lsp.Registration{{
+				ID:     "watch-go-files",
+				Method: "workspace/didChangeWatchedFiles",
+				RegisterOptions: json.RawMessage(`{
+					"watchers":[{"globPattern":"**/*.go"}]
+				}`),
+			}},
+		}); err != nil {
+			return nil, err
+		}
+		return "registered", nil
+	case "unregister":
+		if err := h.client.UnregisterCapability(ctx, &lsp.UnregistrationParams{
+			Unregisterations: []lsp.Unregistration{{
+				ID:     "watch-go-files",
+				Method: "workspace/didChangeWatchedFiles",
+			}},
+		}); err != nil {
+			return nil, err
+		}
+		return "unregistered", nil
 	}
 	return params.Command, nil
 }
@@ -398,6 +435,96 @@ func TestClientRequestRecordingAndResponses(t *testing.T) {
 	}
 	if len(h.ClientRequests()) != 1 {
 		t.Fatalf("client requests = %d, want 1", len(h.ClientRequests()))
+	}
+}
+
+func TestClientConfigurationRequest(t *testing.T) {
+	h := servertest.New(t, &fullHandler{})
+	h.SetClientResponse("workspace/configuration", []map[string]any{{"enabled": true}})
+
+	result, err := h.ExecuteCommand("config", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(result), "enabled") {
+		t.Fatalf("execute command result = %s", result)
+	}
+
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+	req, err := h.WaitForClientRequest(ctx, "workspace/configuration")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(req.Params), "goLsp.featureFlags") {
+		t.Fatalf("client request params = %s", req.Params)
+	}
+}
+
+func TestClientApplyEditRequest(t *testing.T) {
+	h := servertest.New(t, &fullHandler{})
+	h.SetClientResponse("workspace/applyEdit", lsp.ApplyWorkspaceEditResult{Applied: true})
+
+	result, err := h.ExecuteCommand("apply-edit", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(result), `"applied":true`) {
+		t.Fatalf("execute command result = %s", result)
+	}
+
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+	req, err := h.WaitForClientRequest(ctx, "workspace/applyEdit")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(req.Params), "test edit") || !strings.Contains(string(req.Params), "updated") {
+		t.Fatalf("client request params = %s", req.Params)
+	}
+}
+
+func TestClientRegisterCapabilityRequest(t *testing.T) {
+	h := servertest.New(t, &fullHandler{})
+
+	result, err := h.ExecuteCommand("register", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(result), "registered") {
+		t.Fatalf("execute command result = %s", result)
+	}
+
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+	req, err := h.WaitForClientRequest(ctx, "client/registerCapability")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(req.Params), "watch-go-files") || !strings.Contains(string(req.Params), "**/*.go") {
+		t.Fatalf("client request params = %s", req.Params)
+	}
+}
+
+func TestClientUnregisterCapabilityRequest(t *testing.T) {
+	h := servertest.New(t, &fullHandler{})
+
+	result, err := h.ExecuteCommand("unregister", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(result), "unregistered") {
+		t.Fatalf("execute command result = %s", result)
+	}
+
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+	req, err := h.WaitForClientRequest(ctx, "client/unregisterCapability")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(req.Params), "watch-go-files") || !strings.Contains(string(req.Params), "workspace/didChangeWatchedFiles") {
+		t.Fatalf("client request params = %s", req.Params)
 	}
 }
 
