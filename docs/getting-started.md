@@ -359,6 +359,35 @@ language-servers = ["mylang-lsp"]
 command = "./mylang-lsp"
 ```
 
+## Middleware and Request Controls
+
+If you need cross-cutting behavior around inbound requests or notifications, add middleware when building the server:
+
+```go
+srv := server.NewServer(h,
+    server.WithMethodMiddleware(func(method string, next server.MethodHandlerFunc) server.MethodHandlerFunc {
+        return func(ctx context.Context, params json.RawMessage) (any, error) {
+            start := time.Now()
+            result, err := next(ctx, params)
+            slog.Debug("method", "name", method, "duration", time.Since(start), "err", err)
+            return result, err
+        }
+    }),
+)
+```
+
+Notification middleware follows the same pattern with `server.NotificationHandlerFunc`.
+
+If you want to bound inbound request concurrency, opt in with:
+
+```go
+srv := server.NewServer(h,
+    server.WithMaxConcurrentRequests(8),
+)
+```
+
+This only limits requests. Notifications continue to behave normally.
+
 ## Logging
 
 The server logs method dispatch, errors, and lifecycle events via `log/slog`:
@@ -435,6 +464,20 @@ h.client.LogMessage(ctx, &lsp.LogMessageParams{
     Type:    lsp.MessageTypeLog,
     Message: "Processing file...",
 })
+
+// Ask the client for configuration
+h.client.Configuration(ctx, &lsp.ConfigurationParams{
+    Items: []lsp.ConfigurationItem{{Section: "mylang"}},
+})
+
+// Ask the client to apply a workspace edit
+h.client.ApplyEdit(ctx, &lsp.ApplyWorkspaceEditParams{
+    Label: "Rename generated file",
+    Edit:  lsp.WorkspaceEdit{...},
+})
+
+// Dynamically register a capability
+h.client.RegisterCapability(ctx, &lsp.RegistrationParams{...})
 
 // Report progress
 h.client.CreateWorkDoneProgress(ctx, &lsp.WorkDoneProgressCreateParams{Token: "indexing"})

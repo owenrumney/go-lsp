@@ -15,20 +15,23 @@ import (
 
 // Server is an LSP server that dispatches JSON-RPC messages to handler interfaces.
 type Server struct {
-	handler             any
-	conn                *jsonrpc.Conn
-	Client              *Client
-	initialized         bool
-	shutdown            bool
-	customMethods       map[string]jsonrpc.MethodHandler
-	customNotifications map[string]jsonrpc.NotificationHandler
-	debugAddr           string
-	debugCapture        bool
-	recorder            *debugui.Recorder
-	debugUI             *debugui.DebugUI
-	logger              *slog.Logger
-	requestTimeout      time.Duration
-	capabilityOptions   CapabilityOptions
+	handler                any
+	conn                   *jsonrpc.Conn
+	Client                 *Client
+	initialized            bool
+	shutdown               bool
+	customMethods          map[string]jsonrpc.MethodHandler
+	customNotifications    map[string]jsonrpc.NotificationHandler
+	debugAddr              string
+	debugCapture           bool
+	recorder               *debugui.Recorder
+	debugUI                *debugui.DebugUI
+	logger                 *slog.Logger
+	requestTimeout         time.Duration
+	maxConcurrentRequests  int
+	capabilityOptions      CapabilityOptions
+	methodMiddleware       []MethodMiddleware
+	notificationMiddleware []NotificationMiddleware
 }
 
 // NewServer creates a new LSP server with the given handler.
@@ -92,6 +95,9 @@ func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
 	if s.requestTimeout > 0 {
 		s.conn.SetRequestTimeout(s.requestTimeout)
 	}
+	if s.maxConcurrentRequests > 0 {
+		s.conn.SetMaxConcurrentRequests(s.maxConcurrentRequests)
+	}
 	s.Client = newClient(s.conn)
 
 	if h, ok := s.handler.(ClientHandler); ok {
@@ -102,10 +108,10 @@ func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
 	s.registerNotifications(dispatcher)
 
 	for method, handler := range s.customMethods {
-		dispatcher.RegisterMethod(method, s.logMethod(method, handler))
+		dispatcher.RegisterMethod(method, s.wrapMethod(method, handler))
 	}
 	for method, handler := range s.customNotifications {
-		dispatcher.RegisterNotification(method, s.logNotification(method, handler))
+		dispatcher.RegisterNotification(method, s.wrapNotification(method, handler))
 	}
 
 	if s.logger != nil {
@@ -116,8 +122,8 @@ func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
 }
 
 func (s *Server) registerMethods(d *jsonrpc.Dispatcher) {
-	d.RegisterMethod("initialize", s.logMethod("initialize", s.handleInitialize))
-	d.RegisterMethod("shutdown", s.logMethod("shutdown", s.handleShutdown))
+	d.RegisterMethod("initialize", s.wrapMethod("initialize", s.handleInitialize))
+	d.RegisterMethod("shutdown", s.wrapMethod("shutdown", s.handleShutdown))
 
 	registerIf(d, s, "textDocument/completion", handleCompletion)
 	registerIf(d, s, "completionItem/resolve", handleCompletionResolve)
@@ -155,15 +161,15 @@ func (s *Server) registerMethods(d *jsonrpc.Dispatcher) {
 	registerIf(d, s, "workspace/willDeleteFiles", handleWillDeleteFiles)
 
 	if h, ok := s.handler.(CallHierarchyHandler); ok {
-		d.RegisterMethod("textDocument/prepareCallHierarchy", s.logMethod("textDocument/prepareCallHierarchy", typedHandler(h, CallHierarchyHandler.PrepareCallHierarchy)))
-		d.RegisterMethod("callHierarchy/incomingCalls", s.logMethod("callHierarchy/incomingCalls", typedHandler(h, CallHierarchyHandler.IncomingCalls)))
-		d.RegisterMethod("callHierarchy/outgoingCalls", s.logMethod("callHierarchy/outgoingCalls", typedHandler(h, CallHierarchyHandler.OutgoingCalls)))
+		d.RegisterMethod("textDocument/prepareCallHierarchy", s.wrapMethod("textDocument/prepareCallHierarchy", typedHandler(h, CallHierarchyHandler.PrepareCallHierarchy)))
+		d.RegisterMethod("callHierarchy/incomingCalls", s.wrapMethod("callHierarchy/incomingCalls", typedHandler(h, CallHierarchyHandler.IncomingCalls)))
+		d.RegisterMethod("callHierarchy/outgoingCalls", s.wrapMethod("callHierarchy/outgoingCalls", typedHandler(h, CallHierarchyHandler.OutgoingCalls)))
 	}
 
 	if h, ok := s.handler.(TypeHierarchyHandler); ok {
-		d.RegisterMethod("textDocument/prepareTypeHierarchy", s.logMethod("textDocument/prepareTypeHierarchy", typedHandler(h, TypeHierarchyHandler.PrepareTypeHierarchy)))
-		d.RegisterMethod("typeHierarchy/supertypes", s.logMethod("typeHierarchy/supertypes", typedHandler(h, TypeHierarchyHandler.Supertypes)))
-		d.RegisterMethod("typeHierarchy/subtypes", s.logMethod("typeHierarchy/subtypes", typedHandler(h, TypeHierarchyHandler.Subtypes)))
+		d.RegisterMethod("textDocument/prepareTypeHierarchy", s.wrapMethod("textDocument/prepareTypeHierarchy", typedHandler(h, TypeHierarchyHandler.PrepareTypeHierarchy)))
+		d.RegisterMethod("typeHierarchy/supertypes", s.wrapMethod("typeHierarchy/supertypes", typedHandler(h, TypeHierarchyHandler.Supertypes)))
+		d.RegisterMethod("typeHierarchy/subtypes", s.wrapMethod("typeHierarchy/subtypes", typedHandler(h, TypeHierarchyHandler.Subtypes)))
 	}
 
 	registerIf(d, s, "textDocument/inlayHint", handleInlayHint)
@@ -173,53 +179,53 @@ func (s *Server) registerMethods(d *jsonrpc.Dispatcher) {
 	registerIf(d, s, "workspace/diagnostic", handleWorkspaceDiagnostic)
 
 	if h, ok := s.handler.(SemanticTokensFullHandler); ok {
-		d.RegisterMethod("textDocument/semanticTokens/full", s.logMethod("textDocument/semanticTokens/full", typedHandler(h, SemanticTokensFullHandler.SemanticTokensFull)))
+		d.RegisterMethod("textDocument/semanticTokens/full", s.wrapMethod("textDocument/semanticTokens/full", typedHandler(h, SemanticTokensFullHandler.SemanticTokensFull)))
 	}
 	if h, ok := s.handler.(SemanticTokensDeltaHandler); ok {
-		d.RegisterMethod("textDocument/semanticTokens/full/delta", s.logMethod("textDocument/semanticTokens/full/delta", typedHandler(h, SemanticTokensDeltaHandler.SemanticTokensDelta)))
+		d.RegisterMethod("textDocument/semanticTokens/full/delta", s.wrapMethod("textDocument/semanticTokens/full/delta", typedHandler(h, SemanticTokensDeltaHandler.SemanticTokensDelta)))
 	}
 	if h, ok := s.handler.(SemanticTokensRangeHandler); ok {
-		d.RegisterMethod("textDocument/semanticTokens/range", s.logMethod("textDocument/semanticTokens/range", typedHandler(h, SemanticTokensRangeHandler.SemanticTokensRange)))
+		d.RegisterMethod("textDocument/semanticTokens/range", s.wrapMethod("textDocument/semanticTokens/range", typedHandler(h, SemanticTokensRangeHandler.SemanticTokensRange)))
 	}
 }
 
 func (s *Server) registerNotifications(d *jsonrpc.Dispatcher) {
-	d.RegisterNotification("initialized", s.logNotification("initialized", func(_ context.Context, _ json.RawMessage) error {
+	d.RegisterNotification("initialized", s.wrapNotification("initialized", func(_ context.Context, _ json.RawMessage) error {
 		return nil
 	}))
 
-	d.RegisterNotification("exit", s.logNotification("exit", func(_ context.Context, _ json.RawMessage) error {
+	d.RegisterNotification("exit", s.wrapNotification("exit", func(_ context.Context, _ json.RawMessage) error {
 		return fmt.Errorf("exit")
 	}))
 
 	if h, ok := s.handler.(TextDocumentSyncHandler); ok {
-		d.RegisterNotification("textDocument/didOpen", s.logNotification("textDocument/didOpen", notifHandler(h, TextDocumentSyncHandler.DidOpen)))
-		d.RegisterNotification("textDocument/didChange", s.logNotification("textDocument/didChange", notifHandler(h, TextDocumentSyncHandler.DidChange)))
-		d.RegisterNotification("textDocument/didClose", s.logNotification("textDocument/didClose", notifHandler(h, TextDocumentSyncHandler.DidClose)))
+		d.RegisterNotification("textDocument/didOpen", s.wrapNotification("textDocument/didOpen", notifHandler(h, TextDocumentSyncHandler.DidOpen)))
+		d.RegisterNotification("textDocument/didChange", s.wrapNotification("textDocument/didChange", notifHandler(h, TextDocumentSyncHandler.DidChange)))
+		d.RegisterNotification("textDocument/didClose", s.wrapNotification("textDocument/didClose", notifHandler(h, TextDocumentSyncHandler.DidClose)))
 	}
 
 	if h, ok := s.handler.(TextDocumentSaveHandler); ok {
-		d.RegisterNotification("textDocument/didSave", s.logNotification("textDocument/didSave", notifHandler(h, TextDocumentSaveHandler.DidSave)))
+		d.RegisterNotification("textDocument/didSave", s.wrapNotification("textDocument/didSave", notifHandler(h, TextDocumentSaveHandler.DidSave)))
 	}
 
 	if h, ok := s.handler.(TextDocumentWillSaveHandler); ok {
-		d.RegisterNotification("textDocument/willSave", s.logNotification("textDocument/willSave", notifHandler(h, TextDocumentWillSaveHandler.WillSave)))
+		d.RegisterNotification("textDocument/willSave", s.wrapNotification("textDocument/willSave", notifHandler(h, TextDocumentWillSaveHandler.WillSave)))
 	}
 
 	if h, ok := s.handler.(WorkspaceFoldersHandler); ok {
-		d.RegisterNotification("workspace/didChangeWorkspaceFolders", s.logNotification("workspace/didChangeWorkspaceFolders", notifHandler(h, WorkspaceFoldersHandler.DidChangeWorkspaceFolders)))
+		d.RegisterNotification("workspace/didChangeWorkspaceFolders", s.wrapNotification("workspace/didChangeWorkspaceFolders", notifHandler(h, WorkspaceFoldersHandler.DidChangeWorkspaceFolders)))
 	}
 
 	if h, ok := s.handler.(DidChangeConfigurationHandler); ok {
-		d.RegisterNotification("workspace/didChangeConfiguration", s.logNotification("workspace/didChangeConfiguration", notifHandler(h, DidChangeConfigurationHandler.DidChangeConfiguration)))
+		d.RegisterNotification("workspace/didChangeConfiguration", s.wrapNotification("workspace/didChangeConfiguration", notifHandler(h, DidChangeConfigurationHandler.DidChangeConfiguration)))
 	}
 
 	if h, ok := s.handler.(DidChangeWatchedFilesHandler); ok {
-		d.RegisterNotification("workspace/didChangeWatchedFiles", s.logNotification("workspace/didChangeWatchedFiles", notifHandler(h, DidChangeWatchedFilesHandler.DidChangeWatchedFiles)))
+		d.RegisterNotification("workspace/didChangeWatchedFiles", s.wrapNotification("workspace/didChangeWatchedFiles", notifHandler(h, DidChangeWatchedFilesHandler.DidChangeWatchedFiles)))
 	}
 
 	if h, ok := s.handler.(SetTraceHandler); ok {
-		d.RegisterNotification("$/setTrace", s.logNotification("$/setTrace", notifHandler(h, SetTraceHandler.SetTrace)))
+		d.RegisterNotification("$/setTrace", s.wrapNotification("$/setTrace", notifHandler(h, SetTraceHandler.SetTrace)))
 	}
 }
 
@@ -374,7 +380,7 @@ func registerIf[H any](d *jsonrpc.Dispatcher, s *Server, method string, fn func(
 		handler := jsonrpc.MethodHandler(func(ctx context.Context, params json.RawMessage) (any, error) {
 			return fn(ctx, h, params)
 		})
-		d.RegisterMethod(method, s.logMethod(method, handler))
+		d.RegisterMethod(method, s.wrapMethod(method, handler))
 	}
 }
 

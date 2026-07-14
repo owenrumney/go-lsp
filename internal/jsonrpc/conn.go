@@ -16,16 +16,18 @@ import (
 
 // Conn is a JSON-RPC 2.0 connection over a Content-Length framed stream.
 type Conn struct {
-	reader         *bufio.Reader
-	writer         io.Writer
-	writeMu        sync.Mutex
-	dispatcher     *Dispatcher
-	cancelMu       sync.Mutex
-	cancels        map[string]context.CancelFunc
-	nextID         atomic.Int64
-	pendingMu      sync.Mutex
-	pending        map[string]chan *Response
-	requestTimeout time.Duration
+	reader                *bufio.Reader
+	writer                io.Writer
+	writeMu               sync.Mutex
+	dispatcher            *Dispatcher
+	cancelMu              sync.Mutex
+	cancels               map[string]context.CancelFunc
+	nextID                atomic.Int64
+	pendingMu             sync.Mutex
+	pending               map[string]chan *Response
+	requestTimeout        time.Duration
+	maxConcurrentRequests int
+	requestSem            chan struct{}
 }
 
 func NewConn(rw io.ReadWriteCloser, dispatcher *Dispatcher) *Conn {
@@ -111,7 +113,7 @@ func (c *Conn) Serve(ctx context.Context) error {
 
 		switch m := msg.(type) {
 		case *Request:
-			go c.handleRequest(ctx, m)
+			go c.handleRequestWithLimit(ctx, m)
 		case *Notification:
 			c.handleNotification(ctx, m)
 		case *Response:
@@ -124,6 +126,29 @@ func (c *Conn) Serve(ctx context.Context) error {
 // A zero duration means no timeout (the default).
 func (c *Conn) SetRequestTimeout(d time.Duration) {
 	c.requestTimeout = d
+}
+
+// SetMaxConcurrentRequests limits how many incoming requests may run at once.
+// A value <= 0 keeps the default unlimited behavior.
+func (c *Conn) SetMaxConcurrentRequests(n int) {
+	c.maxConcurrentRequests = n
+	if n <= 0 {
+		c.requestSem = nil
+		return
+	}
+	c.requestSem = make(chan struct{}, n)
+}
+
+func (c *Conn) handleRequestWithLimit(ctx context.Context, req *Request) {
+	if c.requestSem != nil {
+		select {
+		case c.requestSem <- struct{}{}:
+			defer func() { <-c.requestSem }()
+		case <-ctx.Done():
+			return
+		}
+	}
+	c.handleRequest(ctx, req)
 }
 
 func (c *Conn) handleRequest(ctx context.Context, req *Request) {

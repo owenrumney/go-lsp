@@ -180,6 +180,17 @@ if err != nil {
 // assert on req.Method or req.Params
 ```
 
+This works for newer client helpers too, such as `workspace/configuration`, `workspace/applyEdit`, and dynamic registration:
+
+```go
+h.SetClientResponse("workspace/configuration", []map[string]any{{"enabled": true}})
+h.SetClientResponse("workspace/applyEdit", lsp.ApplyWorkspaceEditResult{Applied: true})
+
+req, err := h.WaitForClientRequest(ctx, "workspace/configuration")
+req, err = h.WaitForClientRequest(ctx, "workspace/applyEdit")
+req, err = h.WaitForClientRequest(ctx, "client/registerCapability")
+```
+
 Use `SetClientError` to force an error response, or `ClientRequests` to inspect everything captured so far.
 
 ## Repository Test Commands
@@ -217,6 +228,10 @@ h := servertest.New(t, &myHandler{},
     }),
     servertest.WithServerOptions(
         server.WithLogger(slog.Default()),
+        server.WithMaxConcurrentRequests(4),
+        server.WithMethodMiddleware(func(method string, next server.MethodHandlerFunc) server.MethodHandlerFunc {
+            return next
+        }),
     ),
 )
 ```
