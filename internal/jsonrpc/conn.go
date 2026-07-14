@@ -16,14 +16,14 @@ import (
 
 // Conn is a JSON-RPC 2.0 connection over a Content-Length framed stream.
 type Conn struct {
-	reader         *bufio.Reader
-	writer         io.Writer
-	writeMu        sync.Mutex
-	dispatcher     *Dispatcher
-	cancelMu       sync.Mutex
-	cancels        map[string]context.CancelFunc
-	nextID         atomic.Int64
-	pendingMu      sync.Mutex
+	reader                *bufio.Reader
+	writer                io.Writer
+	writeMu               sync.Mutex
+	dispatcher            *Dispatcher
+	cancelMu              sync.Mutex
+	cancels               map[string]context.CancelFunc
+	nextID                atomic.Int64
+	pendingMu             sync.Mutex
 	pending               map[string]chan *Response
 	requestTimeout        time.Duration
 	maxConcurrentRequests int

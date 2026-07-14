@@ -91,15 +91,18 @@ func TestNotificationMiddlewareCanShortCircuit(t *testing.T) {
 					return next(ctx, params)
 				}
 			},
-			func(method string, next server.NotificationHandlerFunc) server.NotificationHandlerFunc {
-				return func(ctx context.Context, params json.RawMessage) error {
+			func(method string, _ server.NotificationHandlerFunc) server.NotificationHandlerFunc {
+				return func(_ context.Context, _ json.RawMessage) error {
 					handler.events <- "mw2:block:" + method
 					return nil
 				}
 			},
 		),
 	))
-	handler.events = make(chan string, 10)
+	// servertest.New sends the initialized notification before returning, but
+	// notification handling happens on the server goroutine. Drain those
+	// middleware events instead of swapping the channel while it may be in use.
+	_ = collectEvents(t, handler.events, 2)
 
 	if err := h.DidOpen("file:///test.txt", "plaintext", "hello"); err != nil {
 		t.Fatal(err)

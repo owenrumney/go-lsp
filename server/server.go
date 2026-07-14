@@ -15,17 +15,17 @@ import (
 
 // Server is an LSP server that dispatches JSON-RPC messages to handler interfaces.
 type Server struct {
-	handler             any
-	conn                *jsonrpc.Conn
-	Client              *Client
-	initialized         bool
-	shutdown            bool
-	customMethods       map[string]jsonrpc.MethodHandler
-	customNotifications map[string]jsonrpc.NotificationHandler
-	debugAddr           string
-	debugCapture        bool
-	recorder            *debugui.Recorder
-	debugUI             *debugui.DebugUI
+	handler                any
+	conn                   *jsonrpc.Conn
+	Client                 *Client
+	initialized            bool
+	shutdown               bool
+	customMethods          map[string]jsonrpc.MethodHandler
+	customNotifications    map[string]jsonrpc.NotificationHandler
+	debugAddr              string
+	debugCapture           bool
+	recorder               *debugui.Recorder
+	debugUI                *debugui.DebugUI
 	logger                 *slog.Logger
 	requestTimeout         time.Duration
 	maxConcurrentRequests  int
