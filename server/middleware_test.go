@@ -24,7 +24,7 @@ func (h *middlewareHandler) Shutdown(_ context.Context) error { return nil }
 
 func (h *middlewareHandler) Hover(_ context.Context, _ *lsp.HoverParams) (*lsp.Hover, error) {
 	h.events <- "handler:hover"
-	return &lsp.Hover{Contents: lsp.MarkupContent{Kind: lsp.PlainText, Value: "ok"}}, nil
+	return &lsp.Hover{Contents: lsp.NewHoverContents(lsp.PlainText, "ok")}, nil
 }
 
 func (h *middlewareHandler) DidOpen(_ context.Context, _ *lsp.DidOpenTextDocumentParams) error {

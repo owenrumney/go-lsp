@@ -42,6 +42,7 @@
         <pre><code class="language-go">srv := server.NewServer(h, server.WithDebugUI(":7100"))
 srv.Run(ctx, server.RunStdio())</code></pre>
         <p>Open <code>http://localhost:7100</code> while the server is running.</p>
+        <p>An address without a host binds to loopback only, and websocket connections from non-loopback origins are rejected — the UI streams full LSP traffic, including document text. Pass an explicit host (e.g. <code>0.0.0.0:7100</code>) only if you understand the exposure.</p>
         <p>If the HTTP listener cannot bind (port in use, restricted environment), the server logs a warning and continues with capture-only mode. <code>WithDebugUI</code> therefore never prevents the LSP from starting; trace export still works against the in-memory recorder.</p>
 
         <h2>Capture-Only Mode</h2>

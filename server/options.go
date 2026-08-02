@@ -12,6 +12,9 @@ type Option func(*Server)
 
 // WithDebugUI enables the debug web UI on the given address (e.g. ":7100").
 //
+// An address without a host binds to loopback only, since the UI exposes
+// captured LSP traffic; non-loopback websocket origins are rejected.
+//
 // This implies WithDebugCapture: even if the HTTP listener fails to bind (for
 // example on a locked-down corporate machine), capture remains active so trace
 // export still works. Bind failures are logged via the configured WithLogger
@@ -84,6 +87,8 @@ type CapabilityOptions struct {
 	CodeAction           *lsp.CodeActionOptions
 	ExecuteCommand       *lsp.ExecuteCommandOptions
 	SemanticTokens       *lsp.SemanticTokensOptions
+	OnTypeFormatting     *lsp.DocumentOnTypeFormattingOptions
+	NotebookSync         *lsp.NotebookDocumentSyncOptions
 	FileOperationFilters []lsp.FileOperationFilter
 	PositionEncoding     *lsp.PositionEncodingKind
 }
@@ -120,6 +125,24 @@ func WithCodeActionOptions(opts lsp.CodeActionOptions) Option {
 func WithExecuteCommandOptions(opts lsp.ExecuteCommandOptions) Option {
 	return func(s *Server) {
 		s.capabilityOptions.ExecuteCommand = &opts
+	}
+}
+
+// WithOnTypeFormattingOptions configures the onTypeFormatting capability.
+// Required for DocumentOnTypeFormattingHandler to be advertised, since the
+// trigger characters cannot be inferred.
+func WithOnTypeFormattingOptions(opts lsp.DocumentOnTypeFormattingOptions) Option {
+	return func(s *Server) {
+		s.capabilityOptions.OnTypeFormatting = &opts
+	}
+}
+
+// WithNotebookSyncOptions configures the notebookDocumentSync capability.
+// Required for NotebookDocumentSyncHandler to be advertised, since the
+// notebook selector cannot be inferred.
+func WithNotebookSyncOptions(opts lsp.NotebookDocumentSyncOptions) Option {
+	return func(s *Server) {
+		s.capabilityOptions.NotebookSync = &opts
 	}
 }
 

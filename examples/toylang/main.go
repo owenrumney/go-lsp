@@ -82,10 +82,7 @@ func (h *handler) Hover(_ context.Context, params *lsp.HoverParams) (*lsp.Hover,
 	}
 
 	return &lsp.Hover{
-		Contents: lsp.MarkupContent{
-			Kind:  lsp.Markdown,
-			Value: fmt.Sprintf("**%s** = `%s`", entry.key, entry.value),
-		},
+		Contents: lsp.NewHoverContents(lsp.Markdown, fmt.Sprintf("**%s** = `%s`", entry.key, entry.value)),
 	}, nil
 }
 

@@ -41,19 +41,19 @@ func buildCapabilities(handler any) lsp.ServerCapabilities {
 		caps.SignatureHelpProvider = &lsp.SignatureHelpOptions{}
 	}
 
-	if _, ok := handler.(DeclarationHandler); ok {
+	if implementsEither[DeclarationHandler, DeclarationLinkHandler](handler) {
 		caps.DeclarationProvider = &enabled
 	}
 
-	if _, ok := handler.(DefinitionHandler); ok {
+	if implementsEither[DefinitionHandler, DefinitionLinkHandler](handler) {
 		caps.DefinitionProvider = &enabled
 	}
 
-	if _, ok := handler.(TypeDefinitionHandler); ok {
+	if implementsEither[TypeDefinitionHandler, TypeDefinitionLinkHandler](handler) {
 		caps.TypeDefinitionProvider = &enabled
 	}
 
-	if _, ok := handler.(ImplementationHandler); ok {
+	if implementsEither[ImplementationHandler, ImplementationLinkHandler](handler) {
 		caps.ImplementationProvider = &enabled
 	}
 
@@ -66,7 +66,7 @@ func buildCapabilities(handler any) lsp.ServerCapabilities {
 	}
 
 	if _, ok := handler.(DocumentSymbolHandler); ok {
-		caps.DocumentSymbolProvider = &enabled
+		caps.DocumentSymbolProvider = &lsp.DocumentSymbolOptions{}
 	}
 
 	if _, ok := handler.(CodeActionHandler); ok {
@@ -157,8 +157,12 @@ func buildCapabilities(handler any) lsp.ServerCapabilities {
 		caps.DiagnosticProvider = opts
 	}
 
-	if _, ok := handler.(WorkspaceSymbolHandler); ok {
-		caps.WorkspaceSymbolProvider = &enabled
+	if implementsEither[WorkspaceSymbolHandler, WorkspaceSymbolsHandler](handler) {
+		opts := &lsp.WorkspaceSymbolOptions{}
+		if _, ok := handler.(WorkspaceSymbolResolveHandler); ok {
+			opts.ResolveProvider = &enabled
+		}
+		caps.WorkspaceSymbolProvider = opts
 	}
 
 	if _, ok := handler.(ExecuteCommandHandler); ok {
@@ -185,13 +189,47 @@ func buildCapabilities(handler any) lsp.ServerCapabilities {
 		fileOps.WillDelete = &allFiles
 		hasFileOps = true
 	}
+	if _, ok := handler.(DidCreateFilesHandler); ok {
+		fileOps.DidCreate = &allFiles
+		hasFileOps = true
+	}
+	if _, ok := handler.(DidRenameFilesHandler); ok {
+		fileOps.DidRename = &allFiles
+		hasFileOps = true
+	}
+	if _, ok := handler.(DidDeleteFilesHandler); ok {
+		fileOps.DidDelete = &allFiles
+		hasFileOps = true
+	}
 	if hasFileOps {
-		caps.Workspace = &lsp.ServerWorkspaceCapabilities{
-			FileOperations: fileOps,
+		workspace(&caps).FileOperations = fileOps
+	}
+
+	if _, ok := handler.(WorkspaceFoldersHandler); ok {
+		workspace(&caps).WorkspaceFolders = &lsp.WorkspaceFoldersServerCapabilities{
+			Supported:           &enabled,
+			ChangeNotifications: &enabled,
 		}
 	}
 
 	return caps
+}
+
+// implementsEither reports whether handler implements A or B.
+func implementsEither[A any, B any](handler any) bool {
+	if _, ok := handler.(A); ok {
+		return true
+	}
+	_, ok := handler.(B)
+	return ok
+}
+
+// workspace returns caps.Workspace, allocating it on first use.
+func workspace(caps *lsp.ServerCapabilities) *lsp.ServerWorkspaceCapabilities {
+	if caps.Workspace == nil {
+		caps.Workspace = &lsp.ServerWorkspaceCapabilities{}
+	}
+	return caps.Workspace
 }
 
 func applyCapabilityOptions(caps *lsp.ServerCapabilities, handler any, opts CapabilityOptions) {
@@ -227,6 +265,20 @@ func applyCapabilityOptions(caps *lsp.ServerCapabilities, handler any, opts Capa
 
 	if hasSemanticTokensHandler(handler) && opts.SemanticTokens != nil {
 		caps.SemanticTokensProvider = buildSemanticTokensOptions(handler, opts.SemanticTokens)
+	}
+
+	if opts.OnTypeFormatting != nil {
+		if _, ok := handler.(DocumentOnTypeFormattingHandler); ok {
+			onType := *opts.OnTypeFormatting
+			caps.DocumentOnTypeFormattingProvider = &onType
+		}
+	}
+
+	if opts.NotebookSync != nil {
+		if _, ok := handler.(NotebookDocumentSyncHandler); ok {
+			notebook := *opts.NotebookSync
+			caps.NotebookDocumentSync = &notebook
+		}
 	}
 
 	if len(opts.FileOperationFilters) > 0 && caps.Workspace != nil && caps.Workspace.FileOperations != nil {

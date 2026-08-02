@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"testing"
@@ -232,4 +233,24 @@ func TestConn_HandleNotification_PanicRecovery(t *testing.T) {
 
 	// Should not panic — recovery catches it.
 	conn.handleNotification(t.Context(), notif)
+}
+
+func TestDecodeMessageInvalidForms(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{"batch array", `[{"jsonrpc":"2.0","id":1,"method":"x"}]`},
+		{"empty batch", `[]`},
+		{"null id request", `{"jsonrpc":"2.0","id":null,"method":"ping"}`},
+		{"object id", `{"jsonrpc":"2.0","id":{"a":1},"method":"x"}`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := DecodeMessage([]byte(tt.input))
+			if !errors.Is(err, ErrInvalidMessage) {
+				t.Fatalf("error = %v, want ErrInvalidMessage", err)
+			}
+		})
+	}
 }

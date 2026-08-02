@@ -82,7 +82,7 @@ func (h *fullHandler) ResolveCompletionItem(_ context.Context, item *lsp.Complet
 	return item, nil
 }
 func (h *fullHandler) Hover(_ context.Context, _ *lsp.HoverParams) (*lsp.Hover, error) {
-	return &lsp.Hover{Contents: lsp.MarkupContent{Kind: lsp.Markdown, Value: "hover"}}, nil
+	return &lsp.Hover{Contents: lsp.NewHoverContents(lsp.Markdown, "hover")}, nil
 }
 func (h *fullHandler) SignatureHelp(_ context.Context, _ *lsp.SignatureHelpParams) (*lsp.SignatureHelp, error) {
 	return &lsp.SignatureHelp{Signatures: []lsp.SignatureInformation{{Label: "fn(a int)"}}}, nil

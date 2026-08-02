@@ -7,7 +7,9 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,7 +17,31 @@ import (
 )
 
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func(_ *http.Request) bool { return true },
+	CheckOrigin: allowLoopbackOrigin,
+}
+
+// allowLoopbackOrigin permits upgrades only from loopback origins or
+// non-browser clients (no Origin header); the UI streams full LSP traffic.
+func allowLoopbackOrigin(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		return true
+	}
+	u, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+	return isLoopbackHost(u.Hostname())
+}
+
+func isLoopbackHost(host string) bool {
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		return ip.IsLoopback()
+	}
+	return false
 }
 
 // Hub manages websocket clients and broadcasts entries to them.
@@ -77,7 +103,11 @@ type DebugUI struct {
 }
 
 // New creates a DebugUI bound to addr that exposes recorder's captured data.
+// An addr without a host binds to loopback only.
 func New(addr string, recorder *Recorder) *DebugUI {
+	if host, port, err := net.SplitHostPort(addr); err == nil && host == "" {
+		addr = net.JoinHostPort("127.0.0.1", port)
+	}
 	d := &DebugUI{
 		recorder: recorder,
 		hub:      newHub(),

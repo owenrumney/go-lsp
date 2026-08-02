@@ -269,7 +269,7 @@ func TestDuplicateKeys(t *testing.T) {
     if err != nil {
         t.Fatal(err)
     }
-    if hover == nil || !strings.Contains(hover.Contents.Value, "FOO") {
+    if hover == nil || !strings.Contains(hover.Contents.Value(), "FOO") {
         t.Fatal("expected hover to show key name")
     }
 }

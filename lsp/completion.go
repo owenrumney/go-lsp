@@ -1,5 +1,10 @@
 package lsp
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 // CompletionItemKind is an int enum classifying completions (Function, Variable, Class, etc.) so the editor can show appropriate icons.
 type CompletionItemKind int
 
@@ -69,6 +74,10 @@ type CompletionItem struct {
 	// If label details are provided the label itself should
 	// be an unqualified name of the completion item.
 	Label string `json:"label"`
+	// Additional details for the label.
+	//
+	// Since 3.17.0
+	LabelDetails *CompletionItemLabelDetails `json:"labelDetails,omitempty"`
 	// The kind of this completion item. Based on the kind
 	// an icon is chosen by the editor.
 	Kind *CompletionItemKind `json:"kind,omitempty"`
@@ -144,7 +153,12 @@ type CompletionItem struct {
 	// contained and starting at the same position.
 	//
 	// Since 3.16.0 additional type InsertReplaceEdit
-	TextEdit *TextEdit `json:"textEdit,omitempty"`
+	TextEdit *CompletionTextEdit `json:"textEdit,omitempty"`
+	// The edit text used if the completion item is part of a CompletionList
+	// and the list defines an item default for the text edit range.
+	//
+	// Since 3.17.0
+	TextEditText string `json:"textEditText,omitempty"`
 	// An optional array of additional [TextEdit] that are applied when
 	// selecting this completion. Edits must not overlap (including the same insert position)
 	// with the main [CompletionItem.TextEdit] nor with themselves.
@@ -174,6 +188,123 @@ type CompletionList struct {
 	// Recomputed lists have all their items replaced (not appended) in the
 	// incomplete completion sessions.
 	IsIncomplete bool `json:"isIncomplete"`
+	// Default values for properties the items don't set themselves. Requires
+	// the client capability `completionList.itemDefaults`.
+	//
+	// Since 3.17.0
+	ItemDefaults *CompletionItemDefaults `json:"itemDefaults,omitempty"`
 	// The completion items.
 	Items []CompletionItem `json:"items"`
+}
+
+// CompletionItemDefaults holds default values for properties shared across
+// the items of a [CompletionList].
+//
+// Since 3.17.0
+type CompletionItemDefaults struct {
+	CommitCharacters []string             `json:"commitCharacters,omitempty"`
+	EditRange        *CompletionEditRange `json:"editRange,omitempty"`
+	InsertTextFormat *InsertTextFormat    `json:"insertTextFormat,omitempty"`
+	InsertTextMode   *InsertTextMode      `json:"insertTextMode,omitempty"`
+	Data             json.RawMessage      `json:"data,omitempty"`
+}
+
+// CompletionEditRange is the spec union Range | {insert, replace}.
+type CompletionEditRange struct {
+	Range   *Range
+	Insert  *Range
+	Replace *Range
+}
+
+func (e CompletionEditRange) MarshalJSON() ([]byte, error) {
+	if e.Range != nil {
+		return json.Marshal(e.Range)
+	}
+	if e.Insert != nil && e.Replace != nil {
+		return json.Marshal(struct {
+			Insert  *Range `json:"insert"`
+			Replace *Range `json:"replace"`
+		}{e.Insert, e.Replace})
+	}
+	return nil, fmt.Errorf("lsp: CompletionEditRange has no variant set")
+}
+
+func (e *CompletionEditRange) UnmarshalJSON(data []byte) error {
+	*e = CompletionEditRange{}
+	var probe struct {
+		Start   *Position `json:"start"`
+		Insert  *Range    `json:"insert"`
+		Replace *Range    `json:"replace"`
+	}
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return err
+	}
+	if probe.Start != nil {
+		e.Range = &Range{}
+		return json.Unmarshal(data, e.Range)
+	}
+	e.Insert = probe.Insert
+	e.Replace = probe.Replace
+	return nil
+}
+
+// CompletionItemLabelDetails holds additional details rendered after the
+// label: Detail for signatures/types, Description for qualified names/paths.
+//
+// Since 3.17.0
+type CompletionItemLabelDetails struct {
+	Detail      string `json:"detail,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+// CompletionTextEdit is the spec union TextEdit | InsertReplaceEdit.
+type CompletionTextEdit struct {
+	TextEdit          *TextEdit
+	InsertReplaceEdit *InsertReplaceEdit
+}
+
+// NewCompletionTextEdit wraps a plain TextEdit for CompletionItem.TextEdit.
+func NewCompletionTextEdit(edit TextEdit) *CompletionTextEdit {
+	return &CompletionTextEdit{TextEdit: &edit}
+}
+
+// NewCompletionInsertReplaceEdit wraps an InsertReplaceEdit; requires the
+// client capability completionItem.insertReplaceSupport.
+func NewCompletionInsertReplaceEdit(edit InsertReplaceEdit) *CompletionTextEdit {
+	return &CompletionTextEdit{InsertReplaceEdit: &edit}
+}
+
+func (e CompletionTextEdit) MarshalJSON() ([]byte, error) {
+	switch {
+	case e.TextEdit != nil:
+		return json.Marshal(e.TextEdit)
+	case e.InsertReplaceEdit != nil:
+		return json.Marshal(e.InsertReplaceEdit)
+	}
+	return json.Marshal(TextEdit{})
+}
+
+func (e *CompletionTextEdit) UnmarshalJSON(data []byte) error {
+	*e = CompletionTextEdit{}
+	var probe struct {
+		Range *Range `json:"range"`
+	}
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return err
+	}
+	if probe.Range != nil {
+		e.TextEdit = &TextEdit{}
+		return json.Unmarshal(data, e.TextEdit)
+	}
+	e.InsertReplaceEdit = &InsertReplaceEdit{}
+	return json.Unmarshal(data, e.InsertReplaceEdit)
+}
+
+// InsertReplaceEdit is a text edit providing both an insert and a replace range.
+//
+// Since 3.16.0
+type InsertReplaceEdit struct {
+	NewText string `json:"newText"`
+	Insert  Range  `json:"insert"`
+	Replace Range  `json:"replace"`
 }

@@ -70,6 +70,8 @@ func (d *Document) Line(n int) (string, bool) {
 }
 
 // OffsetAt converts an LSP UTF-16 position to a byte offset in Text().
+// A character beyond the line end clamps to the line length per the spec; a
+// negative character or out-of-range line is an error.
 func (d *Document) OffsetAt(pos lsp.Position) (int, error) {
 	return d.offsetAt(pos)
 }
@@ -98,7 +100,7 @@ func (d *Document) PositionAt(offset int) (lsp.Position, error) {
 		line = idx - 1
 	}
 
-	char := utf16Len(d.text[d.lineStarts[line]:offset])
+	char := utf16Len(d.text[d.lineStarts[line]:min(offset, d.lineEnd(line))])
 	return lsp.Position{Line: line, Character: char}, nil
 }
 
@@ -150,16 +152,20 @@ func (d *Document) offsetAt(pos lsp.Position) (int, error) {
 	}
 
 	start := d.lineStarts[pos.Line]
-	end := len(d.text)
-	if pos.Line+1 < len(d.lineStarts) {
-		end = d.lineStarts[pos.Line+1] - 1
-	}
+	return start + byteOffsetForUTF16Character(d.text[start:d.lineEnd(pos.Line)], pos.Character), nil
+}
 
-	offset, ok := byteOffsetForUTF16Character(d.text[start:end], pos.Character)
-	if !ok {
-		return 0, fmt.Errorf("%w: character %d out of bounds", ErrInvalidPosition, pos.Character)
+// lineEnd returns the exclusive end of a line's visible content, excluding
+// the terminating \n and any \r that precedes it.
+func (d *Document) lineEnd(line int) int {
+	end := len(d.text)
+	if line+1 < len(d.lineStarts) {
+		end = d.lineStarts[line+1] - 1
+		if end > d.lineStarts[line] && d.text[end-1] == '\r' {
+			end--
+		}
 	}
-	return start + offset, nil
+	return end
 }
 
 func (d *Document) reindex() {
@@ -171,25 +177,18 @@ func (d *Document) reindex() {
 	}
 }
 
-func byteOffsetForUTF16Character(s string, character int) (int, bool) {
-	if character == 0 {
-		return 0, true
-	}
-
+// byteOffsetForUTF16Character converts a UTF-16 column to a byte offset,
+// rounding forward at surrogate-pair interiors and clamping past-the-end
+// characters to len(s).
+func byteOffsetForUTF16Character(s string, character int) int {
 	units := 0
 	for offset, r := range s {
-		if units == character {
-			return offset, true
+		if units >= character {
+			return offset
 		}
 		units += utf16RuneLen(r)
-		if units > character {
-			return 0, false
-		}
 	}
-	if units == character {
-		return len(s), true
-	}
-	return 0, false
+	return len(s)
 }
 
 func utf16Len(s string) int {

@@ -20,10 +20,7 @@ func (h *handler) Shutdown(_ context.Context) error { return nil }
 
 func (h *handler) Hover(_ context.Context, _ *lsp.HoverParams) (*lsp.Hover, error) {
 	return &lsp.Hover{
-		Contents: lsp.MarkupContent{
-			Kind:  lsp.Markdown,
-			Value: "**go-lsp** hover example\n\nYou hovered on a symbol.",
-		},
+		Contents: lsp.NewHoverContents(lsp.Markdown, "**go-lsp** hover example\n\nYou hovered on a symbol."),
 	}, nil
 }
 

@@ -26,7 +26,7 @@ func (h *slowHoverHandler) Hover(ctx context.Context, _ *lsp.HoverParams) (*lsp.
 	select {
 	case <-time.After(h.delay):
 		return &lsp.Hover{
-			Contents: lsp.MarkupContent{Kind: lsp.PlainText, Value: "done"},
+			Contents: lsp.NewHoverContents(lsp.PlainText, "done"),
 		}, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()

@@ -1,5 +1,7 @@
 package lsp
 
+import "encoding/json"
+
 // SymbolKind is an int enum classifying symbols (File, Class, Method, Variable, etc.) for icons and filtering.
 type SymbolKind int
 
@@ -118,4 +120,25 @@ type WorkspaceSymbolParams struct {
 	// A query string to filter symbols by. Clients may send an empty
 	// string here to request all symbols.
 	Query string `json:"query"`
+}
+
+// WorkspaceSymbol supports range-less locations, resolved lazily via
+// workspaceSymbol/resolve.
+//
+// Since 3.17.0
+type WorkspaceSymbol struct {
+	Name          string                  `json:"name"`
+	Kind          SymbolKind              `json:"kind"`
+	Tags          []SymbolTag             `json:"tags,omitempty"`
+	Location      WorkspaceSymbolLocation `json:"location"`
+	ContainerName string                  `json:"containerName,omitempty"`
+	// Preserved between the symbol request and the resolve request.
+	Data json.RawMessage `json:"data,omitempty"`
+}
+
+// WorkspaceSymbolLocation is the spec union Location | {uri}; Range is nil
+// for the {uri}-only form.
+type WorkspaceSymbolLocation struct {
+	URI   DocumentURI `json:"uri"`
+	Range *Range      `json:"range,omitempty"`
 }

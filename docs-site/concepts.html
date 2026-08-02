@@ -49,7 +49,7 @@
         <p>Implement a feature interface and go-lsp registers the method and advertises support. For example, implementing <code>HoverHandler</code> enables <code>textDocument/hover</code>.</p>
         <pre><code class="language-go">func (h *Handler) Hover(ctx context.Context, params *lsp.HoverParams) (*lsp.Hover, error) {
     return &lsp.Hover{
-        Contents: lsp.MarkupContent{Kind: lsp.Markdown, Value: "hello"},
+        Contents: lsp.NewHoverContents(lsp.Markdown, "hello"),
     }, nil
 }</code></pre>
 

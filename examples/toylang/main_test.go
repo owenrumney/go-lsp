@@ -24,7 +24,7 @@ func TestToylangExample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if hover == nil || !strings.Contains(hover.Contents.Value, "8080") {
+	if hover == nil || !strings.Contains(hover.Contents.Value(), "8080") {
 		t.Fatalf("hover = %+v", hover)
 	}
 

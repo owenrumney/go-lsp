@@ -158,6 +158,9 @@ func (c *Client) ShowDocument(ctx context.Context, params *lsp.ShowDocumentParam
 	if resp.Error != nil {
 		return nil, fmt.Errorf("showDocument: %s", resp.Error.Message)
 	}
+	if resp.Result == nil || string(resp.Result) == "null" {
+		return nil, nil
+	}
 	var result lsp.ShowDocumentResult
 	if err := json.Unmarshal(resp.Result, &result); err != nil {
 		return nil, err

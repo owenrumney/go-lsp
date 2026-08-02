@@ -103,10 +103,7 @@ func (h *Handler) DidSave(ctx context.Context, params *lsp.DidSaveTextDocumentPa
 
 func (h *Handler) Hover(_ context.Context, _ *lsp.HoverParams) (*lsp.Hover, error) {
 	return &lsp.Hover{
-		Contents: lsp.MarkupContent{
-			Kind:  lsp.Markdown,
-			Value: "**{{.Name}}** hover",
-		},
+		Contents: lsp.NewHoverContents(lsp.Markdown, "**{{.Name}}** hover"),
 	}, nil
 }
 {{- end}}

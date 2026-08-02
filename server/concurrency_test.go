@@ -24,7 +24,7 @@ func (h *blockingHoverHandler) Shutdown(_ context.Context) error { return nil }
 func (h *blockingHoverHandler) Hover(_ context.Context, _ *lsp.HoverParams) (*lsp.Hover, error) {
 	h.started <- struct{}{}
 	<-h.release
-	return &lsp.Hover{Contents: lsp.MarkupContent{Kind: lsp.PlainText, Value: "ok"}}, nil
+	return &lsp.Hover{Contents: lsp.NewHoverContents(lsp.PlainText, "ok")}, nil
 }
 
 func TestDefaultRequestHandlingRemainsConcurrent(t *testing.T) {

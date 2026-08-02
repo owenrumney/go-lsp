@@ -27,6 +27,10 @@ type ClientCapabilities struct {
 	Workspace *WorkspaceClientCapabilities `json:"workspace,omitempty"`
 	// Text document specific client capabilities.
 	TextDocument *TextDocumentClientCapabilities `json:"textDocument,omitempty"`
+	// Capabilities specific to the notebook document support.
+	//
+	// Since 3.17.0
+	NotebookDocument *NotebookDocumentClientCapabilities `json:"notebookDocument,omitempty"`
 	// Window specific client capabilities.
 	Window *WindowClientCapabilities `json:"window,omitempty"`
 	// General client capabilities.
@@ -729,6 +733,10 @@ type ServerCapabilities struct {
 	// defining each notification or for backwards compatibility the
 	// TextDocumentSyncKind number.
 	TextDocumentSync *TextDocumentSyncOptions `json:"textDocumentSync,omitempty"`
+	// Defines how notebook documents are synced.
+	//
+	// Since 3.17.0
+	NotebookDocumentSync *NotebookDocumentSyncOptions `json:"notebookDocumentSync,omitempty"`
 	// The server provides completion support.
 	CompletionProvider *CompletionOptions `json:"completionProvider,omitempty"`
 	// The server provides hover support.
@@ -748,7 +756,7 @@ type ServerCapabilities struct {
 	// The server provides document highlight support.
 	DocumentHighlightProvider *bool `json:"documentHighlightProvider,omitempty"`
 	// The server provides document symbol support.
-	DocumentSymbolProvider *bool `json:"documentSymbolProvider,omitempty"`
+	DocumentSymbolProvider *DocumentSymbolOptions `json:"documentSymbolProvider,omitempty"`
 	// The server provides code actions. CodeActionOptions may only be
 	// specified if the client states that it supports
 	// codeActionLiteralSupport in its initial initialize request.
@@ -808,7 +816,7 @@ type ServerCapabilities struct {
 	// Since 3.17.0
 	DiagnosticProvider *DiagnosticOptions `json:"diagnosticProvider,omitempty"`
 	// The server provides workspace symbol support.
-	WorkspaceSymbolProvider *bool `json:"workspaceSymbolProvider,omitempty"`
+	WorkspaceSymbolProvider *WorkspaceSymbolOptions `json:"workspaceSymbolProvider,omitempty"`
 	// Workspace specific server capabilities.
 	Workspace *ServerWorkspaceCapabilities `json:"workspace,omitempty"`
 	// Experimental server capabilities.
@@ -960,6 +968,15 @@ type CompletionOptions struct {
 	// The server provides support to resolve additional
 	// information for a completion item.
 	ResolveProvider *bool `json:"resolveProvider,omitempty"`
+	// Since 3.17.0
+	CompletionItem *CompletionOptionsItem `json:"completionItem,omitempty"`
+}
+
+// CompletionOptionsItem declares completion-item-specific server capabilities.
+//
+// Since 3.17.0
+type CompletionOptionsItem struct {
+	LabelDetailsSupport *bool `json:"labelDetailsSupport,omitempty"`
 }
 
 // SignatureHelpOptions holds the server capabilities for a [SignatureHelpRequest].
@@ -1003,6 +1020,74 @@ type DocumentLinkOptions struct {
 	WorkDoneProgressOptions
 	// Document links have a resolve provider as well.
 	ResolveProvider *bool `json:"resolveProvider,omitempty"`
+}
+
+// DocumentSymbolOptions holds document symbol provider options. The spec
+// union boolean | options round-trips: JSON false decodes to a value whose
+// Enabled() is false and re-encodes as false.
+type DocumentSymbolOptions struct {
+	WorkDoneProgressOptions
+	// Shown when multiple outline trees exist for the same document.
+	//
+	// Since 3.16.0
+	Label *string `json:"label,omitempty"`
+
+	disabled bool
+}
+
+// Enabled reports whether the provider is advertised; false for nil and for
+// the JSON literal false.
+func (o *DocumentSymbolOptions) Enabled() bool { return o != nil && !o.disabled }
+
+func (o *DocumentSymbolOptions) UnmarshalJSON(data []byte) error {
+	var b bool
+	if err := json.Unmarshal(data, &b); err == nil {
+		*o = DocumentSymbolOptions{disabled: !b}
+		return nil
+	}
+	type alias DocumentSymbolOptions
+	return json.Unmarshal(data, (*alias)(o))
+}
+
+func (o DocumentSymbolOptions) MarshalJSON() ([]byte, error) {
+	if o.disabled {
+		return []byte("false"), nil
+	}
+	type alias DocumentSymbolOptions
+	return json.Marshal(alias(o))
+}
+
+// WorkspaceSymbolOptions holds workspace symbol provider options. The spec
+// union boolean | options round-trips: JSON false decodes to a value whose
+// Enabled() is false and re-encodes as false.
+type WorkspaceSymbolOptions struct {
+	WorkDoneProgressOptions
+	// Since 3.17.0
+	ResolveProvider *bool `json:"resolveProvider,omitempty"`
+
+	disabled bool
+}
+
+// Enabled reports whether the provider is advertised; false for nil and for
+// the JSON literal false.
+func (o *WorkspaceSymbolOptions) Enabled() bool { return o != nil && !o.disabled }
+
+func (o *WorkspaceSymbolOptions) UnmarshalJSON(data []byte) error {
+	var b bool
+	if err := json.Unmarshal(data, &b); err == nil {
+		*o = WorkspaceSymbolOptions{disabled: !b}
+		return nil
+	}
+	type alias WorkspaceSymbolOptions
+	return json.Unmarshal(data, (*alias)(o))
+}
+
+func (o WorkspaceSymbolOptions) MarshalJSON() ([]byte, error) {
+	if o.disabled {
+		return []byte("false"), nil
+	}
+	type alias WorkspaceSymbolOptions
+	return json.Marshal(alias(o))
 }
 
 // DocumentOnTypeFormattingOptions holds the provider options for a [DocumentOnTypeFormattingRequest].

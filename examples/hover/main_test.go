@@ -21,7 +21,7 @@ func TestHoverExample(t *testing.T) {
 	if hover == nil {
 		t.Fatal("expected hover result")
 	}
-	if !strings.Contains(hover.Contents.Value, "go-lsp") {
-		t.Fatalf("hover = %q", hover.Contents.Value)
+	if !strings.Contains(hover.Contents.Value(), "go-lsp") {
+		t.Fatalf("hover = %q", hover.Contents.Value())
 	}
 }

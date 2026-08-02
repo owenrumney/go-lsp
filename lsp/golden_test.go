@@ -86,8 +86,12 @@ func TestGoldenJSONContracts(t *testing.T) {
 				if len(got.Changes) != 1 || len(got.DocumentChanges) != 1 {
 					t.Fatalf("workspace edit = %+v", got)
 				}
-				if got.DocumentChanges[0].TextDocument.Version == nil || *got.DocumentChanges[0].TextDocument.Version != 4 {
-					t.Fatalf("document version = %+v", got.DocumentChanges[0].TextDocument.Version)
+				edit := got.DocumentChanges[0].TextDocumentEdit
+				if edit == nil {
+					t.Fatalf("document change = %+v, want TextDocumentEdit", got.DocumentChanges[0])
+				}
+				if edit.TextDocument.Version == nil || *edit.TextDocument.Version != 4 {
+					t.Fatalf("document version = %+v", edit.TextDocument.Version)
 				}
 			},
 		},

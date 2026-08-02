@@ -48,10 +48,25 @@ func TestOffsetAtAndPositionAtUseUTF16(t *testing.T) {
 	}
 }
 
-func TestOffsetAtRejectsInsideSurrogatePair(t *testing.T) {
+func TestOffsetAtRoundsForwardInsideSurrogatePair(t *testing.T) {
 	doc := newDocument(lsp.TextDocumentItem{Text: "😀"})
-	if _, err := doc.OffsetAt(lsp.Position{Line: 0, Character: 1}); !errors.Is(err, ErrInvalidPosition) {
-		t.Fatalf("OffsetAt error = %v, want ErrInvalidPosition", err)
+	offset, err := doc.OffsetAt(lsp.Position{Line: 0, Character: 1})
+	if err != nil {
+		t.Fatalf("OffsetAt returned error: %v", err)
+	}
+	if offset != len("😀") {
+		t.Fatalf("OffsetAt = %d, want %d (next code point boundary)", offset, len("😀"))
+	}
+}
+
+func TestOffsetAtClampsCharacterBeyondLineLength(t *testing.T) {
+	doc := newDocument(lsp.TextDocumentItem{Text: "one\r\ntwo"})
+	offset, err := doc.OffsetAt(lsp.Position{Line: 0, Character: 99})
+	if err != nil {
+		t.Fatalf("OffsetAt returned error: %v", err)
+	}
+	if offset != 3 {
+		t.Fatalf("OffsetAt = %d, want 3 (visible end of line, before \\r)", offset)
 	}
 }
 
@@ -155,5 +170,41 @@ func TestApplyRejectsVersionRegression(t *testing.T) {
 	err := doc.ApplyChange(lsp.TextDocumentContentChangeEvent{Text: "x"}, 1)
 	if !errors.Is(err, ErrVersionRegression) {
 		t.Fatalf("error = %v, want ErrVersionRegression", err)
+	}
+}
+
+func TestOffsetAtNeverSplitsCRLF(t *testing.T) {
+	doc := newDocument(lsp.TextDocumentItem{Version: 1, Text: "one\r\ntwo"})
+
+	for char, want := range map[int]int{3: 3, 4: 3, 99: 3} {
+		offset, err := doc.OffsetAt(lsp.Position{Line: 0, Character: char})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if offset != want {
+			t.Fatalf("OffsetAt(char=%d) = %d, want %d", char, offset, want)
+		}
+	}
+
+	err := doc.ApplyChange(lsp.TextDocumentContentChangeEvent{
+		Range: &lsp.Range{Start: lsp.Position{Line: 0, Character: 4}, End: lsp.Position{Line: 0, Character: 99}},
+		Text:  "X",
+	}, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if doc.Text() != "oneX\r\ntwo" {
+		t.Fatalf("text = %q, want CRLF preserved", doc.Text())
+	}
+}
+
+func TestPositionAtBetweenCRLFMapsToVisibleEnd(t *testing.T) {
+	doc := newDocument(lsp.TextDocumentItem{Text: "one\r\ntwo"})
+	pos, err := doc.PositionAt(4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pos != (lsp.Position{Line: 0, Character: 3}) {
+		t.Fatalf("PositionAt(4) = %+v, want {0 3}", pos)
 	}
 }
