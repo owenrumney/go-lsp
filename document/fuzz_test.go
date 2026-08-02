@@ -70,17 +70,43 @@ func FuzzInvalidPositions(f *testing.F) {
 			{Line: len(strings.Split(text, "\n")), Character: 0},
 		}
 
-		for line, lineText := range strings.Split(text, "\n") {
-			invalid = append(invalid, lsp.Position{Line: line, Character: utf16Len(lineText) + 1})
-			for character := range invalidUTF16Characters(lineText) {
-				invalid = append(invalid, lsp.Position{Line: line, Character: character})
-			}
-		}
-
 		for _, pos := range invalid {
 			if _, err := doc.OffsetAt(pos); !errors.Is(err, ErrInvalidPosition) {
 				t.Fatalf("OffsetAt(%+v) error = %v, want ErrInvalidPosition for %q", pos, err, text)
 			}
+		}
+
+		lineStart := 0
+		lines := strings.Split(text, "\n")
+		for line, lineText := range lines {
+			pos := lsp.Position{Line: line, Character: utf16Len(lineText) + 1}
+			offset, err := doc.OffsetAt(pos)
+			if err != nil {
+				t.Fatalf("OffsetAt(%+v) returned error for %q: %v", pos, text, err)
+			}
+			// A trailing \r is stripped only when it terminates a \n line;
+			// on the last line it is content.
+			visible := lineText
+			if line < len(lines)-1 {
+				visible = strings.TrimSuffix(lineText, "\r")
+			}
+			want := lineStart + len(visible)
+			if offset != want {
+				t.Fatalf("OffsetAt(%+v) = %d, want clamped %d for %q", pos, offset, want, text)
+			}
+
+			for character := range invalidUTF16Characters(lineText) {
+				pos := lsp.Position{Line: line, Character: character}
+				offset, err := doc.OffsetAt(pos)
+				if err != nil {
+					t.Fatalf("OffsetAt(%+v) returned error for %q: %v", pos, text, err)
+				}
+				if !utf8.ValidString(text[:offset]) {
+					t.Fatalf("OffsetAt(%+v) = %d splits a UTF-8 sequence in %q", pos, offset, text)
+				}
+			}
+
+			lineStart += len(lineText) + 1
 		}
 	})
 }
@@ -156,7 +182,10 @@ func validDocumentPositions(text string) []validPosition {
 	character := 0
 
 	for offset, r := range text {
-		if offset != 0 {
+		// The position between a terminating \r and its \n is not distinct:
+		// both map to the visible line end.
+		betweenCRLF := r == '\n' && offset > 0 && text[offset-1] == '\r'
+		if offset != 0 && !betweenCRLF {
 			positions = append(positions, validPosition{
 				pos:    lsp.Position{Line: line, Character: character},
 				offset: offset,
@@ -166,6 +195,9 @@ func validDocumentPositions(text string) []validPosition {
 		if r == '\n' {
 			line++
 			character = 0
+			continue
+		}
+		if r == '\r' && offset+1 < len(text) && text[offset+1] == '\n' {
 			continue
 		}
 		character += utf16RuneLen(r)

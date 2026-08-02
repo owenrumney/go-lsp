@@ -3,9 +3,10 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"log/slog"
+	"sync/atomic"
 	"time"
 
 	"github.com/owenrumney/go-lsp/internal/debugui"
@@ -13,13 +14,23 @@ import (
 	"github.com/owenrumney/go-lsp/lsp"
 )
 
+// ErrExitWithoutShutdown is returned by Run when exit arrives without a
+// preceding shutdown request.
+var ErrExitWithoutShutdown = errors.New("server: exit notification received before shutdown")
+
+const (
+	lifecycleUninitialized int32 = iota
+	lifecycleInitializing
+	lifecycleInitialized
+)
+
 // Server is an LSP server that dispatches JSON-RPC messages to handler interfaces.
 type Server struct {
 	handler                any
 	conn                   *jsonrpc.Conn
 	Client                 *Client
-	initialized            bool
-	shutdown               bool
+	lifecycle              atomic.Int32
+	shutdown               atomic.Bool
 	customMethods          map[string]jsonrpc.MethodHandler
 	customNotifications    map[string]jsonrpc.NotificationHandler
 	debugAddr              string
@@ -62,18 +73,25 @@ func (s *Server) DebugHandler() slog.Handler {
 }
 
 // HandleMethod registers a custom JSON-RPC method handler.
-// This must be called before Run.
+// This must be called before Run. Custom methods are subject to the LSP
+// lifecycle: rejected with ServerNotInitialized before initialize and with
+// InvalidRequest after shutdown.
 func (s *Server) HandleMethod(method string, handler jsonrpc.MethodHandler) {
 	s.customMethods[method] = handler
 }
 
 // HandleNotification registers a custom JSON-RPC notification handler.
-// This must be called before Run.
+// This must be called before Run. Custom notifications are dropped outside
+// the initialized window, like all notifications except exit.
 func (s *Server) HandleNotification(method string, handler jsonrpc.NotificationHandler) {
 	s.customNotifications[method] = handler
 }
 
 // Run starts the server, reading from and writing to rw.
+//
+// Run returns nil when the client completes the shutdown/exit handshake,
+// ErrExitWithoutShutdown when exit arrives without a prior shutdown, the
+// context error on cancellation, or the underlying read error otherwise.
 func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
 	if s.debugCapture || s.debugAddr != "" {
 		s.recorder = debugui.NewRecorder()
@@ -106,6 +124,12 @@ func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
 
 	s.registerMethods(dispatcher)
 	s.registerNotifications(dispatcher)
+	dispatcher.SetUnknownMethodHandler(func(_ context.Context, method string, _ json.RawMessage) (any, error) {
+		if respErr := s.checkRequestLifecycle(method); respErr != nil {
+			return nil, respErr
+		}
+		return nil, jsonrpc.NewError(jsonrpc.CodeMethodNotFound, "method not found: "+method)
+	})
 
 	for method, handler := range s.customMethods {
 		dispatcher.RegisterMethod(method, s.wrapMethod(method, handler))
@@ -118,7 +142,14 @@ func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
 		s.logger.Info("server starting")
 	}
 
-	return s.conn.Serve(ctx)
+	err := s.conn.Serve(ctx)
+	if errors.Is(err, jsonrpc.ErrExit) {
+		if s.shutdown.Load() {
+			return nil
+		}
+		return ErrExitWithoutShutdown
+	}
+	return err
 }
 
 func (s *Server) registerMethods(d *jsonrpc.Dispatcher) {
@@ -129,10 +160,27 @@ func (s *Server) registerMethods(d *jsonrpc.Dispatcher) {
 	registerIf(d, s, "completionItem/resolve", handleCompletionResolve)
 	registerIf(d, s, "textDocument/hover", handleHover)
 	registerIf(d, s, "textDocument/signatureHelp", handleSignatureHelp)
-	registerIf(d, s, "textDocument/declaration", handleDeclaration)
-	registerIf(d, s, "textDocument/definition", handleDefinition)
-	registerIf(d, s, "textDocument/typeDefinition", handleTypeDefinition)
-	registerIf(d, s, "textDocument/implementation", handleImplementation)
+	// The Link variants take precedence over the Location variants.
+	if h, ok := s.handler.(DeclarationLinkHandler); ok {
+		d.RegisterMethod("textDocument/declaration", s.wrapMethod("textDocument/declaration", typedHandler(h, DeclarationLinkHandler.DeclarationLinks)))
+	} else {
+		registerIf(d, s, "textDocument/declaration", handleDeclaration)
+	}
+	if h, ok := s.handler.(DefinitionLinkHandler); ok {
+		d.RegisterMethod("textDocument/definition", s.wrapMethod("textDocument/definition", typedHandler(h, DefinitionLinkHandler.DefinitionLinks)))
+	} else {
+		registerIf(d, s, "textDocument/definition", handleDefinition)
+	}
+	if h, ok := s.handler.(TypeDefinitionLinkHandler); ok {
+		d.RegisterMethod("textDocument/typeDefinition", s.wrapMethod("textDocument/typeDefinition", typedHandler(h, TypeDefinitionLinkHandler.TypeDefinitionLinks)))
+	} else {
+		registerIf(d, s, "textDocument/typeDefinition", handleTypeDefinition)
+	}
+	if h, ok := s.handler.(ImplementationLinkHandler); ok {
+		d.RegisterMethod("textDocument/implementation", s.wrapMethod("textDocument/implementation", typedHandler(h, ImplementationLinkHandler.ImplementationLinks)))
+	} else {
+		registerIf(d, s, "textDocument/implementation", handleImplementation)
+	}
 	registerIf(d, s, "textDocument/references", handleReferences)
 	registerIf(d, s, "textDocument/documentHighlight", handleDocumentHighlight)
 	registerIf(d, s, "textDocument/documentSymbol", handleDocumentSymbol)
@@ -154,7 +202,15 @@ func (s *Server) registerMethods(d *jsonrpc.Dispatcher) {
 	registerIf(d, s, "textDocument/linkedEditingRange", handleLinkedEditingRange)
 	registerIf(d, s, "textDocument/moniker", handleMoniker)
 	registerIf(d, s, "textDocument/willSaveWaitUntil", handleWillSaveWaitUntil)
-	registerIf(d, s, "workspace/symbol", handleWorkspaceSymbol)
+	// The 3.17 WorkspaceSymbol variant takes precedence.
+	if h, ok := s.handler.(WorkspaceSymbolsHandler); ok {
+		d.RegisterMethod("workspace/symbol", s.wrapMethod("workspace/symbol", typedHandler(h, WorkspaceSymbolsHandler.WorkspaceSymbols)))
+	} else {
+		registerIf(d, s, "workspace/symbol", handleWorkspaceSymbol)
+	}
+	if h, ok := s.handler.(WorkspaceSymbolResolveHandler); ok {
+		d.RegisterMethod("workspaceSymbol/resolve", s.wrapMethod("workspaceSymbol/resolve", typedHandler(h, WorkspaceSymbolResolveHandler.ResolveWorkspaceSymbol)))
+	}
 	registerIf(d, s, "workspace/executeCommand", handleExecuteCommand)
 	registerIf(d, s, "workspace/willCreateFiles", handleWillCreateFiles)
 	registerIf(d, s, "workspace/willRenameFiles", handleWillRenameFiles)
@@ -195,7 +251,7 @@ func (s *Server) registerNotifications(d *jsonrpc.Dispatcher) {
 	}))
 
 	d.RegisterNotification("exit", s.wrapNotification("exit", func(_ context.Context, _ json.RawMessage) error {
-		return fmt.Errorf("exit")
+		return jsonrpc.ErrExit
 	}))
 
 	if h, ok := s.handler.(TextDocumentSyncHandler); ok {
@@ -227,18 +283,49 @@ func (s *Server) registerNotifications(d *jsonrpc.Dispatcher) {
 	if h, ok := s.handler.(SetTraceHandler); ok {
 		d.RegisterNotification("$/setTrace", s.wrapNotification("$/setTrace", notifHandler(h, SetTraceHandler.SetTrace)))
 	}
+
+	if h, ok := s.handler.(WorkDoneProgressCancelHandler); ok {
+		d.RegisterNotification("window/workDoneProgress/cancel", s.wrapNotification("window/workDoneProgress/cancel", notifHandler(h, WorkDoneProgressCancelHandler.WorkDoneProgressCancel)))
+	}
+
+	if h, ok := s.handler.(DidCreateFilesHandler); ok {
+		d.RegisterNotification("workspace/didCreateFiles", s.wrapNotification("workspace/didCreateFiles", notifHandler(h, DidCreateFilesHandler.DidCreateFiles)))
+	}
+	if h, ok := s.handler.(DidRenameFilesHandler); ok {
+		d.RegisterNotification("workspace/didRenameFiles", s.wrapNotification("workspace/didRenameFiles", notifHandler(h, DidRenameFilesHandler.DidRenameFiles)))
+	}
+	if h, ok := s.handler.(DidDeleteFilesHandler); ok {
+		d.RegisterNotification("workspace/didDeleteFiles", s.wrapNotification("workspace/didDeleteFiles", notifHandler(h, DidDeleteFilesHandler.DidDeleteFiles)))
+	}
+
+	if h, ok := s.handler.(NotebookDocumentSyncHandler); ok {
+		d.RegisterNotification("notebookDocument/didOpen", s.wrapNotification("notebookDocument/didOpen", notifHandler(h, NotebookDocumentSyncHandler.DidOpenNotebookDocument)))
+		d.RegisterNotification("notebookDocument/didChange", s.wrapNotification("notebookDocument/didChange", notifHandler(h, NotebookDocumentSyncHandler.DidChangeNotebookDocument)))
+		d.RegisterNotification("notebookDocument/didSave", s.wrapNotification("notebookDocument/didSave", notifHandler(h, NotebookDocumentSyncHandler.DidSaveNotebookDocument)))
+		d.RegisterNotification("notebookDocument/didClose", s.wrapNotification("notebookDocument/didClose", notifHandler(h, NotebookDocumentSyncHandler.DidCloseNotebookDocument)))
+	}
 }
 
 func (s *Server) handleInitialize(ctx context.Context, params json.RawMessage) (any, error) {
+	if !s.lifecycle.CompareAndSwap(lifecycleUninitialized, lifecycleInitializing) {
+		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidRequest, "initialize already received")
+	}
+
 	var p lsp.InitializeParams
 	if err := json.Unmarshal(params, &p); err != nil {
+		s.lifecycle.Store(lifecycleUninitialized)
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidParams, err.Error())
 	}
 
 	h := s.handler.(LifecycleHandler)
 	result, err := h.Initialize(ctx, &p)
 	if err != nil {
+		// The spec allows the client to retry initialize after a failure.
+		s.lifecycle.Store(lifecycleUninitialized)
 		return nil, err
+	}
+	if result == nil {
+		result = &lsp.InitializeResult{}
 	}
 
 	// Merge auto-detected capabilities.
@@ -250,25 +337,53 @@ func (s *Server) handleInitialize(ctx context.Context, params json.RawMessage) (
 		s.recorder.SetCapabilities(result.Capabilities)
 	}
 
-	s.initialized = true
+	s.lifecycle.Store(lifecycleInitialized)
 
 	if s.logger != nil {
-		s.logger.Info("server initialized", "serverName", result.ServerInfo.Name)
+		serverName := ""
+		if result.ServerInfo != nil {
+			serverName = result.ServerInfo.Name
+		}
+		s.logger.Info("server initialized", "serverName", serverName)
 	}
 
 	return result, nil
 }
 
 func (s *Server) handleShutdown(ctx context.Context, _ json.RawMessage) (any, error) {
+	if !s.shutdown.CompareAndSwap(false, true) {
+		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidRequest, "shutdown already received")
+	}
 	h := s.handler.(LifecycleHandler)
 	err := h.Shutdown(ctx)
-	s.shutdown = true
 
 	if s.logger != nil {
 		s.logger.Info("server shutdown")
 	}
 
 	return nil, err
+}
+
+func (s *Server) checkRequestLifecycle(method string) *jsonrpc.ResponseError {
+	if s.shutdown.Load() {
+		return jsonrpc.NewError(jsonrpc.CodeInvalidRequest, "request received after shutdown: "+method)
+	}
+	if method == "initialize" {
+		// Single-use enforcement happens atomically in handleInitialize.
+		return nil
+	}
+	if s.lifecycle.Load() != lifecycleInitialized {
+		return jsonrpc.NewError(jsonrpc.CodeServerNotInitialized, "server not initialized")
+	}
+	return nil
+}
+
+// Per the spec, notifications outside the initialized window are dropped, except exit.
+func (s *Server) allowNotification(method string) bool {
+	if method == "exit" {
+		return true
+	}
+	return s.lifecycle.Load() == lifecycleInitialized && !s.shutdown.Load()
 }
 
 // mergeCapabilities fills in any auto-detected capabilities that weren't explicitly set.
@@ -278,6 +393,9 @@ func mergeCapabilities(dst, src *lsp.ServerCapabilities) {
 	}
 	if dst.TextDocumentSync == nil {
 		dst.TextDocumentSync = src.TextDocumentSync
+	}
+	if dst.NotebookDocumentSync == nil {
+		dst.NotebookDocumentSync = src.NotebookDocumentSync
 	}
 	if dst.CompletionProvider == nil {
 		dst.CompletionProvider = src.CompletionProvider
@@ -433,7 +551,7 @@ func (s *Server) logNotification(method string, handler jsonrpc.NotificationHand
 		start := time.Now()
 		err := handler(ctx, params)
 		duration := time.Since(start)
-		if err != nil {
+		if err != nil && !errors.Is(err, jsonrpc.ErrExit) {
 			s.logger.Error("notification error", "method", method, "duration", duration, "error", err)
 		} else {
 			s.logger.Debug("notification handled", "method", method, "duration", duration)

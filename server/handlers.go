@@ -63,9 +63,21 @@ type DeclarationHandler interface {
 	Declaration(ctx context.Context, params *lsp.DeclarationParams) ([]lsp.Location, error)
 }
 
+// DeclarationLinkHandler handles textDocument/declaration returning
+// LocationLinks; takes precedence over DeclarationHandler.
+type DeclarationLinkHandler interface {
+	DeclarationLinks(ctx context.Context, params *lsp.DeclarationParams) ([]lsp.LocationLink, error)
+}
+
 // DefinitionHandler handles textDocument/definition.
 type DefinitionHandler interface {
 	Definition(ctx context.Context, params *lsp.DefinitionParams) ([]lsp.Location, error)
+}
+
+// DefinitionLinkHandler handles textDocument/definition returning
+// LocationLinks; takes precedence over DefinitionHandler.
+type DefinitionLinkHandler interface {
+	DefinitionLinks(ctx context.Context, params *lsp.DefinitionParams) ([]lsp.LocationLink, error)
 }
 
 // TypeDefinitionHandler handles textDocument/typeDefinition.
@@ -73,9 +85,21 @@ type TypeDefinitionHandler interface {
 	TypeDefinition(ctx context.Context, params *lsp.TypeDefinitionParams) ([]lsp.Location, error)
 }
 
+// TypeDefinitionLinkHandler handles textDocument/typeDefinition returning
+// LocationLinks; takes precedence over TypeDefinitionHandler.
+type TypeDefinitionLinkHandler interface {
+	TypeDefinitionLinks(ctx context.Context, params *lsp.TypeDefinitionParams) ([]lsp.LocationLink, error)
+}
+
 // ImplementationHandler handles textDocument/implementation.
 type ImplementationHandler interface {
 	Implementation(ctx context.Context, params *lsp.ImplementationParams) ([]lsp.Location, error)
+}
+
+// ImplementationLinkHandler handles textDocument/implementation returning
+// LocationLinks; takes precedence over ImplementationHandler.
+type ImplementationLinkHandler interface {
+	ImplementationLinks(ctx context.Context, params *lsp.ImplementationParams) ([]lsp.LocationLink, error)
 }
 
 // ReferencesHandler handles textDocument/references.
@@ -227,6 +251,30 @@ type WorkspaceSymbolHandler interface {
 	WorkspaceSymbol(ctx context.Context, params *lsp.WorkspaceSymbolParams) ([]lsp.SymbolInformation, error)
 }
 
+// WorkspaceSymbolsHandler handles workspace/symbol returning the 3.17
+// WorkspaceSymbol type; takes precedence over WorkspaceSymbolHandler.
+type WorkspaceSymbolsHandler interface {
+	WorkspaceSymbols(ctx context.Context, params *lsp.WorkspaceSymbolParams) ([]lsp.WorkspaceSymbol, error)
+}
+
+// WorkspaceSymbolResolveHandler handles workspaceSymbol/resolve.
+type WorkspaceSymbolResolveHandler interface {
+	ResolveWorkspaceSymbol(ctx context.Context, params *lsp.WorkspaceSymbol) (*lsp.WorkspaceSymbol, error)
+}
+
+// WorkDoneProgressCancelHandler handles window/workDoneProgress/cancel.
+type WorkDoneProgressCancelHandler interface {
+	WorkDoneProgressCancel(ctx context.Context, params *lsp.WorkDoneProgressCancelParams) error
+}
+
+// NotebookDocumentSyncHandler handles notebook document sync notifications.
+type NotebookDocumentSyncHandler interface {
+	DidOpenNotebookDocument(ctx context.Context, params *lsp.DidOpenNotebookDocumentParams) error
+	DidChangeNotebookDocument(ctx context.Context, params *lsp.DidChangeNotebookDocumentParams) error
+	DidSaveNotebookDocument(ctx context.Context, params *lsp.DidSaveNotebookDocumentParams) error
+	DidCloseNotebookDocument(ctx context.Context, params *lsp.DidCloseNotebookDocumentParams) error
+}
+
 // ExecuteCommandHandler handles workspace/executeCommand.
 type ExecuteCommandHandler interface {
 	ExecuteCommand(ctx context.Context, params *lsp.ExecuteCommandParams) (any, error)
@@ -280,4 +328,19 @@ type WillRenameFilesHandler interface {
 // WillDeleteFilesHandler handles workspace/willDeleteFiles.
 type WillDeleteFilesHandler interface {
 	WillDeleteFiles(ctx context.Context, params *lsp.DeleteFilesParams) (*lsp.WorkspaceEdit, error)
+}
+
+// DidCreateFilesHandler handles workspace/didCreateFiles notifications.
+type DidCreateFilesHandler interface {
+	DidCreateFiles(ctx context.Context, params *lsp.CreateFilesParams) error
+}
+
+// DidRenameFilesHandler handles workspace/didRenameFiles notifications.
+type DidRenameFilesHandler interface {
+	DidRenameFiles(ctx context.Context, params *lsp.RenameFilesParams) error
+}
+
+// DidDeleteFilesHandler handles workspace/didDeleteFiles notifications.
+type DidDeleteFilesHandler interface {
+	DidDeleteFiles(ctx context.Context, params *lsp.DeleteFilesParams) error
 }

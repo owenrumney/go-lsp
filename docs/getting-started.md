@@ -161,10 +161,7 @@ func (h *Handler) DidSave(ctx context.Context, params *lsp.DidSaveTextDocumentPa
 
 func (h *Handler) Hover(_ context.Context, _ *lsp.HoverParams) (*lsp.Hover, error) {
     return &lsp.Hover{
-        Contents: lsp.MarkupContent{
-            Kind:  lsp.Markdown,
-            Value: "**mylang** hover",
-        },
+        Contents: lsp.NewHoverContents(lsp.Markdown, "**mylang** hover"),
     }, nil
 }
 
@@ -500,6 +497,10 @@ srv.HandleNotification("custom/myNotification", func(ctx context.Context, params
     return nil
 })
 ```
+
+Custom methods follow the LSP lifecycle: requests are rejected with
+`ServerNotInitialized` until the client has sent `initialize`, and custom
+notifications are dropped outside the initialized window.
 
 ## Testing Your Server
 

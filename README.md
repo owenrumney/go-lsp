@@ -42,7 +42,7 @@ func (h *Handler) Shutdown(_ context.Context) error { return nil }
 
 func (h *Handler) Hover(_ context.Context, _ *lsp.HoverParams) (*lsp.Hover, error) {
     return &lsp.Hover{
-        Contents: lsp.MarkupContent{Kind: lsp.Markdown, Value: "**hello**"},
+        Contents: lsp.NewHoverContents(lsp.Markdown, "**hello**"),
     }, nil
 }
 

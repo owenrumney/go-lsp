@@ -42,10 +42,7 @@ func (m *mockHandler) DidClose(_ context.Context, _ *lsp.DidCloseTextDocumentPar
 
 func (m *mockHandler) Hover(_ context.Context, _ *lsp.HoverParams) (*lsp.Hover, error) {
 	return &lsp.Hover{
-		Contents: lsp.MarkupContent{
-			Kind:  lsp.Markdown,
-			Value: "Hello from hover",
-		},
+		Contents: lsp.NewHoverContents(lsp.Markdown, "Hello from hover"),
 	}, nil
 }
 
@@ -333,8 +330,8 @@ func TestServerInitializeHandshake(t *testing.T) {
 	if err := json.Unmarshal(hoverResp.Result, &hover); err != nil {
 		t.Fatal(err)
 	}
-	if hover.Contents.Value != "Hello from hover" {
-		t.Errorf("hover contents = %q, want %q", hover.Contents.Value, "Hello from hover")
+	if hover.Contents.Value() != "Hello from hover" {
+		t.Errorf("hover contents = %q, want %q", hover.Contents.Value(), "Hello from hover")
 	}
 
 	cancel()

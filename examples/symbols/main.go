@@ -17,8 +17,8 @@ type handler struct {
 func (h *handler) Initialize(_ context.Context, _ *lsp.InitializeParams) (*lsp.InitializeResult, error) {
 	return &lsp.InitializeResult{
 		Capabilities: lsp.ServerCapabilities{
-			DocumentSymbolProvider:  boolPtr(true),
-			WorkspaceSymbolProvider: boolPtr(true),
+			DocumentSymbolProvider:  &lsp.DocumentSymbolOptions{},
+			WorkspaceSymbolProvider: &lsp.WorkspaceSymbolOptions{},
 		},
 		ServerInfo: &lsp.ServerInfo{Name: "symbols-example", Version: "0.1.0"},
 	}, nil
@@ -141,8 +141,6 @@ func matchLine(line string) (name string, kind lsp.SymbolKind, ok bool) {
 	}
 	return "", 0, false
 }
-
-func boolPtr(b bool) *bool { return &b }
 
 func main() {
 	srv := server.NewServer(&handler{docs: document.NewStore()})

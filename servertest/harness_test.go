@@ -101,10 +101,7 @@ func (h *testHandler) Hover(_ context.Context, params *lsp.HoverParams) (*lsp.Ho
 		return nil, nil
 	}
 	return &lsp.Hover{
-		Contents: lsp.MarkupContent{
-			Kind:  lsp.Markdown,
-			Value: fmt.Sprintf("Line %d: `%s`", line, lines[line]),
-		},
+		Contents: lsp.NewHoverContents(lsp.Markdown, fmt.Sprintf("Line %d: `%s`", line, lines[line])),
 	}, nil
 }
 
@@ -154,8 +151,8 @@ func TestHarness(t *testing.T) {
 				if hover == nil {
 					t.Fatal("hover is nil")
 				}
-				if !strings.Contains(hover.Contents.Value, "first line") {
-					t.Fatalf("unexpected hover content: %s", hover.Contents.Value)
+				if !strings.Contains(hover.Contents.Value(), "first line") {
+					t.Fatalf("unexpected hover content: %s", hover.Contents.Value())
 				}
 			},
 		},
@@ -246,8 +243,8 @@ func TestHarness(t *testing.T) {
 				if hover == nil {
 					t.Fatal("hover is nil after change")
 				}
-				if !strings.Contains(hover.Contents.Value, "updated content") {
-					t.Fatalf("hover should reflect updated content: %s", hover.Contents.Value)
+				if !strings.Contains(hover.Contents.Value(), "updated content") {
+					t.Fatalf("hover should reflect updated content: %s", hover.Contents.Value())
 				}
 			},
 		},

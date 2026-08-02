@@ -1,6 +1,9 @@
 package lsp
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // WorkspaceFolder is a folder opened inside a client.
 type WorkspaceFolder struct {
@@ -36,7 +39,7 @@ type WorkspaceEdit struct {
 	//
 	// If a client neither supports documentChanges nor `workspace.workspaceEdit.resourceOperations` then
 	// only plain TextEdits using the changes property are supported.
-	DocumentChanges []TextDocumentEdit `json:"documentChanges,omitempty"`
+	DocumentChanges []DocumentChange `json:"documentChanges,omitempty"`
 	// A map of change annotations that can be referenced in AnnotatedTextEdits or create, rename and
 	// delete file / folder operations.
 	//
@@ -44,6 +47,77 @@ type WorkspaceEdit struct {
 	//
 	// Since 3.16.0
 	ChangeAnnotations map[ChangeAnnotationIdentifier]ChangeAnnotation `json:"changeAnnotations,omitempty"`
+}
+
+// DocumentChange is the spec union TextDocumentEdit | CreateFile | RenameFile
+// | DeleteFile; use the New*Change constructors.
+type DocumentChange struct {
+	TextDocumentEdit *TextDocumentEdit
+	CreateFile       *CreateFile
+	RenameFile       *RenameFile
+	DeleteFile       *DeleteFile
+}
+
+// NewTextDocumentEditChange wraps a TextDocumentEdit as a DocumentChange.
+func NewTextDocumentEditChange(edit TextDocumentEdit) DocumentChange {
+	return DocumentChange{TextDocumentEdit: &edit}
+}
+
+// NewCreateFileChange wraps a CreateFile operation as a DocumentChange.
+func NewCreateFileChange(op CreateFile) DocumentChange {
+	op.Kind = "create"
+	return DocumentChange{CreateFile: &op}
+}
+
+// NewRenameFileChange wraps a RenameFile operation as a DocumentChange.
+func NewRenameFileChange(op RenameFile) DocumentChange {
+	op.Kind = "rename"
+	return DocumentChange{RenameFile: &op}
+}
+
+// NewDeleteFileChange wraps a DeleteFile operation as a DocumentChange.
+func NewDeleteFileChange(op DeleteFile) DocumentChange {
+	op.Kind = "delete"
+	return DocumentChange{DeleteFile: &op}
+}
+
+func (c DocumentChange) MarshalJSON() ([]byte, error) {
+	switch {
+	case c.TextDocumentEdit != nil:
+		return json.Marshal(c.TextDocumentEdit)
+	case c.CreateFile != nil:
+		return json.Marshal(c.CreateFile)
+	case c.RenameFile != nil:
+		return json.Marshal(c.RenameFile)
+	case c.DeleteFile != nil:
+		return json.Marshal(c.DeleteFile)
+	}
+	return json.Marshal(TextDocumentEdit{})
+}
+
+func (c *DocumentChange) UnmarshalJSON(data []byte) error {
+	var probe struct {
+		Kind string `json:"kind"`
+	}
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return err
+	}
+	*c = DocumentChange{}
+	switch probe.Kind {
+	case "":
+		c.TextDocumentEdit = &TextDocumentEdit{}
+		return json.Unmarshal(data, c.TextDocumentEdit)
+	case "create":
+		c.CreateFile = &CreateFile{}
+		return json.Unmarshal(data, c.CreateFile)
+	case "rename":
+		c.RenameFile = &RenameFile{}
+		return json.Unmarshal(data, c.RenameFile)
+	case "delete":
+		c.DeleteFile = &DeleteFile{}
+		return json.Unmarshal(data, c.DeleteFile)
+	}
+	return fmt.Errorf("lsp: unknown document change kind %q", probe.Kind)
 }
 
 // TextDocumentEdit describes textual changes on a text document. A TextDocumentEdit describes all changes

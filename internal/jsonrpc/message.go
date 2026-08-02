@@ -1,11 +1,20 @@
 package jsonrpc
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 )
 
 const Version = "2.0"
+
+// ErrParse marks a body that is not valid JSON; framing is intact so the
+// connection can recover.
+var ErrParse = errors.New("jsonrpc: parse error")
+
+// ErrInvalidMessage marks valid JSON that is not a JSON-RPC message; recoverable.
+var ErrInvalidMessage = errors.New("jsonrpc: invalid message")
 
 // ID represents a JSON-RPC 2.0 request ID, which can be a string or integer.
 type ID struct {
@@ -92,9 +101,10 @@ func NewRequest(id ID, method string, params any) (*Request, error) {
 	return &Request{JSONRPC: Version, ID: id, Method: method, Params: raw}, nil
 }
 
-// NewResponse creates a successful response.
+// NewResponse creates a successful response; a nil result encodes as an
+// explicit null since the spec requires the result member.
 func NewResponse(id ID, result any) (*Response, error) {
-	var raw json.RawMessage
+	raw := json.RawMessage("null")
 	if result != nil {
 		b, err := json.Marshal(result)
 		if err != nil {
@@ -135,18 +145,35 @@ type rawMessage struct {
 
 // DecodeMessage decodes a JSON-RPC message into a Request, Response, or Notification.
 func DecodeMessage(data []byte) (any, error) {
+	if trimmed := bytes.TrimLeft(data, " \t\r\n"); len(trimmed) > 0 && trimmed[0] == '[' {
+		return nil, fmt.Errorf("%w: batch messages are not supported", ErrInvalidMessage)
+	}
+
 	var raw rawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
-		return nil, fmt.Errorf("jsonrpc: failed to decode message: %w", err)
+		return nil, fmt.Errorf("%w: %v", ErrParse, err)
 	}
 
 	hasID := raw.ID != nil && string(*raw.ID) != "null"
 
-	// Response: has ID but no method
-	if hasID && raw.Method == nil {
+	// A null id decodes raw.ID to nil, indistinguishable from absent; probe
+	// with a non-pointer RawMessage, which preserves the literal null.
+	if raw.Method != nil && raw.ID == nil {
+		var probe struct {
+			ID json.RawMessage `json:"id"`
+		}
+		if err := json.Unmarshal(data, &probe); err == nil && string(probe.ID) == "null" {
+			return nil, fmt.Errorf("%w: request id must not be null", ErrInvalidMessage)
+		}
+	}
+
+	// Response: no method. The ID may be null for ParseError responses.
+	if raw.Method == nil && (hasID || raw.Result != nil || raw.Error != nil) {
 		var id ID
-		if err := json.Unmarshal(*raw.ID, &id); err != nil {
-			return nil, err
+		if hasID {
+			if err := json.Unmarshal(*raw.ID, &id); err != nil {
+				return nil, fmt.Errorf("%w: %v", ErrInvalidMessage, err)
+			}
 		}
 		return &Response{
 			JSONRPC: raw.JSONRPC,
@@ -160,7 +187,7 @@ func DecodeMessage(data []byte) (any, error) {
 	if hasID && raw.Method != nil {
 		var id ID
 		if err := json.Unmarshal(*raw.ID, &id); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %v", ErrInvalidMessage, err)
 		}
 		return &Request{
 			JSONRPC: raw.JSONRPC,
@@ -179,5 +206,5 @@ func DecodeMessage(data []byte) (any, error) {
 		}, nil
 	}
 
-	return nil, fmt.Errorf("jsonrpc: cannot determine message type")
+	return nil, fmt.Errorf("%w: cannot determine message type", ErrInvalidMessage)
 }

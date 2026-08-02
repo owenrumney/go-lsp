@@ -89,3 +89,8 @@ type WorkDoneProgressCreateParams struct {
 	// The token to be used to report progress.
 	Token ProgressToken `json:"token"`
 }
+
+// WorkDoneProgressCancelParams cancels a server-initiated progress.
+type WorkDoneProgressCancelParams struct {
+	Token ProgressToken `json:"token"`
+}

@@ -60,7 +60,25 @@ type CodeActionContext struct {
 	// Actions not of this kind are filtered out by the client before being shown. So servers
 	// can omit computing them.
 	Only []CodeActionKind `json:"only,omitempty"`
+	// The reason why code actions were requested.
+	//
+	// Since 3.17.0
+	TriggerKind *CodeActionTriggerKind `json:"triggerKind,omitempty"`
 }
+
+// CodeActionTriggerKind describes how a code action was requested.
+//
+// Since 3.17.0
+type CodeActionTriggerKind int
+
+const (
+	// CodeActionTriggerInvoked means code actions were explicitly requested by
+	// the user or by an extension.
+	CodeActionTriggerInvoked CodeActionTriggerKind = 1
+	// CodeActionTriggerAutomatic means code actions were requested
+	// automatically, for example when the current selection in a file changed.
+	CodeActionTriggerAutomatic CodeActionTriggerKind = 2
+)
 
 // CodeActionParams holds the parameters of a [CodeActionRequest].
 type CodeActionParams struct {
