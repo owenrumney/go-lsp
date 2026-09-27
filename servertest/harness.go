@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net"
-	"sync"
 	"testing"
 
 	"github.com/owenrumney/go-lsp/lsp"
@@ -22,10 +21,6 @@ type Harness struct {
 
 	// InitResult holds the result from the initialize request.
 	InitResult *lsp.InitializeResult
-
-	// versions tracks document versions for auto-incrementing DidChange.
-	versions   map[lsp.DocumentURI]int
-	versionsMu sync.Mutex
 }
 
 // New creates a new test harness, starts the server, performs initialization,
@@ -87,7 +82,6 @@ func New(t testing.TB, handler server.LifecycleHandler, opts ...Option) *Harness
 		clientRequests: clientRequests,
 		cancel:         cancel,
 		ctx:            ctx,
-		versions:       make(map[lsp.DocumentURI]int),
 	}
 
 	// Send initialize request.

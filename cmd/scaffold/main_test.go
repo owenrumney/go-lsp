@@ -91,3 +91,43 @@ func TestParseFeaturesTrimsEmptyEntries(t *testing.T) {
 		}
 	}
 }
+
+func TestValidName(t *testing.T) {
+	tests := []struct {
+		name string
+		ok   bool
+	}{
+		{"mylang", true},
+		{"my-lang_2", true},
+		{"", false},
+		{"My", false},
+		{"../escape", false},
+		{"{{.Module}}", false},
+		{"a b", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := validName.MatchString(tt.name); got != tt.ok {
+				t.Fatalf("validName(%q) = %v, want %v", tt.name, got, tt.ok)
+			}
+		})
+	}
+}
+
+func TestGenerateRefusesToOverwrite(t *testing.T) {
+	outDir := filepath.Join(t.TempDir(), "x-lsp")
+	if err := os.MkdirAll(outDir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(outDir, "go.mod"), []byte("keep"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	err := generate(outDir, templateData{Name: "x", Module: "example.com/x", LangID: "x"})
+	if err == nil {
+		t.Fatal("expected error when file exists")
+	}
+	got, _ := os.ReadFile(filepath.Join(outDir, "go.mod"))
+	if string(got) != "keep" {
+		t.Fatalf("existing file overwritten: %q", got)
+	}
+}
