@@ -409,14 +409,14 @@ func (c *Conn) Call(ctx context.Context, method string, params any) (*Response, 
 		c.pendingMu.Unlock()
 	}()
 
-	if err := c.WriteMessage(req); err != nil {
-		return nil, err
-	}
-
 	if c.callTimeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, c.callTimeout)
 		defer cancel()
+	}
+
+	if err := c.WriteMessage(req); err != nil {
+		return nil, err
 	}
 
 	select {

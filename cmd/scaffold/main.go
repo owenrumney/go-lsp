@@ -63,7 +63,7 @@ func main() {
 		fatal("server name is required")
 	}
 	if !validName.MatchString(*name) {
-		fatal("invalid server name %q: use lowercase letters, digits, '-' or '_', starting with a letter", *name)
+		fatal("invalid server name %q: up to 64 lowercase letters, digits, '-' or '_', starting with a letter", *name)
 	}
 
 	if *module == "" {
