@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"text/template"
@@ -44,6 +45,8 @@ var validFeatures = map[string]bool{
 	"symbols":     true,
 }
 
+var validName = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,63}$`)
+
 func main() {
 	name := flag.String("name", "", "server name")
 	module := flag.String("module", "", "Go module path")
@@ -58,6 +61,9 @@ func main() {
 	}
 	if *name == "" {
 		fatal("server name is required")
+	}
+	if !validName.MatchString(*name) {
+		fatal("invalid server name %q: up to 64 lowercase letters, digits, '-' or '_', starting with a letter", *name)
 	}
 
 	if *module == "" {
@@ -96,17 +102,20 @@ func main() {
 	}
 
 	outDir := *name + "-lsp"
+	if _, err := os.Stat(outDir); err == nil {
+		fatal("%s already exists; remove it or choose another name", outDir)
+	}
 	if err := generate(outDir, data); err != nil {
 		fatal("generation failed: %v", err)
 	}
 
-	// Run go mod tidy if go is available.
-	if _, err := exec.LookPath("go"); err == nil {
-		cmd := exec.Command("go", "mod", "tidy") // #nosec G204 -- args are fixed strings
-		cmd.Dir = outDir
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
+	if _, err := exec.LookPath("go"); err != nil {
+		fmt.Fprintln(os.Stderr, "go not found; run 'go get github.com/owenrumney/go-lsp@latest' in the new project")
+	} else {
+		if err := runGo(outDir, "get", "github.com/owenrumney/go-lsp@latest"); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: go get failed: %v\n", err)
+		}
+		if err := runGo(outDir, "mod", "tidy"); err != nil {
 			fmt.Fprintf(os.Stderr, "warning: go mod tidy failed: %v\n", err)
 		}
 	}
@@ -152,8 +161,16 @@ func prompt(reader *bufio.Reader, label string) string {
 	return strings.TrimSpace(line)
 }
 
+func runGo(dir string, args ...string) error {
+	cmd := exec.Command("go", args...) // #nosec G204 -- args are fixed strings
+	cmd.Dir = dir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 func writeTemplate(tmpl *template.Template, name, path string, data templateData) (err error) {
-	f, err := os.Create(path) // #nosec G304 -- path is constructed from user-provided project name
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600) // #nosec G304 -- name is validated
 	if err != nil {
 		return err
 	}

@@ -8,10 +8,6 @@ import (
 
 // DidOpen sends a textDocument/didOpen notification.
 func (h *Harness) DidOpen(uri lsp.DocumentURI, languageID, text string) error {
-	h.versionsMu.Lock()
-	h.versions[uri] = 1
-	h.versionsMu.Unlock()
-
 	return h.conn.notify(h.ctx, "textDocument/didOpen", &lsp.DidOpenTextDocumentParams{
 		TextDocument: lsp.TextDocumentItem{
 			URI:        uri,
@@ -24,10 +20,6 @@ func (h *Harness) DidOpen(uri lsp.DocumentURI, languageID, text string) error {
 
 // DidChange sends a textDocument/didChange notification with full document sync.
 func (h *Harness) DidChange(uri lsp.DocumentURI, version int, text string) error {
-	h.versionsMu.Lock()
-	h.versions[uri] = version
-	h.versionsMu.Unlock()
-
 	return h.conn.notify(h.ctx, "textDocument/didChange", &lsp.DidChangeTextDocumentParams{
 		TextDocument: lsp.VersionedTextDocumentIdentifier{
 			TextDocumentIdentifier: lsp.TextDocumentIdentifier{URI: uri},
@@ -48,10 +40,6 @@ func (h *Harness) DidSave(uri lsp.DocumentURI) error {
 
 // DidClose sends a textDocument/didClose notification.
 func (h *Harness) DidClose(uri lsp.DocumentURI) error {
-	h.versionsMu.Lock()
-	delete(h.versions, uri)
-	h.versionsMu.Unlock()
-
 	return h.conn.notify(h.ctx, "textDocument/didClose", &lsp.DidCloseTextDocumentParams{
 		TextDocument: lsp.TextDocumentIdentifier{URI: uri},
 	})

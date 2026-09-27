@@ -39,6 +39,7 @@ type Server struct {
 	debugUI                *debugui.DebugUI
 	logger                 *slog.Logger
 	requestTimeout         time.Duration
+	clientCallTimeout      time.Duration
 	maxConcurrentRequests  int
 	capabilityOptions      CapabilityOptions
 	methodMiddleware       []MethodMiddleware
@@ -115,6 +116,9 @@ func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
 	}
 	if s.maxConcurrentRequests > 0 {
 		s.conn.SetMaxConcurrentRequests(s.maxConcurrentRequests)
+	}
+	if s.clientCallTimeout > 0 {
+		s.conn.SetCallTimeout(s.clientCallTimeout)
 	}
 	s.Client = newClient(s.conn)
 

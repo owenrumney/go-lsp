@@ -68,6 +68,18 @@ func WithRequestTimeout(d time.Duration) Option {
 	}
 }
 
+// WithClientCallTimeout bounds how long server-to-client requests such as
+// ApplyEdit or Configuration wait for a response. Zero (the default) waits
+// until the request context is done. Requests that wait on user interaction,
+// such as ShowMessageRequest, are subject to the same timeout. The timeout
+// bounds the wait for a reply; it cannot interrupt a write blocked on a
+// client that has stopped reading.
+func WithClientCallTimeout(d time.Duration) Option {
+	return func(s *Server) {
+		s.clientCallTimeout = d
+	}
+}
+
 // WithMaxConcurrentRequests limits how many inbound JSON-RPC requests may run at once.
 // A value <= 0 keeps the default unlimited behavior. Notifications are unaffected.
 func WithMaxConcurrentRequests(n int) Option {

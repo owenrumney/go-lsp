@@ -34,6 +34,7 @@ type Conn struct {
 	pendingMu             sync.Mutex
 	pending               map[string]chan *Response
 	requestTimeout        time.Duration
+	callTimeout           time.Duration
 	maxConcurrentRequests int
 	requestSem            chan struct{}
 	handlers              sync.WaitGroup
@@ -288,6 +289,12 @@ func (c *Conn) SetRequestTimeout(d time.Duration) {
 	c.requestTimeout = d
 }
 
+// SetCallTimeout bounds how long Call waits for the peer to respond.
+// A zero duration means no timeout (the default).
+func (c *Conn) SetCallTimeout(d time.Duration) {
+	c.callTimeout = d
+}
+
 // SetMaxConcurrentRequests limits how many incoming requests may run at once.
 // A value <= 0 keeps the default unlimited behavior.
 func (c *Conn) SetMaxConcurrentRequests(n int) {
@@ -402,6 +409,12 @@ func (c *Conn) Call(ctx context.Context, method string, params any) (*Response, 
 		c.pendingMu.Unlock()
 	}()
 
+	if c.callTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.callTimeout)
+		defer cancel()
+	}
+
 	if err := c.WriteMessage(req); err != nil {
 		return nil, err
 	}
@@ -410,7 +423,7 @@ func (c *Conn) Call(ctx context.Context, method string, params any) (*Response, 
 	case resp := <-ch:
 		return resp, nil
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, fmt.Errorf("%s: %w", method, ctx.Err())
 	}
 }
 
