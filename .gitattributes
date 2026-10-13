@@ -1,0 +1,3 @@
+# Golden files and fuzz corpora compare byte for byte, so keep LF on Windows
+# checkouts too.
+* text=auto eol=lf

@@ -18,6 +18,9 @@ import (
 // ErrExit is returned by a notification handler to make Serve return.
 var ErrExit = errors.New("jsonrpc: exit notification received")
 
+// ErrConnClosed fails outbound calls still waiting when Serve returns.
+var ErrConnClosed = errors.New("jsonrpc: connection closed")
+
 // maxContentLength caps a message body so a bad header can't cause a huge allocation.
 const maxContentLength = 128 << 20
 
@@ -43,6 +46,17 @@ type Conn struct {
 	queueReady            chan struct{}
 	exitOnce              sync.Once
 	exitCh                chan struct{}
+	closeOnce             sync.Once
+	closedCh              chan struct{}
+}
+
+// Pending is an outbound request awaiting its response.
+type Pending struct {
+	conn       *Conn
+	id         ID
+	method     string
+	ch         chan *Response
+	cancelOnce sync.Once
 }
 
 func NewConn(rw io.ReadWriteCloser, dispatcher *Dispatcher) *Conn {
@@ -55,6 +69,7 @@ func NewConn(rw io.ReadWriteCloser, dispatcher *Dispatcher) *Conn {
 		pending:    make(map[string]chan *Response),
 		queueReady: make(chan struct{}, 1),
 		exitCh:     make(chan struct{}),
+		closedCh:   make(chan struct{}),
 	}
 }
 
@@ -133,6 +148,8 @@ func (c *Conn) Serve(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer c.handlers.Wait()
 	defer cancel()
+	// Must run before handlers.Wait: a handler blocked in Call would deadlock it.
+	defer c.closeOnce.Do(func() { close(c.closedCh) })
 
 	go func() {
 		select {
@@ -388,8 +405,27 @@ func (c *Conn) handleCancel(notif *Notification) {
 	}
 }
 
-// Call sends a request to the peer and waits for a response.
+// Call sends a request to the peer and waits for a response. If ctx is
+// cancelled or the call times out first, the peer is sent $/cancelRequest.
 func (c *Conn) Call(ctx context.Context, method string, params any) (*Response, error) {
+	// Deadline starts before the write so a slow send counts against it.
+	if c.callTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.callTimeout)
+		defer cancel()
+	}
+
+	p, err := c.CallAsync(method, params)
+	if err != nil {
+		return nil, err
+	}
+	return p.Wait(ctx)
+}
+
+// CallAsync sends a request and returns before the response arrives. The
+// caller must call Wait to free the pending slot; SetCallTimeout does not
+// apply, so supply a deadline through the Wait context.
+func (c *Conn) CallAsync(method string, params any) (*Pending, error) {
 	id := IntID(c.nextID.Add(1))
 	req, err := NewRequest(id, method, params)
 	if err != nil {
@@ -397,34 +433,59 @@ func (c *Conn) Call(ctx context.Context, method string, params any) (*Response, 
 	}
 
 	ch := make(chan *Response, 1)
-	idStr := id.String()
 
 	c.pendingMu.Lock()
-	c.pending[idStr] = ch
+	c.pending[id.String()] = ch
 	c.pendingMu.Unlock()
 
-	defer func() {
-		c.pendingMu.Lock()
-		delete(c.pending, idStr)
-		c.pendingMu.Unlock()
-	}()
-
-	if c.callTimeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, c.callTimeout)
-		defer cancel()
-	}
+	p := &Pending{conn: c, id: id, method: method, ch: ch}
 
 	if err := c.WriteMessage(req); err != nil {
+		p.release()
 		return nil, err
 	}
+	return p, nil
+}
+
+// ID returns the JSON-RPC request ID, for matching against $/cancelRequest.
+func (p *Pending) ID() ID { return p.id }
+
+// Wait blocks until the response arrives, ctx is done, or the connection closes.
+// A ctx that expires first sends $/cancelRequest to the peer.
+func (p *Pending) Wait(ctx context.Context) (*Response, error) {
+	defer p.release()
 
 	select {
-	case resp := <-ch:
+	case resp := <-p.ch:
 		return resp, nil
+	case <-p.conn.closedCh:
+		// A response routed just before close must still win.
+		select {
+		case resp := <-p.ch:
+			return resp, nil
+		default:
+		}
+		return nil, fmt.Errorf("%s: %w", p.method, ErrConnClosed)
 	case <-ctx.Done():
-		return nil, fmt.Errorf("%s: %w", method, ctx.Err())
+		p.Cancel()
+		return nil, fmt.Errorf("%s: %w", p.method, ctx.Err())
 	}
+}
+
+// Cancel tells the peer to abandon the request. Safe to call more than once.
+func (p *Pending) Cancel() {
+	p.cancelOnce.Do(func() {
+		params := struct {
+			ID ID `json:"id"`
+		}{ID: p.id}
+		_ = p.conn.Notify(context.Background(), "$/cancelRequest", params)
+	})
+}
+
+func (p *Pending) release() {
+	p.conn.pendingMu.Lock()
+	delete(p.conn.pending, p.id.String())
+	p.conn.pendingMu.Unlock()
 }
 
 func (c *Conn) routeResponse(resp *Response) {

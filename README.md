@@ -10,6 +10,7 @@
 - **`servertest` harness** for end-to-end LSP tests over in-memory pipes
 - **Project scaffold generator** to bootstrap a server quickly
 - **Optional debug UI** for inspecting live LSP traffic
+- **LSP client** for driving other language servers from Go
 
 ## Install
 
@@ -120,6 +121,7 @@ The optional debug UI helps inspect LSP traffic while developing and testing.
 
 - Getting started: [`docs/getting-started.md`](./docs/getting-started.md)
 - Testing guide: [`docs/testing.md`](./docs/testing.md)
+- Driving a language server: [`docs/client.md`](./docs/client.md)
 - Examples: [`examples/`](./examples/)
 - Package docs site: https://www.owenrumney.co.uk/go-lsp
 
@@ -131,3 +133,4 @@ The optional debug UI helps inspect LSP traffic while developing and testing.
 - [`examples/codeactions/`](./examples/codeactions/) — quick fixes and code actions
 - [`examples/symbols/`](./examples/symbols/) — document symbols
 - [`examples/toylang/`](./examples/toylang/) — multi-feature toy language server
+- [`examples/lspclient/`](./examples/lspclient/) — driving another language server with `client`

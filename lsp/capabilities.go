@@ -618,33 +618,13 @@ func (s *SemanticTokensRequestsCapabilities) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	if len(raw.Range) > 0 && string(raw.Range) != "null" {
-		var b bool
-		if err := json.Unmarshal(raw.Range, &b); err == nil {
-			s.Range = &b
-		} else {
-			// Empty object form ({}) — presence indicates support.
-			t := true
-			s.Range = &t
-		}
-	}
+	s.Range = semanticTokensRangeFromJSON(raw.Range)
 
-	if len(raw.Full) > 0 && string(raw.Full) != "null" {
-		var b bool
-		if err := json.Unmarshal(raw.Full, &b); err == nil {
-			if b {
-				s.Full = &SemanticTokensFull{}
-			}
-			// false → leave Full nil to signal unsupported.
-		} else {
-			var f SemanticTokensFull
-			if err := json.Unmarshal(raw.Full, &f); err != nil {
-				return err
-			}
-			s.Full = &f
-		}
+	full, err := semanticTokensFullFromJSON(raw.Full)
+	if err != nil {
+		return err
 	}
-
+	s.Full = full
 	return nil
 }
 
@@ -841,6 +821,44 @@ type WorkspaceFoldersServerCapabilities struct {
 	// side. The ID can be used to unregister for these events
 	// using the `client/unregisterCapability` request.
 	ChangeNotifications *bool `json:"changeNotifications,omitempty"`
+	// ChangeNotificationsID holds the registration ID when the server sent
+	// the string form of ChangeNotifications.
+	ChangeNotificationsID string `json:"-"`
+}
+
+// UnmarshalJSON accepts the string form of changeNotifications, which gopls
+// sends, keeping the registration ID in ChangeNotificationsID.
+func (w *WorkspaceFoldersServerCapabilities) UnmarshalJSON(data []byte) error {
+	type plain WorkspaceFoldersServerCapabilities
+
+	var shadow struct {
+		plain
+		ChangeNotifications json.RawMessage `json:"changeNotifications,omitempty"`
+	}
+	if err := json.Unmarshal(data, &shadow); err != nil {
+		return err
+	}
+	*w = WorkspaceFoldersServerCapabilities(shadow.plain)
+
+	raw := shadow.ChangeNotifications
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil
+	}
+
+	var b bool
+	if err := json.Unmarshal(raw, &b); err == nil {
+		w.ChangeNotifications = &b
+		return nil
+	}
+
+	var id string
+	if err := json.Unmarshal(raw, &id); err != nil {
+		return err
+	}
+	wanted := true
+	w.ChangeNotifications = &wanted
+	w.ChangeNotificationsID = id
+	return nil
 }
 
 // FileOperationOptions is for notifications/requests for user operations on files.
@@ -1006,6 +1024,30 @@ type CodeActionOptions struct {
 	//
 	// Since 3.16.0
 	ResolveProvider *bool `json:"resolveProvider,omitempty"`
+
+	disabled bool
+}
+
+// Enabled reports whether the provider is advertised; false for nil and for
+// the JSON literal false.
+func (o *CodeActionOptions) Enabled() bool { return o != nil && !o.disabled }
+
+func (o *CodeActionOptions) UnmarshalJSON(data []byte) error {
+	var b bool
+	if err := json.Unmarshal(data, &b); err == nil {
+		*o = CodeActionOptions{disabled: !b}
+		return nil
+	}
+	type alias CodeActionOptions
+	return json.Unmarshal(data, (*alias)(o))
+}
+
+func (o CodeActionOptions) MarshalJSON() ([]byte, error) {
+	if o.disabled {
+		return []byte("false"), nil
+	}
+	type alias CodeActionOptions
+	return json.Marshal(alias(o))
 }
 
 // CodeLensOptions holds the provider options of a [CodeLensRequest].
@@ -1105,6 +1147,30 @@ type RenameOptions struct {
 	//
 	// Since version 3.12.0
 	PrepareProvider *bool `json:"prepareProvider,omitempty"`
+
+	disabled bool
+}
+
+// Enabled reports whether the provider is advertised; false for nil and for
+// the JSON literal false.
+func (o *RenameOptions) Enabled() bool { return o != nil && !o.disabled }
+
+func (o *RenameOptions) UnmarshalJSON(data []byte) error {
+	var b bool
+	if err := json.Unmarshal(data, &b); err == nil {
+		*o = RenameOptions{disabled: !b}
+		return nil
+	}
+	type alias RenameOptions
+	return json.Unmarshal(data, (*alias)(o))
+}
+
+func (o RenameOptions) MarshalJSON() ([]byte, error) {
+	if o.disabled {
+		return []byte("false"), nil
+	}
+	type alias RenameOptions
+	return json.Marshal(alias(o))
 }
 
 // ExecuteCommandOptions holds the server capabilities for a [ExecuteCommandRequest].

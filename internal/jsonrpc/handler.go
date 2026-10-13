@@ -15,11 +15,15 @@ type NotificationHandler func(ctx context.Context, params json.RawMessage) error
 // UnknownMethodHandler handles requests for methods with no registered handler.
 type UnknownMethodHandler func(ctx context.Context, method string, params json.RawMessage) (any, error)
 
+// UnknownNotificationHandler handles notifications with no registered handler.
+type UnknownNotificationHandler func(ctx context.Context, method string, params json.RawMessage) error
+
 // Dispatcher routes JSON-RPC methods to their handlers.
 type Dispatcher struct {
-	methods       map[string]MethodHandler
-	notifications map[string]NotificationHandler
-	unknown       UnknownMethodHandler
+	methods             map[string]MethodHandler
+	notifications       map[string]NotificationHandler
+	unknown             UnknownMethodHandler
+	unknownNotification UnknownNotificationHandler
 }
 
 func NewDispatcher() *Dispatcher {
@@ -41,6 +45,12 @@ func (d *Dispatcher) RegisterNotification(method string, handler NotificationHan
 // replacing the default MethodNotFound response.
 func (d *Dispatcher) SetUnknownMethodHandler(h UnknownMethodHandler) {
 	d.unknown = h
+}
+
+// SetUnknownNotificationHandler installs a fallback for unregistered
+// notifications, which are otherwise dropped.
+func (d *Dispatcher) SetUnknownNotificationHandler(h UnknownNotificationHandler) {
+	d.unknownNotification = h
 }
 
 func (d *Dispatcher) HandleRequest(ctx context.Context, req *Request) *Response {
@@ -75,7 +85,10 @@ func (d *Dispatcher) HandleRequest(ctx context.Context, req *Request) *Response 
 func (d *Dispatcher) HandleNotification(ctx context.Context, notif *Notification) error {
 	handler, ok := d.notifications[notif.Method]
 	if !ok {
-		return nil
+		if d.unknownNotification == nil {
+			return nil
+		}
+		return d.unknownNotification(ctx, notif.Method, notif.Params)
 	}
 	return handler(ctx, notif.Params)
 }

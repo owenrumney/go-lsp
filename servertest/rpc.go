@@ -1,312 +1,70 @@
 package servertest
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
-	"strconv"
-	"strings"
-	"sync"
-	"sync/atomic"
+
+	"github.com/owenrumney/go-lsp/internal/jsonrpc"
 )
-
-// rpcConn is a minimal client-side JSON-RPC 2.0 connection over Content-Length framed streams.
-type rpcConn struct {
-	reader  *bufio.Reader
-	writer  io.Writer
-	writeMu sync.Mutex
-
-	nextID  atomic.Int64
-	pending sync.Map // map[string]chan *rpcResponse
-
-	// notifHandler is called for server-to-client notifications.
-	notifHandler func(method string, params json.RawMessage)
-	// requestHandler is called for server-to-client requests (e.g. window/workDoneProgress/create).
-	requestHandler func(method string, params json.RawMessage) (any, error)
-
-	done chan struct{}
-}
-
-type rpcRequest struct {
-	JSONRPC string          `json:"jsonrpc"`
-	ID      any             `json:"id,omitempty"`
-	Method  string          `json:"method"`
-	Params  json.RawMessage `json:"params,omitempty"`
-}
-
-type rpcResponse struct {
-	JSONRPC string          `json:"jsonrpc"`
-	ID      any             `json:"id"`
-	Result  json.RawMessage `json:"result,omitempty"`
-	Error   *rpcError       `json:"error,omitempty"`
-}
-
-type rpcNotification struct {
-	JSONRPC string          `json:"jsonrpc"`
-	Method  string          `json:"method"`
-	Params  json.RawMessage `json:"params,omitempty"`
-}
-
-type rpcError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-}
-
-func (e *rpcError) Error() string {
-	return fmt.Sprintf("jsonrpc error %d: %s", e.Code, e.Message)
-}
 
 // PendingCall is an in-flight JSON-RPC request sent by a harness.
 type PendingCall struct {
-	conn  *rpcConn
-	id    int64
-	idStr string
-	ch    chan *rpcResponse
+	pending *jsonrpc.Pending
 }
 
-// ID returns the JSON-RPC request ID.
+// rpcConn adapts jsonrpc.Conn to the harness, which works in raw JSON results
+// rather than Response values.
+type rpcConn struct {
+	conn *jsonrpc.Conn
+}
+
+func newRPCConn(rw io.ReadWriteCloser, d *jsonrpc.Dispatcher) *rpcConn {
+	return &rpcConn{conn: jsonrpc.NewConn(rw, d)}
+}
+
+// ID returns the JSON-RPC request ID, for use with Harness.CancelRequest.
 func (c *PendingCall) ID() int64 {
-	return c.id
+	id, _ := c.pending.ID().Int()
+	return id
 }
 
-// Wait waits for the response to this request.
+// Wait blocks until the response arrives, ctx is done, or the server exits.
 func (c *PendingCall) Wait(ctx context.Context) (json.RawMessage, error) {
-	defer c.conn.pending.Delete(c.idStr)
-
-	select {
-	case resp := <-c.ch:
-		if resp.Error != nil {
-			return nil, resp.Error
-		}
-		return resp.Result, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-c.conn.done:
-		return nil, fmt.Errorf("connection closed")
-	}
-}
-
-// rawMsg is used for initial JSON parsing to determine message type.
-type rawMsg struct {
-	ID     *json.RawMessage `json:"id,omitempty"`
-	Method *string          `json:"method,omitempty"`
-	Params json.RawMessage  `json:"params,omitempty"`
-	Result json.RawMessage  `json:"result,omitempty"`
-	Error  *rpcError        `json:"error,omitempty"`
-}
-
-func newRPCConn(rw io.ReadWriter) *rpcConn {
-	return &rpcConn{
-		reader: bufio.NewReader(rw),
-		writer: rw,
-		done:   make(chan struct{}),
-	}
-}
-
-// readLoop reads messages from the connection and routes them.
-// It closes c.done when it returns.
-func (c *rpcConn) readLoop() {
-	defer close(c.done)
-	for {
-		data, err := c.readFrame()
-		if err != nil {
-			return
-		}
-
-		var raw rawMsg
-		if err := json.Unmarshal(data, &raw); err != nil {
-			continue
-		}
-
-		hasID := raw.ID != nil && string(*raw.ID) != "null"
-
-		switch {
-		case hasID && raw.Method == nil:
-			// Response
-			c.routeResponse(data, raw)
-		case hasID && raw.Method != nil:
-			// Server-to-client request
-			c.handleIncomingRequest(data, raw)
-		case raw.Method != nil:
-			// Notification from server
-			if c.notifHandler != nil {
-				c.notifHandler(*raw.Method, raw.Params)
-			}
-		}
-	}
-}
-
-func (c *rpcConn) routeResponse(_ []byte, raw rawMsg) {
-	idStr := idToString(raw.ID)
-	if v, ok := c.pending.Load(idStr); ok {
-		ch := v.(chan *rpcResponse)
-		resp := &rpcResponse{
-			Result: raw.Result,
-			Error:  raw.Error,
-		}
-		ch <- resp
-	}
-}
-
-func (c *rpcConn) handleIncomingRequest(_ []byte, raw rawMsg) {
-	// Parse the ID
-	var id any
-	if raw.ID != nil {
-		_ = json.Unmarshal(*raw.ID, &id)
-	}
-
-	var result any
-	var rpcErr *rpcError
-	if c.requestHandler != nil {
-		res, err := c.requestHandler(*raw.Method, raw.Params)
-		if err != nil {
-			rpcErr = &rpcError{Code: -32603, Message: err.Error()}
-		} else {
-			result = res
-		}
-	}
-
-	// Send response
-	var resultRaw json.RawMessage
-	if rpcErr == nil {
-		if result != nil {
-			b, _ := json.Marshal(result)
-			resultRaw = b
-		} else {
-			resultRaw = json.RawMessage("null")
-		}
-	}
-
-	resp := struct {
-		JSONRPC string          `json:"jsonrpc"`
-		ID      any             `json:"id"`
-		Result  json.RawMessage `json:"result,omitempty"`
-		Error   *rpcError       `json:"error,omitempty"`
-	}{
-		JSONRPC: "2.0",
-		ID:      id,
-		Result:  resultRaw,
-		Error:   rpcErr,
-	}
-	_ = c.writeJSON(resp)
-}
-
-func (c *rpcConn) readFrame() ([]byte, error) {
-	var contentLen int
-	for {
-		line, err := c.reader.ReadString('\n')
-		if err != nil {
-			return nil, err
-		}
-		line = strings.TrimSpace(line)
-		if line == "" {
-			break
-		}
-		if val, ok := strings.CutPrefix(line, "Content-Length:"); ok {
-			val = strings.TrimSpace(val)
-			contentLen, err = strconv.Atoi(val)
-			if err != nil {
-				return nil, fmt.Errorf("invalid Content-Length: %s", val)
-			}
-		}
-	}
-	if contentLen == 0 {
-		return nil, fmt.Errorf("missing Content-Length header")
-	}
-
-	body := make([]byte, contentLen)
-	if _, err := io.ReadFull(c.reader, body); err != nil {
+	resp, err := c.pending.Wait(ctx)
+	if err != nil {
 		return nil, err
 	}
-	return body, nil
+	return rawResult(resp)
 }
 
-func (c *rpcConn) writeJSON(v any) error {
-	data, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-	c.writeMu.Lock()
-	defer c.writeMu.Unlock()
-	header := fmt.Sprintf("Content-Length: %d\r\n\r\n", len(data))
-	if _, err := io.WriteString(c.writer, header); err != nil {
-		return err
-	}
-	_, err = c.writer.Write(data)
-	return err
+func (c *rpcConn) serve(ctx context.Context) error {
+	return c.conn.Serve(ctx)
 }
 
-// call sends a JSON-RPC request and waits for the response.
 func (c *rpcConn) call(ctx context.Context, method string, params any) (json.RawMessage, error) {
-	call, err := c.startCall(method, params)
+	resp, err := c.conn.Call(ctx, method, params)
 	if err != nil {
 		return nil, err
 	}
-	return call.Wait(ctx)
+	return rawResult(resp)
 }
 
 func (c *rpcConn) startCall(method string, params any) (*PendingCall, error) {
-	id := c.nextID.Add(1)
-	idStr := fmt.Sprintf("%d", id)
-
-	var raw json.RawMessage
-	if params != nil {
-		b, err := json.Marshal(params)
-		if err != nil {
-			return nil, err
-		}
-		raw = b
-	}
-
-	ch := make(chan *rpcResponse, 1)
-	c.pending.Store(idStr, ch)
-
-	req := rpcRequest{
-		JSONRPC: "2.0",
-		ID:      id,
-		Method:  method,
-		Params:  raw,
-	}
-	if err := c.writeJSON(req); err != nil {
-		c.pending.Delete(idStr)
+	p, err := c.conn.CallAsync(method, params)
+	if err != nil {
 		return nil, err
 	}
-
-	return &PendingCall{conn: c, id: id, idStr: idStr, ch: ch}, nil
+	return &PendingCall{pending: p}, nil
 }
 
-// notify sends a JSON-RPC notification (no ID, no response expected).
-func (c *rpcConn) notify(_ context.Context, method string, params any) error {
-	var raw json.RawMessage
-	if params != nil {
-		b, err := json.Marshal(params)
-		if err != nil {
-			return err
-		}
-		raw = b
-	}
-
-	notif := rpcNotification{
-		JSONRPC: "2.0",
-		Method:  method,
-		Params:  raw,
-	}
-	return c.writeJSON(notif)
+func (c *rpcConn) notify(ctx context.Context, method string, params any) error {
+	return c.conn.Notify(ctx, method, params)
 }
 
-func idToString(raw *json.RawMessage) string {
-	if raw == nil {
-		return ""
+func rawResult(resp *jsonrpc.Response) (json.RawMessage, error) {
+	if resp.Error != nil {
+		return nil, resp.Error
 	}
-	var n int64
-	if err := json.Unmarshal(*raw, &n); err == nil {
-		return strconv.FormatInt(n, 10)
-	}
-	var s string
-	if err := json.Unmarshal(*raw, &s); err == nil {
-		return s
-	}
-	return string(*raw)
+	return resp.Result, nil
 }

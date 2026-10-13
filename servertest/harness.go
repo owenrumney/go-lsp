@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"net"
 	"testing"
+	"time"
 
+	"github.com/owenrumney/go-lsp/internal/jsonrpc"
 	"github.com/owenrumney/go-lsp/lsp"
 	"github.com/owenrumney/go-lsp/server"
 )
@@ -22,6 +24,9 @@ type Harness struct {
 	// InitResult holds the result from the initialize request.
 	InitResult *lsp.InitializeResult
 }
+
+// cleanupTimeout bounds each stage of harness shutdown.
+const cleanupTimeout = 5 * time.Second
 
 // New creates a new test harness, starts the server, performs initialization,
 // and registers cleanup to shut down gracefully.
@@ -45,35 +50,20 @@ func New(t testing.TB, handler server.LifecycleHandler, opts ...Option) *Harness
 		serverDone <- srv.Run(ctx, serverConn)
 	}()
 
-	rpc := newRPCConn(clientConn)
-
 	notifs := newNotifStore()
 	clientRequests := newClientRequestStore()
-	rpc.notifHandler = func(method string, params json.RawMessage) {
-		switch method {
-		case "textDocument/publishDiagnostics":
-			var p lsp.PublishDiagnosticsParams
-			if err := json.Unmarshal(params, &p); err == nil {
-				notifs.addDiagnostics(p)
-			}
-		case "window/showMessage":
-			var p lsp.ShowMessageParams
-			if err := json.Unmarshal(params, &p); err == nil {
-				notifs.addMessage(p)
-			}
-		case "window/logMessage":
-			var p lsp.LogMessageParams
-			if err := json.Unmarshal(params, &p); err == nil {
-				notifs.addLogMessage(p)
-			}
-		}
-	}
 
-	// Handle server-to-client requests with default success responses.
-	rpc.requestHandler = clientRequests.handle
+	dispatcher := jsonrpc.NewDispatcher()
+	dispatcher.SetUnknownNotificationHandler(func(_ context.Context, method string, params json.RawMessage) error {
+		notifs.add(method, params)
+		return nil
+	})
+	dispatcher.SetUnknownMethodHandler(func(_ context.Context, method string, params json.RawMessage) (any, error) {
+		return clientRequests.handle(method, params)
+	})
 
-	// Start the read loop.
-	go rpc.readLoop()
+	rpc := newRPCConn(clientConn, dispatcher)
+	go func() { _ = rpc.serve(ctx) }()
 
 	h := &Harness{
 		t:              t,
@@ -121,11 +111,14 @@ func New(t testing.TB, handler server.LifecycleHandler, opts ...Option) *Harness
 	}
 
 	t.Cleanup(func() {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), cleanupTimeout)
+		defer shutdownCancel()
+
 		// Send shutdown request (ignore errors on already-closed connections).
-		_, _ = rpc.call(context.Background(), "shutdown", nil)
+		_, _ = rpc.call(shutdownCtx, "shutdown", nil)
 
 		// Send exit notification.
-		_ = rpc.notify(context.Background(), "exit", nil)
+		_ = rpc.notify(shutdownCtx, "exit", nil)
 
 		// Cancel the context to stop the server.
 		cancel()
@@ -133,8 +126,12 @@ func New(t testing.TB, handler server.LifecycleHandler, opts ...Option) *Harness
 		// Close the client side of the pipe.
 		_ = clientConn.Close()
 
-		// Wait for server to finish.
-		<-serverDone
+		// Wait for server to finish, but fail the test rather than hang.
+		select {
+		case <-serverDone:
+		case <-time.After(cleanupTimeout):
+			t.Errorf("servertest: server did not exit within %s", cleanupTimeout)
+		}
 	})
 
 	return h

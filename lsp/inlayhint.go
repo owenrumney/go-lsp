@@ -103,6 +103,30 @@ type InlayHintOptions struct {
 	// The server provides support to resolve additional
 	// information for an inlay hint item.
 	ResolveProvider *bool `json:"resolveProvider,omitempty"`
+
+	disabled bool
+}
+
+// Enabled reports whether the provider is advertised; false for nil and for
+// the JSON literal false.
+func (o *InlayHintOptions) Enabled() bool { return o != nil && !o.disabled }
+
+func (o *InlayHintOptions) UnmarshalJSON(data []byte) error {
+	var b bool
+	if err := json.Unmarshal(data, &b); err == nil {
+		*o = InlayHintOptions{disabled: !b}
+		return nil
+	}
+	type alias InlayHintOptions
+	return json.Unmarshal(data, (*alias)(o))
+}
+
+func (o InlayHintOptions) MarshalJSON() ([]byte, error) {
+	if o.disabled {
+		return []byte("false"), nil
+	}
+	type alias InlayHintOptions
+	return json.Marshal(alias(o))
 }
 
 // InlayHintClientCapabilities declares client support for inlay-hint requests.
