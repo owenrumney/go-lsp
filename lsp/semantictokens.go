@@ -1,5 +1,7 @@
 package lsp
 
+import "encoding/json"
+
 // SemanticTokensLegend lists the token types and modifiers a server uses when encoding semantic tokens.
 //
 // Since 3.16.0.
@@ -96,4 +98,29 @@ type SemanticTokensEdit struct {
 	DeleteCount int `json:"deleteCount"`
 	// The elements to insert.
 	Data []int `json:"data,omitempty"`
+}
+
+// UnmarshalJSON accepts the boolean and object forms of "range" and "full".
+// gopls sends full as true rather than an object.
+func (o *SemanticTokensOptions) UnmarshalJSON(data []byte) error {
+	type plain SemanticTokensOptions
+
+	var shadow struct {
+		plain
+		Range json.RawMessage `json:"range,omitempty"`
+		Full  json.RawMessage `json:"full,omitempty"`
+	}
+	if err := json.Unmarshal(data, &shadow); err != nil {
+		return err
+	}
+
+	*o = SemanticTokensOptions(shadow.plain)
+	o.Range = semanticTokensRangeFromJSON(shadow.Range)
+
+	full, err := semanticTokensFullFromJSON(shadow.Full)
+	if err != nil {
+		return err
+	}
+	o.Full = full
+	return nil
 }

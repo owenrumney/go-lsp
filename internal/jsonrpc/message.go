@@ -26,6 +26,12 @@ func StringID(v string) ID { return ID{value: v} }
 
 func (id ID) IsZero() bool { return id.value == nil }
 
+// Int returns the ID as an integer, and false if it was encoded as a string.
+func (id ID) Int() (int64, bool) {
+	v, ok := id.value.(int64)
+	return v, ok
+}
+
 func (id ID) String() string {
 	switch v := id.value.(type) {
 	case string:

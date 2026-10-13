@@ -2,14 +2,22 @@ package servertest
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 
 	"github.com/owenrumney/go-lsp/lsp"
 )
 
+// Notification is a server-to-client notification captured by the harness.
+type Notification struct {
+	Method string
+	Params json.RawMessage
+}
+
 type notifStore struct {
 	mu          sync.Mutex
 	cond        *sync.Cond
+	all         []Notification
 	diagnostics []lsp.PublishDiagnosticsParams
 	messages    []lsp.ShowMessageParams
 	logMessages []lsp.LogMessageParams
@@ -21,25 +29,30 @@ func newNotifStore() *notifStore {
 	return s
 }
 
-func (s *notifStore) addDiagnostics(params lsp.PublishDiagnosticsParams) {
+func (s *notifStore) add(method string, params json.RawMessage) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.diagnostics = append(s.diagnostics, params)
-	s.cond.Broadcast()
-}
+	defer s.cond.Broadcast()
 
-func (s *notifStore) addMessage(params lsp.ShowMessageParams) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.messages = append(s.messages, params)
-	s.cond.Broadcast()
-}
+	s.all = append(s.all, Notification{Method: method, Params: cloneRawMessage(params)})
 
-func (s *notifStore) addLogMessage(params lsp.LogMessageParams) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.logMessages = append(s.logMessages, params)
-	s.cond.Broadcast()
+	switch method {
+	case "textDocument/publishDiagnostics":
+		var p lsp.PublishDiagnosticsParams
+		if err := json.Unmarshal(params, &p); err == nil {
+			s.diagnostics = append(s.diagnostics, p)
+		}
+	case "window/showMessage":
+		var p lsp.ShowMessageParams
+		if err := json.Unmarshal(params, &p); err == nil {
+			s.messages = append(s.messages, p)
+		}
+	case "window/logMessage":
+		var p lsp.LogMessageParams
+		if err := json.Unmarshal(params, &p); err == nil {
+			s.logMessages = append(s.logMessages, p)
+		}
+	}
 }
 
 // Diagnostics returns the most recent diagnostics for the given URI.
@@ -127,6 +140,39 @@ func (h *Harness) WaitForDiagnostics(ctx context.Context, uri lsp.DocumentURI) (
 		}
 		if err := waitCond(ctx, h.notifs.cond); err != nil {
 			return nil, err
+		}
+	}
+}
+
+// Notifications returns every notification the server has sent, in order.
+func (h *Harness) Notifications() []Notification {
+	h.notifs.mu.Lock()
+	defer h.notifs.mu.Unlock()
+
+	out := make([]Notification, len(h.notifs.all))
+	copy(out, h.notifs.all)
+	for i := range out {
+		out[i].Params = cloneRawMessage(out[i].Params)
+	}
+	return out
+}
+
+// WaitForNotification waits until the server sends a matching notification.
+// Pass an empty method to wait for any notification.
+func (h *Harness) WaitForNotification(ctx context.Context, method string) (Notification, error) {
+	h.notifs.mu.Lock()
+	defer h.notifs.mu.Unlock()
+
+	for {
+		for _, n := range h.notifs.all {
+			if method == "" || n.Method == method {
+				n.Params = cloneRawMessage(n.Params)
+				return n, nil
+			}
+		}
+
+		if err := waitCond(ctx, h.notifs.cond); err != nil {
+			return Notification{}, err
 		}
 	}
 }

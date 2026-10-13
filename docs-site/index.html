@@ -23,6 +23,7 @@
           <a href="concepts.html">Core Concepts</a>
           <a href="documents.html">Documents</a>
           <a href="capabilities.html">Capabilities</a>
+          <a href="client.html">Client</a>
           <a href="testing.html">Testing</a>
           <a href="debugging.html">Debugging</a>
           <a href="examples.html">Examples</a>
@@ -35,7 +36,7 @@
       <main class="content">
         <section class="hero">
           <h1>Go primitives for practical LSP servers</h1>
-          <p class="lead">go-lsp handles JSON-RPC framing, method dispatch, LSP protocol types, document state, testing, and debugging tools so your server code can focus on language behavior.</p>
+          <p class="lead">go-lsp handles JSON-RPC framing, method dispatch, LSP protocol types, document state, testing, and debugging tools so your server code can focus on language behavior. It also ships a client for driving other language servers.</p>
           <div class="actions">
             <a class="button" href="getting-started.html">Start Building</a>
             <a class="button secondary" href="https://pkg.go.dev/github.com/owenrumney/go-lsp">API Reference</a>
@@ -74,6 +75,10 @@ func main() {
           <article class="card">
             <h3>Test harness</h3>
             <p><code>servertest</code> simulates an LSP client over in-memory pipes for focused handler tests.</p>
+          </article>
+          <article class="card">
+            <h3>LSP client</h3>
+            <p><code>client</code> drives another language server: spawn it, query it, and wait for it to finish indexing before trusting an empty result.</p>
           </article>
           <article class="card">
             <h3>Debug traces</h3>

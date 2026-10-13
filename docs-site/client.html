@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Client - go-lsp</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="anchors.js" defer></script>
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <a class="brand" href="index.html">go-lsp</a>
+          <button class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="site-nav">
+            <span></span><span></span><span></span>
+          </button>
+        </div>
+        <p class="tagline">Build Language Server Protocol servers in Go.</p>
+        <nav class="nav" id="site-nav" aria-label="Documentation">
+          <a href="index.html">Home</a>
+          <a href="getting-started.html">Getting Started</a>
+          <a href="concepts.html">Core Concepts</a>
+          <a href="documents.html">Documents</a>
+          <a href="capabilities.html">Capabilities</a>
+          <a href="client.html" aria-current="page">Client</a>
+          <a href="testing.html">Testing</a>
+          <a href="debugging.html">Debugging</a>
+          <a href="examples.html">Examples</a>
+          <a class="nav-github" href="https://github.com/owenrumney/go-lsp" target="_blank" rel="noopener">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.69-.01-1.36-2.22.48-2.69-1.06-2.69-1.06-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.81.06 1.23.83 1.23.83.72 1.21 1.87.86 2.33.66.07-.51.28-.86.51-1.06-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+            GitHub
+          </a>
+        </nav>
+      </aside>
+      <main class="content">
+        <section class="hero">
+          <h1>Client</h1>
+          <p class="lead">Drive a language server from Go: spawn it, query it, and know when to trust an empty answer.</p>
+        </section>
+
+        <p>Package <code>client</code> is the mirror of package <code>server</code>. Where <code>server</code> turns your handler into a language server, <code>client</code> turns a language server into something your program can ask questions of. Use it to run <code>gopls</code> in CI, build a code-aware tool, or drive a server from an editor or agent.</p>
+
+        <h2>Connect</h2>
+        <pre><code class="language-go">c, err := client.Dial(ctx, client.Config{
+    Command: []string{"gopls"},
+    Dir:     root,
+    RootURI: lsp.DocumentURI("file://" + root),
+    Stderr:  os.Stderr,
+})
+if err != nil {
+    log.Fatal(err)
+}
+defer c.Close()</code></pre>
+
+        <p>The context passed to <code>Dial</code> bounds startup only. The connection lives until <code>Close</code>, so a request-scoped context will not kill the server underneath you.</p>
+
+        <h2>Wait Before You Trust an Empty Result</h2>
+        <p>A server accepts <code>initialize</code> long before it has finished indexing. Ask for references in that window and you get an empty list that looks exactly like a real answer. A human sees a spinner and waits; a program records it as fact.</p>
+        <pre><code class="language-go">if err := c.Ready(ctx); err != nil {
+    return err
+}
+
+refs, err := c.References(ctx, uri, pos, true)</code></pre>
+
+        <div class="callout"><code>Ready</code> is a heuristic, because LSP has no readiness signal. It tracks outstanding work-done progress and, for servers that report none, waits out <code>Config.ReadyGrace</code> (2s by default). Requests are never blocked on it, so call it when a wrong answer would cost more than the wait.</div>
+
+        <h2>Query</h2>
+        <pre><code class="language-go">if err := c.DidOpen(ctx, uri, "go", 1, text); err != nil {
+    return err
+}
+
+hover, err := c.Hover(ctx, uri, lsp.Position{Line: 10, Character: 4})
+defs, err := c.Definition(ctx, uri, pos)
+syms, err := c.DocumentSymbol(ctx, uri)
+edits, err := c.Formatting(ctx, uri, lsp.FormattingOptions{TabSize: 4})</code></pre>
+
+        <p>The client owns no document text. You hold the buffers and pass explicit versions, because whoever owns the text must own the version numbering. Replace a whole document with <code>DidChangeFull</code>; for incremental sync, build the params yourself and use <code>Notify</code>.</p>
+
+        <h2>Ask What the Server Can Do</h2>
+        <p><code>Supports</code> considers both the capabilities from <code>initialize</code> and anything the server registered later, matching document selectors for the dynamic ones.</p>
+        <pre><code class="language-go">if c.Supports("textDocument/rename", uri, "go") {
+    edit, err := c.Rename(ctx, uri, pos, "NewName")
+}</code></pre>
+
+        <div class="callout">Read provider fields through <code>Enabled()</code>, not a nil check. A server that sends <code>"codeActionProvider": false</code> decodes to a non-nil value whose <code>Enabled()</code> is false, so <code>!= nil</code> reports support that is not there.</div>
+
+        <h2>Answer the Server</h2>
+        <p>Servers ask their client for things: configuration, permission to edit files, messages to show. Implement <code>Handler</code> to answer. Embed <code>NopHandler</code> and override only what you care about; it declines everything by default.</p>
+        <pre><code class="language-go">type handler struct {
+    client.NopHandler
+}
+
+func (handler) Configuration(_ context.Context, items []lsp.ConfigurationItem) ([]json.RawMessage, error) {
+    out := make([]json.RawMessage, len(items))
+    for i := range out {
+        out[i] = json.RawMessage(`{"staticcheck": true}`)
+    }
+    return out, nil
+}
+
+func (handler) Diagnostics(params *lsp.PublishDiagnosticsParams) {
+    for _, d := range params.Diagnostics {
+        log.Printf("%s:%d %s", params.URI, d.Range.Start.Line+1, d.Message)
+    }
+}</code></pre>
+
+        <p>Diagnostics arrive as notifications rather than as a response, so there is nothing to wait on. Collect them in your <code>Handler</code> and match them against the document version you sent. Where the server supports pull diagnostics, <code>DocumentDiagnostic</code> is the more direct route.</p>
+
+        <h2>Capability Registration Is Handled for You</h2>
+        <p>Servers add and remove capabilities at runtime. <code>Client</code> answers <code>client/registerCapability</code>, <code>client/unregisterCapability</code>, progress creation and the refresh requests itself, so <code>Supports</code> stays accurate. These never reach your <code>Handler</code>.</p>
+
+        <h2>Testing Without a Real Server</h2>
+        <p><code>Config.Transport</code> replaces the child process with any stream, so tests can run a <code>server.Server</code> in the same process over a pipe.</p>
+        <pre><code class="language-go">cfg := client.Config{
+    Transport: func(ctx context.Context) (io.ReadWriteCloser, error) {
+        clientConn, serverConn := net.Pipe()
+        srv := server.NewServer(&myHandler{})
+        go func() { _ = srv.Run(ctx, serverConn) }()
+        return clientConn, nil
+    },
+}</code></pre>
+
+        <div class="callout">Tests against your own server pass while real servers break you, because real servers are the ones with indexing delays, dynamic registration, and both arms of every union type in the spec. Test against a real server too.</div>
+
+        <h2>When the Server Dies</h2>
+        <pre><code class="language-go">select {
+case <-c.Done():
+    log.Printf("server exited: %v", c.Err())
+case <-ctx.Done():
+}</code></pre>
+
+        <p>Requests still in flight fail as soon as the connection drops, rather than waiting out their timeout. <code>Close</code> shuts the server down gracefully and kills it if it has not exited within <code>Config.ShutdownTimeout</code>.</p>
+      </main>
+    </div>
+  </body>
+</html>
