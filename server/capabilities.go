@@ -7,22 +7,8 @@ var enabled = true
 func buildCapabilities(handler any) lsp.ServerCapabilities {
 	var caps lsp.ServerCapabilities
 
-	// Text document sync
 	if _, ok := handler.(TextDocumentSyncHandler); ok {
-		openClose := true
-		caps.TextDocumentSync = &lsp.TextDocumentSyncOptions{
-			OpenClose: &openClose,
-			Change:    lsp.SyncIncremental,
-		}
-		if _, ok := handler.(TextDocumentSaveHandler); ok {
-			caps.TextDocumentSync.Save = &lsp.SaveOptions{IncludeText: &enabled}
-		}
-		if _, ok := handler.(TextDocumentWillSaveHandler); ok {
-			caps.TextDocumentSync.WillSave = &enabled
-		}
-		if _, ok := handler.(TextDocumentWillSaveWaitUntilHandler); ok {
-			caps.TextDocumentSync.WillSaveWaitUntil = &enabled
-		}
+		caps.TextDocumentSync = textDocumentSyncOptions(handler)
 	}
 
 	if _, ok := handler.(CompletionHandler); ok {
@@ -213,6 +199,25 @@ func buildCapabilities(handler any) lsp.ServerCapabilities {
 	}
 
 	return caps
+}
+
+// textDocumentSyncOptions advertises incremental open/close sync plus any
+// save hooks the handler implements.
+func textDocumentSyncOptions(handler any) *lsp.TextDocumentSyncOptions {
+	opts := &lsp.TextDocumentSyncOptions{
+		OpenClose: &enabled,
+		Change:    lsp.SyncIncremental,
+	}
+	if _, ok := handler.(TextDocumentSaveHandler); ok {
+		opts.Save = &lsp.SaveOptions{IncludeText: &enabled}
+	}
+	if _, ok := handler.(TextDocumentWillSaveHandler); ok {
+		opts.WillSave = &enabled
+	}
+	if _, ok := handler.(TextDocumentWillSaveWaitUntilHandler); ok {
+		opts.WillSaveWaitUntil = &enabled
+	}
+	return opts
 }
 
 // implementsEither reports whether handler implements A or B.

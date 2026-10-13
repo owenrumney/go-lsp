@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/owenrumney/go-lsp/document"
 	"github.com/owenrumney/go-lsp/lsp"
 )
 
@@ -41,6 +42,25 @@ func WithDebugCapture() Option {
 func WithLogger(logger *slog.Logger) Option {
 	return func(s *Server) {
 		s.logger = logger
+	}
+}
+
+// WithDocumentStore makes the server keep store in sync with the client. The
+// store is updated before the handler's own DidOpen/DidChange/DidClose (if
+// implemented) run, and the server advertises incremental sync even when the
+// handler has no sync methods. Required by Diagnoser.
+func WithDocumentStore(store *document.Store) Option {
+	return func(s *Server) {
+		s.store = store
+	}
+}
+
+// WithDiagnosticsDebounce sets the idle time after the last didChange before
+// Diagnose runs. Defaults to DefaultDiagnosticsDebounce. Zero runs on every
+// change. didOpen always runs Diagnose immediately.
+func WithDiagnosticsDebounce(d time.Duration) Option {
+	return func(s *Server) {
+		s.diagnosticsDebounce = d
 	}
 }
 

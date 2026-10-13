@@ -10,10 +10,7 @@ import (
 	"github.com/owenrumney/go-lsp/server"
 )
 
-type handler struct {
-	docs   *document.Store
-	client *server.Client
-}
+type handler struct{}
 
 func (h *handler) Initialize(_ context.Context, _ *lsp.InitializeParams) (*lsp.InitializeResult, error) {
 	return &lsp.InitializeResult{
@@ -23,61 +20,31 @@ func (h *handler) Initialize(_ context.Context, _ *lsp.InitializeParams) (*lsp.I
 
 func (h *handler) Shutdown(_ context.Context) error { return nil }
 
-func (h *handler) SetClient(client *server.Client) {
-	h.client = client
-}
-
-func (h *handler) DidOpen(_ context.Context, params *lsp.DidOpenTextDocumentParams) error {
-	_, err := h.docs.Open(params)
-	return err
-}
-
-func (h *handler) DidChange(_ context.Context, params *lsp.DidChangeTextDocumentParams) error {
-	_, err := h.docs.Change(params)
-	return err
-}
-
-func (h *handler) DidClose(_ context.Context, params *lsp.DidCloseTextDocumentParams) error {
-	h.docs.Close(params)
-	return nil
-}
-
-func (h *handler) DidSave(ctx context.Context, params *lsp.DidSaveTextDocumentParams) error {
-	_ = h.client.LogMessage(ctx, &lsp.LogMessageParams{
-		Type:    lsp.MessageTypeInfo,
-		Message: "document saved: " + string(params.TextDocument.URI),
-	})
-
+// Diagnose flags every TODO marker in the document.
+func (h *handler) Diagnose(_ context.Context, doc *document.Document) ([]lsp.Diagnostic, error) {
 	var diags []lsp.Diagnostic
-	text, ok := h.docs.Text(params.TextDocument.URI)
-	if ok {
-		for i, line := range strings.Split(text, "\n") {
-			idx := strings.Index(line, "TODO")
-			if idx < 0 {
-				continue
-			}
-			sev := lsp.SeverityWarning
-			diags = append(diags, lsp.Diagnostic{
-				Range: lsp.Range{
-					Start: lsp.Position{Line: i, Character: idx},
-					End:   lsp.Position{Line: i, Character: idx + 4},
-				},
-				Severity: &sev,
-				Source:   "todo-checker",
-				Message:  "TODO found",
-			})
-		}
-	}
+	sev := lsp.SeverityWarning
 
-	return h.client.PublishDiagnostics(ctx, &lsp.PublishDiagnosticsParams{
-		URI:         params.TextDocument.URI,
-		Diagnostics: diags,
-	})
+	for i, line := range strings.Split(doc.Text(), "\n") {
+		idx := strings.Index(line, "TODO")
+		if idx < 0 {
+			continue
+		}
+		diags = append(diags, lsp.Diagnostic{
+			Range: lsp.Range{
+				Start: lsp.Position{Line: i, Character: idx},
+				End:   lsp.Position{Line: i, Character: idx + 4},
+			},
+			Severity: &sev,
+			Source:   "todo-checker",
+			Message:  "TODO found",
+		})
+	}
+	return diags, nil
 }
 
 func main() {
-	h := &handler{docs: document.NewStore()}
-	srv := server.NewServer(h)
+	srv := server.NewServer(&handler{}, server.WithDocumentStore(document.NewStore()))
 	if err := srv.Run(context.Background(), server.RunStdio()); err != nil {
 		log.Fatal(err)
 	}
