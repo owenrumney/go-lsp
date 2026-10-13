@@ -20,8 +20,7 @@ type entry struct {
 
 // handler implements a toy language server for .env-style key=value config files.
 type handler struct {
-	docs   *document.Store
-	client *server.Client
+	docs *document.Store
 }
 
 func (h *handler) Initialize(_ context.Context, _ *lsp.InitializeParams) (*lsp.InitializeResult, error) {
@@ -37,36 +36,9 @@ func (h *handler) Initialize(_ context.Context, _ *lsp.InitializeParams) (*lsp.I
 
 func (h *handler) Shutdown(_ context.Context) error { return nil }
 
-func (h *handler) SetClient(client *server.Client) {
-	h.client = client
-}
-
-func (h *handler) DidOpen(_ context.Context, params *lsp.DidOpenTextDocumentParams) error {
-	_, err := h.docs.Open(params)
-	return err
-}
-
-func (h *handler) DidChange(_ context.Context, params *lsp.DidChangeTextDocumentParams) error {
-	_, err := h.docs.Change(params)
-	return err
-}
-
-func (h *handler) DidClose(_ context.Context, params *lsp.DidCloseTextDocumentParams) error {
-	h.docs.Close(params)
-	return nil
-}
-
-func (h *handler) DidSave(ctx context.Context, params *lsp.DidSaveTextDocumentParams) error {
-	text, ok := h.docs.Text(params.TextDocument.URI)
-	if !ok {
-		return nil
-	}
-
-	diags := h.findDuplicates(text)
-	return h.client.PublishDiagnostics(ctx, &lsp.PublishDiagnosticsParams{
-		URI:         params.TextDocument.URI,
-		Diagnostics: diags,
-	})
+// Diagnose flags duplicate keys. The server debounces it as the user types.
+func (h *handler) Diagnose(_ context.Context, doc *document.Document) ([]lsp.Diagnostic, error) {
+	return h.findDuplicates(doc.Text()), nil
 }
 
 // Hover returns the value of the key under the cursor.
@@ -206,7 +178,7 @@ func boolPtr(b bool) *bool { return &b }
 
 func main() {
 	h := &handler{docs: document.NewStore()}
-	srv := server.NewServer(h)
+	srv := server.NewServer(h, server.WithDocumentStore(h.docs))
 	if err := srv.Run(context.Background(), server.RunStdio()); err != nil {
 		log.Fatal(err)
 	}

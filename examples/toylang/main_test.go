@@ -8,11 +8,14 @@ import (
 
 	"github.com/owenrumney/go-lsp/document"
 	"github.com/owenrumney/go-lsp/lsp"
+	"github.com/owenrumney/go-lsp/server"
 	"github.com/owenrumney/go-lsp/servertest"
 )
 
 func TestToylangExample(t *testing.T) {
-	h := servertest.New(t, &handler{docs: document.NewStore()})
+	store := document.NewStore()
+	h := servertest.New(t, &handler{docs: store},
+		servertest.WithServerOptions(server.WithDocumentStore(store)))
 	uri := lsp.DocumentURI("file:///app.env")
 	text := "PORT=8080\nHOST=localhost\nPORT=9090"
 
@@ -44,9 +47,6 @@ func TestToylangExample(t *testing.T) {
 		t.Fatalf("definitions = %d, want 2", len(locs))
 	}
 
-	if err := h.DidSave(uri); err != nil {
-		t.Fatal(err)
-	}
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 

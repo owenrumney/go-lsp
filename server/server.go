@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/owenrumney/go-lsp/document"
 	"github.com/owenrumney/go-lsp/internal/debugui"
 	"github.com/owenrumney/go-lsp/internal/jsonrpc"
 	"github.com/owenrumney/go-lsp/lsp"
@@ -44,18 +45,26 @@ type Server struct {
 	capabilityOptions      CapabilityOptions
 	methodMiddleware       []MethodMiddleware
 	notificationMiddleware []NotificationMiddleware
+	store                  *document.Store
+	diagnostics            *diagnosticsEngine
+	diagnosticsDebounce    time.Duration
 }
 
 // NewServer creates a new LSP server with the given handler.
 // The handler must implement LifecycleHandler at minimum.
+// Panics if the handler implements Diagnoser without WithDocumentStore.
 func NewServer(handler LifecycleHandler, opts ...Option) *Server {
 	s := &Server{
 		handler:             handler,
 		customMethods:       make(map[string]jsonrpc.MethodHandler),
 		customNotifications: make(map[string]jsonrpc.NotificationHandler),
+		diagnosticsDebounce: DefaultDiagnosticsDebounce,
 	}
 	for _, opt := range opts {
 		opt(s)
+	}
+	if _, ok := handler.(Diagnoser); ok && s.store == nil {
+		panic("server: Diagnoser requires WithDocumentStore")
 	}
 	return s
 }
@@ -121,6 +130,9 @@ func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
 		s.conn.SetCallTimeout(s.clientCallTimeout)
 	}
 	s.Client = newClient(s.conn)
+	if d, ok := s.handler.(Diagnoser); ok {
+		s.diagnostics = newDiagnosticsEngine(s.store, d, s.Client, s.logger, s.diagnosticsDebounce)
+	}
 
 	if h, ok := s.handler.(ClientHandler); ok {
 		h.SetClient(s.Client)
@@ -147,6 +159,9 @@ func (s *Server) Run(ctx context.Context, rw io.ReadWriteCloser) error {
 	}
 
 	err := s.conn.Serve(ctx)
+	if s.diagnostics != nil {
+		s.diagnostics.stop(diagnosticsStopTimeout)
+	}
 	if errors.Is(err, jsonrpc.ErrExit) {
 		if s.shutdown.Load() {
 			return nil
@@ -258,10 +273,10 @@ func (s *Server) registerNotifications(d *jsonrpc.Dispatcher) {
 		return jsonrpc.ErrExit
 	}))
 
-	if h, ok := s.handler.(TextDocumentSyncHandler); ok {
-		d.RegisterNotification("textDocument/didOpen", s.wrapNotification("textDocument/didOpen", notifHandler(h, TextDocumentSyncHandler.DidOpen)))
-		d.RegisterNotification("textDocument/didChange", s.wrapNotification("textDocument/didChange", notifHandler(h, TextDocumentSyncHandler.DidChange)))
-		d.RegisterNotification("textDocument/didClose", s.wrapNotification("textDocument/didClose", notifHandler(h, TextDocumentSyncHandler.DidClose)))
+	if _, ok := s.handler.(TextDocumentSyncHandler); ok || s.store != nil {
+		d.RegisterNotification("textDocument/didOpen", s.wrapNotification("textDocument/didOpen", notifHandler(s, (*Server).didOpen)))
+		d.RegisterNotification("textDocument/didChange", s.wrapNotification("textDocument/didChange", notifHandler(s, (*Server).didChange)))
+		d.RegisterNotification("textDocument/didClose", s.wrapNotification("textDocument/didClose", notifHandler(s, (*Server).didClose)))
 	}
 
 	if h, ok := s.handler.(TextDocumentSaveHandler); ok {
@@ -334,6 +349,9 @@ func (s *Server) handleInitialize(ctx context.Context, params json.RawMessage) (
 
 	// Merge auto-detected capabilities.
 	autoCaps := buildCapabilities(s.handler)
+	if s.store != nil && autoCaps.TextDocumentSync == nil {
+		autoCaps.TextDocumentSync = textDocumentSyncOptions(s.handler)
+	}
 	applyCapabilityOptions(&autoCaps, s.handler, s.capabilityOptions)
 	mergeCapabilities(&result.Capabilities, &autoCaps)
 
@@ -358,6 +376,9 @@ func (s *Server) handleShutdown(ctx context.Context, _ json.RawMessage) (any, er
 	if !s.shutdown.CompareAndSwap(false, true) {
 		return nil, jsonrpc.NewError(jsonrpc.CodeInvalidRequest, "shutdown already received")
 	}
+	if s.diagnostics != nil {
+		s.diagnostics.stop(diagnosticsStopTimeout)
+	}
 	h := s.handler.(LifecycleHandler)
 	err := h.Shutdown(ctx)
 
@@ -380,6 +401,58 @@ func (s *Server) checkRequestLifecycle(method string) *jsonrpc.ResponseError {
 		return jsonrpc.NewError(jsonrpc.CodeServerNotInitialized, "server not initialized")
 	}
 	return nil
+}
+
+// Sync notifications update the store, then run the handler hook, then the
+// diagnostics engine. An error stops the chain, except on didClose where the
+// diagnostics clear still runs.
+func (s *Server) didOpen(ctx context.Context, p *lsp.DidOpenTextDocumentParams) error {
+	if s.store != nil {
+		if _, err := s.store.Open(p); err != nil {
+			return err
+		}
+	}
+	if h, ok := s.handler.(TextDocumentSyncHandler); ok {
+		if err := h.DidOpen(ctx, p); err != nil {
+			return err
+		}
+	}
+	if s.diagnostics != nil {
+		s.diagnostics.opened(p.TextDocument.URI)
+	}
+	return nil
+}
+
+func (s *Server) didChange(ctx context.Context, p *lsp.DidChangeTextDocumentParams) error {
+	if s.store != nil {
+		if _, err := s.store.Change(p); err != nil {
+			return err
+		}
+	}
+	if h, ok := s.handler.(TextDocumentSyncHandler); ok {
+		if err := h.DidChange(ctx, p); err != nil {
+			return err
+		}
+	}
+	if s.diagnostics != nil {
+		s.diagnostics.changed(p.TextDocument.URI)
+	}
+	return nil
+}
+
+func (s *Server) didClose(ctx context.Context, p *lsp.DidCloseTextDocumentParams) error {
+	if s.store != nil {
+		s.store.Close(p)
+	}
+	var err error
+	if h, ok := s.handler.(TextDocumentSyncHandler); ok {
+		err = h.DidClose(ctx, p)
+	}
+	// Clear even if the handler failed, or stale diagnostics stay in the editor.
+	if s.diagnostics != nil {
+		s.diagnostics.closed(ctx, p.TextDocument.URI)
+	}
+	return err
 }
 
 // Per the spec, notifications outside the initialized window are dropped, except exit.

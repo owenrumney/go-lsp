@@ -1,6 +1,6 @@
 # Diagnostics Example
 
-LSP server that publishes diagnostics on save. Scans for `TODO` markers and reports them as warnings. Demonstrates `TextDocumentSaveHandler` and server-to-client communication via `Client.PublishDiagnostics`.
+LSP server that publishes diagnostics as you type. Scans for `TODO` markers and reports them as warnings. Demonstrates `server.Diagnoser` with `server.WithDocumentStore`: the server keeps the document store in sync, debounces `Diagnose` after each edit, drops stale results, and clears diagnostics on close.
 
 ## Build & Run
 
@@ -12,6 +12,6 @@ Configure your editor to use `./diagnostics-server` as an LSP server over stdio.
 
 ## What to Expect
 
-1. Open a file and add a line containing `TODO`.
-2. Save the file.
-3. Warning diagnostics appear on each `TODO` marker.
+1. Open a file. Warning diagnostics appear on each existing `TODO` marker.
+2. Type a line containing `TODO`. The warning appears once you stop typing.
+3. Close the file. The diagnostics are cleared.

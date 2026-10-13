@@ -35,6 +35,27 @@ func (h *Handler) DidClose(_ context.Context, params *lsp.DidCloseTextDocumentPa
 
 If your handler implements `TextDocumentSyncHandler`, `go-lsp` advertises incremental sync by default. `document.Store` also accepts full-document changes, so it works with clients that send full sync.
 
+### Letting The Server Sync The Store
+
+`server.WithDocumentStore` removes the three forwarding methods above. The server updates the store on didOpen, didChange, and didClose, and advertises incremental sync even if your handler has no sync methods:
+
+```go
+store := document.NewStore()
+srv := server.NewServer(h, server.WithDocumentStore(store))
+```
+
+Your own `DidOpen`, `DidChange`, and `DidClose` still run if you implement them. The store is updated first, so they see the new text.
+
+A handler that also implements `server.Diagnoser` gets diagnostics run for it:
+
+```go
+func (h *Handler) Diagnose(ctx context.Context, doc *document.Document) ([]lsp.Diagnostic, error) {
+    return check(doc.Text()), nil
+}
+```
+
+The server runs `Diagnose` immediately on open and `WithDiagnosticsDebounce` after the last edit (300ms by default). `ctx` is cancelled when a newer edit arrives, the document closes, or the server shuts down, and a result for a version that has since changed is dropped rather than published. Closing the document publishes an empty list. `Diagnoser` requires `WithDocumentStore`; `NewServer` panics without it.
+
 ## Reading Text
 
 Use `Text` when you just need the raw string:
