@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -40,8 +41,12 @@ func TestSaveDebugTrace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := info.Mode().Perm(); got != 0o600 {
-		t.Fatalf("permissions = %v, want 0600", got)
+	// NTFS has no POSIX mode bits: Go's perm argument only toggles the
+	// read-only attribute, so Stat reports 0666 for any writable file.
+	if runtime.GOOS != "windows" {
+		if got := info.Mode().Perm(); got != 0o600 {
+			t.Fatalf("permissions = %v, want 0600", got)
+		}
 	}
 
 	data, err := os.ReadFile(path)
