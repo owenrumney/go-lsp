@@ -3,6 +3,7 @@ package servertest
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net"
 	"testing"
 	"time"
@@ -128,7 +129,10 @@ func New(t testing.TB, handler server.LifecycleHandler, opts ...Option) *Harness
 
 		// Wait for server to finish, but fail the test rather than hang.
 		select {
-		case <-serverDone:
+		case err := <-serverDone:
+			if err != nil && !errors.Is(err, context.Canceled) {
+				t.Errorf("servertest: server exited with error: %v", err)
+			}
 		case <-time.After(cleanupTimeout):
 			t.Errorf("servertest: server did not exit within %s", cleanupTimeout)
 		}

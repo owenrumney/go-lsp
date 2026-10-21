@@ -162,7 +162,9 @@ func TestWithDebugCaptureEnablesTraceWithoutHTTP(t *testing.T) {
 
 	cancel()
 	_ = rw.Close()
-	<-done
+	if err := <-done; err != nil && !errors.Is(err, context.Canceled) {
+		t.Fatalf("Run: %v", err)
+	}
 }
 
 func TestWithDebugUIDegradesGracefullyOnBindFailure(t *testing.T) {
@@ -199,7 +201,9 @@ func TestWithDebugUIDegradesGracefullyOnBindFailure(t *testing.T) {
 
 	cancel()
 	_ = rw.Close()
-	<-done
+	if err := <-done; err != nil && !errors.Is(err, context.Canceled) {
+		t.Fatalf("Run: %v", err)
+	}
 }
 
 func waitForStart(t *testing.T, p *signalingPipe) {
