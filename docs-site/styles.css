@@ -356,6 +356,16 @@ img {
   max-width: 100%;
 }
 
+.mermaid {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 18px 0;
+  overflow-x: auto;
+  padding: 16px;
+  text-align: center;
+}
+
 .callout {
   background: #e6fffb;
   border: 1px solid #99f6e4;
