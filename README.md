@@ -122,6 +122,7 @@ The optional debug UI helps inspect LSP traffic while developing and testing.
 - Getting started: [`docs/getting-started.md`](./docs/getting-started.md)
 - Testing guide: [`docs/testing.md`](./docs/testing.md)
 - Driving a language server: [`docs/client.md`](./docs/client.md)
+- Handshake and message order: [`docs/handshake.md`](./docs/handshake.md)
 - Examples: [`examples/`](./examples/)
 - Package docs site: https://www.owenrumney.co.uk/go-lsp
 
