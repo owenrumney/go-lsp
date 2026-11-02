@@ -31,3 +31,10 @@ lint: lint_install ## Run linting operations
 .PHONY: fmt
 fmt: ## Format the code
 	@gofmt -w .
+
+DOCS_PORT ?= 8000
+
+.PHONY: docs
+docs: ## Serve the docs site on DOCS_PORT (default 8000).
+	@echo "docs site on http://localhost:$(DOCS_PORT)"
+	@python3 -m http.server $(DOCS_PORT) --directory docs-site

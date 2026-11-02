@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Handshake - go-lsp</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="anchors.js" defer></script>
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <a class="brand" href="index.html">go-lsp</a>
+          <button class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="site-nav">
+            <span></span><span></span><span></span>
+          </button>
+        </div>
+        <p class="tagline">Build Language Server Protocol servers in Go.</p>
+        <nav class="nav" id="site-nav" aria-label="Documentation">
+          <a href="index.html">Home</a>
+          <a href="getting-started.html">Getting Started</a>
+          <a href="concepts.html">Core Concepts</a>
+          <a href="documents.html">Documents</a>
+          <a href="capabilities.html">Capabilities</a>
+          <a href="client.html">Client</a>
+          <a href="handshake.html" aria-current="page">Handshake</a>
+          <a href="testing.html">Testing</a>
+          <a href="debugging.html">Debugging</a>
+          <a href="examples.html">Examples</a>
+          <a class="nav-github" href="https://github.com/owenrumney/go-lsp" target="_blank" rel="noopener">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.69-.01-1.36-2.22.48-2.69-1.06-2.69-1.06-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.81.06 1.23.83 1.23.83.72 1.21 1.87.86 2.33.66.07-.51.28-.86.51-1.06-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+            GitHub
+          </a>
+        </nav>
+      </aside>
+      <main class="content">
+        <section class="hero">
+          <h1>Handshake</h1>
+          <p class="lead">How a client and server negotiate, and the order every message comes in.</p>
+        </section>
+
+        <p>Every LSP session runs in the same order: negotiate, work, shut down. The order is not advisory. A server must reject work before <code>initialize</code>, and a client that skips <code>initialized</code> leaves the server dropping its notifications.</p>
+
+        <h2>The Sequence</h2>
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    participant C as Client (package client)
+    participant S as Server (package server)
+
+    Note over C,S: Negotiate
+    C->>S: spawn process, connect stdin/stdout
+    C->>S: initialize (clientInfo, capabilities, rootUri + workspaceFolders, processId, initializationOptions)
+    S->>S: handler.Initialize, then merge auto-detected capabilities
+    S-->>C: InitializeResult (serverInfo, capabilities, positionEncoding)
+    C->>S: initialized
+    Note over C,S: Server now accepts requests, readiness grace starts
+
+    Note over C,S: Work
+    C->>S: textDocument/didOpen
+    S--)C: textDocument/publishDiagnostics
+    opt dynamic registration
+        S->>C: client/registerCapability
+        C-->>S: null
+    end
+    opt long startup work
+        S->>C: window/workDoneProgress/create
+        C-->>S: null
+        S--)C: $/progress begin ... end
+    end
+    C->>S: textDocument/hover (and other requests)
+    S-->>C: result
+    opt server needs the client
+        S->>C: workspace/configuration, workspace/applyEdit, window/showMessageRequest, window/showDocument
+        C-->>S: result
+    end
+
+    Note over C,S: Shut down
+    C->>S: shutdown
+    S-->>C: null
+    C->>S: exit
+    S->>S: process exits
+        </div>
+
+        <h2>What Negotiation Decides</h2>
+        <table>
+          <thead>
+            <tr><th>Decided at</th><th>What</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Client capabilities in <code>initialize</code></td>
+              <td>Which server&rarr;client requests the client will honour, and which dynamic registrations it will act on. <code>DefaultCapabilities</code> advertises <code>dynamicRegistration</code> only where <code>Client</code> honours it, because over-declaring makes a server withhold static capabilities.</td>
+            </tr>
+            <tr>
+              <td>Server capabilities in <code>InitializeResult</code></td>
+              <td>Which requests the client may send. go-lsp builds these from the interfaces your handler implements and merges them into whatever your <code>Initialize</code> returned, so explicit values win.</td>
+            </tr>
+            <tr>
+              <td><code>positionEncoding</code></td>
+              <td>How offsets in every later position are read. The client defaults to UTF-16 and switches only if the server names another encoding. <code>DefaultCapabilities</code> offers UTF-16 alone.</td>
+            </tr>
+            <tr>
+              <td><code>client/registerCapability</code>, after the fact</td>
+              <td>Capabilities the server adds later. <code>Client.Supports(method, uri, languageID)</code> answers over both the static set and the live registrations.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Rules The Server Enforces</h2>
+        <ul>
+          <li>A request before <code>initialize</code> completes fails with <code>-32002</code> (<code>ServerNotInitialized</code>).</li>
+          <li>A second <code>initialize</code> fails with <code>InvalidRequest</code>. A failed <code>initialize</code> resets the state, so the client may retry.</li>
+          <li>Notifications outside the initialized window are dropped, except <code>exit</code>.</li>
+          <li>After <code>shutdown</code>, every request fails with <code>InvalidRequest</code>. The diagnostics engine stops before <code>handler.Shutdown</code> runs.</li>
+        </ul>
+
+        <h2>Readiness Is Not Part Of The Handshake</h2>
+        <p>A server answers <code>initialize</code> long before it has indexed anything. Ask for references in that window and the empty list looks like a real answer.</p>
+        <div class="callout">LSP has no readiness signal, so <code>Client.Ready</code> approximates one: it tracks work-done progress tokens from <code>window/workDoneProgress/create</code> and <code>$/progress</code>, and reports ready when none are outstanding. For a server that reports no progress at all, it waits out <code>Config.ReadyGrace</code> (2s by default), timed from the end of <code>initialize</code>. Requests are never blocked on it.</div>
+
+        <p>See <a href="client.html">Client</a> for the client API and <a href="documents.html">Documents</a> for position encoding in practice.</p>
+      </main>
+    </div>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      mermaid.initialize({ startOnLoad: true, theme: dark ? "dark" : "default" });
+    </script>
+  </body>
+</html>
